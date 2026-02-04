@@ -42,6 +42,18 @@ export function AdminSidebar({
       description: "Manage Users",
     },
     {
+      name: "Driver Master",
+      icon: Truck,
+      path: "drivers",
+      description: "Fleet Management",
+    },
+    {
+      name: "Eqiupment Master",
+      icon: Truck,
+      path: "equipments",
+      description: "Fleet Management",
+    },
+    {
       name: "Transport Requests",
       icon: Truck,
       path: "transport-requests",

@@ -345,7 +345,7 @@ const ShipmentDetailsModal = ({
             {containerDetails && containerDetails.length > 0 && (
               <InfoCard
                 iconText="🚛"
-                title="Vehicle Details"
+                title="Vehicle Details & Trip Advance"
                 className="md:col-span-2 xl:col-span-3"
               >
                 <div className="overflow-x-auto">

@@ -1,0 +1,20 @@
+{
+  "transport_request_id": 1,
+  "transporter_name": "XYZ Transport",
+  "vehicle_number": "KA01CD5678",
+  "driver_name": "Suresh Singh",
+  "driver_contact": "9876543211",
+  "license_number": "DL987654321",
+  "license_expiry": "2024-10-15",
+  "additional_charges": 1500,
+  "service_charges": "{\"Transportation\":8000,\"Stuffing\":3000}",
+  "total_charge": 12500,
+  "container_no": "CONT789012",
+  "line": "Global Shipping",
+  "seal_no": "SEAL789012",
+  "number_of_containers": 1,
+  "vehicle_sequence": 2,
+  "driver_advance": 3000,
+  "advance_type": "additional",
+  "advance_notes": "Additional advance for tolls and maintenance"
+}

@@ -2,9 +2,18 @@ import React from "react";
 
 const VehicleChargesTable = ({
   vehicleDataList,
-  services,
+  servicesData, // Pass the full services array from API
   updateVehicleData,
+  onAdvanceClick, // Add callback for advance button
 }) => {
+  // Filter services to only show those with APPLICABLE_FLAG = "N"
+  const applicableServices = React.useMemo(() => {
+    if (!servicesData || !Array.isArray(servicesData)) {
+      return [];
+    }
+    return servicesData.filter((service) => service.APPLICABLE_FLAG === "N");
+  }, [servicesData]);
+
   // Add deduplication function for charges table
   const getUniqueVehicles = (vehicles) => {
     // If no vehicles or empty array, return at least one empty vehicle
@@ -12,7 +21,7 @@ const VehicleChargesTable = ({
       return [
         {
           vehicleIndex: 1,
-          vehicleNumber: "", 
+          vehicleNumber: "",
           serviceCharges: {},
           additionalCharges: 0,
           totalCharge: 0,
@@ -65,7 +74,7 @@ const VehicleChargesTable = ({
   // Filter the vehicle data list to show only unique vehicle numbers
   const uniqueVehicleDataList = getUniqueVehicles(vehicleDataList);
 
-  const handleServiceChargeChange = (index, serviceName, value) => {
+  const handleServiceChargeChange = (index, serviceId, value) => {
     // Find the original index in vehicleDataList for this unique vehicle
     const originalIndex = vehicleDataList.findIndex(
       (v) => v.vehicleIndex === uniqueVehicleDataList[index].vehicleIndex
@@ -74,7 +83,7 @@ const VehicleChargesTable = ({
     const vehicle = vehicleDataList[originalIndex];
     const updatedCharges = {
       ...vehicle.serviceCharges,
-      [serviceName]: value,
+      [serviceId]: value,
     };
 
     updateVehicleData(originalIndex, "serviceCharges", updatedCharges);
@@ -96,6 +105,47 @@ const VehicleChargesTable = ({
     updateVehicleData(originalIndex, "additionalCharges", value);
   };
 
+  const handleDriverAdvanceChange = (index, value) => {
+    // Find the original index in vehicleDataList for this unique vehicle
+    const originalIndex = vehicleDataList.findIndex(
+      (v) => v.vehicleIndex === uniqueVehicleDataList[index].vehicleIndex
+    );
+
+    updateVehicleData(originalIndex, "driverAdvance", value);
+  };
+
+  const handleAdvanceTypeChange = (index, value) => {
+    // Find the original index in vehicleDataList for this unique vehicle
+    const originalIndex = vehicleDataList.findIndex(
+      (v) => v.vehicleIndex === uniqueVehicleDataList[index].vehicleIndex
+    );
+
+    updateVehicleData(originalIndex, "advanceType", value);
+  };
+
+  const handleAdvanceNotesChange = (index, value) => {
+    // Find the original index in vehicleDataList for this unique vehicle
+    const originalIndex = vehicleDataList.findIndex(
+      (v) => v.vehicleIndex === uniqueVehicleDataList[index].vehicleIndex
+    );
+
+    updateVehicleData(originalIndex, "advanceNotes", value);
+  };
+
+  // Show message if no applicable services
+  if (applicableServices.length === 0) {
+    return (
+      <div>
+        <h4 className="text-lg font-medium text-gray-900 mb-4">
+          Vehicle Charges Paid To Vendor
+        </h4>
+        <div className="border rounded-lg p-8 text-center text-gray-500">
+          No applicable services found with APPLICABLE_FLAG = "N"
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <h4 className="text-lg font-medium text-gray-900 mb-4">
@@ -110,16 +160,24 @@ const VehicleChargesTable = ({
                 Vehicle Number
               </th>
 
-              {services.map((serviceName) => (
+              {applicableServices.map((service) => (
                 <th
-                  key={serviceName}
+                  key={service.SERVICE_ID}
                   className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]"
                 >
-                  Vendor Charges (INR)
+                  <div className="flex flex-col">
+                    <span>{service.SERVICE_NAME}</span>
+                    <span className="text-xs text-gray-400 font-normal">
+                      ({service.SERVICE_CODE})
+                    </span>
+                  </div>
                 </th>
               ))}
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[160px]">
-                Amount Charged (INR)
+                Additional Charges (INR)
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                Driver Advance
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[160px]">
                 Total Charge (INR)
@@ -127,7 +185,6 @@ const VehicleChargesTable = ({
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {/* Use uniqueVehicleDataList instead of vehicleDataList */}
             {uniqueVehicleDataList.map((vehicle, index) => (
               <tr
                 key={`charges-${vehicle.vehicleIndex || index}`}
@@ -140,20 +197,23 @@ const VehicleChargesTable = ({
                   </span>
                 </td>
 
-                {services.map((serviceName) => (
-                  <td key={serviceName} className="px-4 py-4 whitespace-nowrap">
+                {applicableServices.map((service) => (
+                  <td
+                    key={service.SERVICE_ID}
+                    className="px-4 py-4 whitespace-nowrap"
+                  >
                     <input
                       type="number"
                       className="min-w-[140px] border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      value={vehicle.serviceCharges?.[serviceName] || ""}
+                      value={vehicle.serviceCharges?.[service.SERVICE_ID] || ""}
                       onChange={(e) =>
                         handleServiceChargeChange(
                           index,
-                          serviceName,
+                          service.SERVICE_ID,
                           e.target.value
                         )
                       }
-                      placeholder={`${serviceName} charge`}
+                      placeholder={`Enter amount`}
                       min="0"
                       step="0.01"
                     />
@@ -171,6 +231,46 @@ const VehicleChargesTable = ({
                     min="0"
                     step="0.01"
                   />
+                </td>
+                <td className="px-4 py-4 whitespace-nowrap">
+                  <div className="flex flex-col space-y-1">
+                    <button
+                      type="button"
+                      onClick={() => onAdvanceClick(vehicle)}
+                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                        vehicle.driverAdvance &&
+                        parseFloat(vehicle.driverAdvance) > 0
+                          ? "bg-green-100 text-green-800 hover:bg-green-200"
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      } transition-colors duration-200`}
+                    >
+                      <svg
+                        className="w-3 h-3 mr-1"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
+                        />
+                      </svg>
+                      {vehicle.driverAdvance &&
+                      parseFloat(vehicle.driverAdvance) > 0
+                        ? `₹${parseFloat(vehicle.driverAdvance).toLocaleString(
+                            "en-IN"
+                          )}`
+                        : "Add Advance"}
+                    </button>
+                    {vehicle.advanceType &&
+                      vehicle.advanceType !== "initial" && (
+                        <span className="text-xs text-gray-500 capitalize">
+                          {vehicle.advanceType}
+                        </span>
+                      )}
+                  </div>
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap">
                   <input

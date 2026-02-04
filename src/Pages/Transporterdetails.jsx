@@ -1,10 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
-import { transporterAPI, transporterListAPI } from "../utils/Api";
+import {
+  transporterAPI,
+  transporterListAPI,
+  servicesAPI,
+  driverAdvanceAPI,
+} from "../utils/Api";
 import VehicleBasicDetailsTable from "../Components/dashboard/Vehiclebasicdetailstable";
 import VehicleChargesTable from "../Components/dashboard/VehicleChargetable";
 import ContainerDetailsTable from "../Components/dashboard/Containerdetailstable";
 import ModalChecklist from "../Components/dashboard/ModalChecklist";
+import DriverAdvanceModal from "../Components/dashboard/DriverAdvanceModal";
 
 export const TransporterDetails = ({
   transportRequestId,
@@ -20,8 +26,12 @@ export const TransporterDetails = ({
   const [vehicleDataList, setVehicleDataList] = useState([]);
   const [transportersList, setTransportersList] = useState([]);
   const [services, setServices] = useState(selectedServices);
+  const [allServices, setAllServices] = useState([]); // All services with APPLICABLE_FLAG
   const [vehicleCount, setVehicleCount] = useState(1); // Initialize with 1 vehicle
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [advanceModalOpen, setAdvanceModalOpen] = useState(false);
+  const [selectedVehicleForAdvance, setSelectedVehicleForAdvance] =
+    useState(null);
 
   useEffect(() => {
     let servicesArray = [];
@@ -58,6 +68,10 @@ export const TransporterDetails = ({
       containerType: "",
       containerSize: "",
       vehicleType: vehicleType || "",
+      // Driver advance fields
+      driverAdvance: "",
+      advanceType: "initial",
+      advanceNotes: "",
     };
 
     const initialServiceCharges = {};
@@ -105,6 +119,17 @@ export const TransporterDetails = ({
           ? response.data
           : [response.data];
 
+        // Get advance data for this request
+        let advanceData = [];
+        try {
+          const advanceResult = await driverAdvanceAPI.getAdvancesByRequestId(
+            transportRequestId
+          );
+          advanceData = advanceResult.data || [];
+        } catch (advanceError) {
+          console.log("Could not load advance data:", advanceError);
+        }
+
         // Update vehicleCount based on fetched data
         setVehicleCount(details.length || 1);
 
@@ -123,6 +148,13 @@ export const TransporterDetails = ({
               serviceCharges[service] = "0";
             }
           });
+
+          // Find advance data for this vehicle
+          const vehicleAdvance = advanceData.find(
+            (advance) =>
+              advance.vehicle_number === existingDetail.vehicle_number &&
+              advance.driver_contact === existingDetail.driver_contact
+          );
 
           return {
             id: existingDetail.id,
@@ -146,6 +178,14 @@ export const TransporterDetails = ({
             containerType: existingDetail.container_type || "",
             containerSize: existingDetail.container_size || "",
             vehicleType: vehicleType || "",
+            // Driver advance fields
+            driverAdvance: vehicleAdvance
+              ? vehicleAdvance.advance_amount.toString()
+              : "",
+            advanceType: vehicleAdvance
+              ? vehicleAdvance.advance_type
+              : "initial",
+            advanceNotes: vehicleAdvance ? vehicleAdvance.notes || "" : "",
           };
         });
 
@@ -193,6 +233,25 @@ export const TransporterDetails = ({
     };
 
     fetchTransporters();
+  }, []);
+
+  useEffect(() => {
+    const fetchAllServices = async () => {
+      try {
+        console.log("TransporterDetails: Fetching all services...");
+        const data = await servicesAPI.getAllServices();
+        console.log("TransporterDetails: Services data:", data);
+        setAllServices(data || []);
+      } catch (error) {
+        console.error(
+          "TransporterDetails: Error fetching all services:",
+          error
+        );
+        setAllServices([]);
+      }
+    };
+
+    fetchAllServices();
   }, []);
 
   const updateVehicleData = (vehicleIndex, field, value) => {
@@ -344,7 +403,11 @@ export const TransporterDetails = ({
           cargo_total_weight: parseFloat(vehicle.cargoTotalWeight) || null,
           container_type: vehicle.containerType?.trim() || null,
           container_size: vehicle.containerSize?.trim() || null,
-          vehicle_sequence: index + 1, // This index might need adjustment if not all vehicles are new
+          vehicle_sequence: index + 1,
+          // Driver advance fields
+          driver_advance: parseFloat(vehicle.driverAdvance) || 0,
+          advance_type: vehicle.advanceType || "initial",
+          advance_notes: vehicle.advanceNotes?.trim() || null,
         }));
 
         const createResponse = await transporterAPI.createMultipleVehicles(
@@ -354,7 +417,6 @@ export const TransporterDetails = ({
 
         if (createResponse.success) {
           createdCount = createResponse.data.length;
-          // Update IDs for newly created vehicles in vehicleDataList
           setVehicleDataList((prevList) =>
             prevList.map((vehicle) => {
               const createdVehicle = createResponse.data.find(
@@ -362,7 +424,9 @@ export const TransporterDetails = ({
                   res.vehicle_number === vehicle.vehicleNumber.trim() &&
                   res.driver_contact === vehicle.driverContact.trim()
               );
-              return createdVehicle ? { ...vehicle, id: createdVehicle.id } : vehicle;
+              return createdVehicle
+                ? { ...vehicle, id: createdVehicle.id }
+                : vehicle;
             })
           );
         } else {
@@ -394,7 +458,6 @@ export const TransporterDetails = ({
             cargo_total_weight: parseFloat(vehicle.cargoTotalWeight) || null,
             container_type: vehicle.containerType?.trim() || null,
             container_size: vehicle.containerSize?.trim() || null,
-            // vehicle_sequence is not typically updated for existing records
           };
           const updateResponse = await transporterAPI.updateVehicle(
             vehicle.id,
@@ -407,7 +470,6 @@ export const TransporterDetails = ({
               `Failed to update vehicle ${vehicle.vehicleNumber}:`,
               updateResponse.message
             );
-            // Decide whether to throw an error or continue with other updates
           }
         }
       }
@@ -420,7 +482,6 @@ export const TransporterDetails = ({
           autoClose: 3000,
         });
 
-        // Reload transporter details to ensure consistency
         await loadTransporterDetails();
       } else {
         toast.update(loadingId, {
@@ -465,6 +526,22 @@ export const TransporterDetails = ({
     (total, vehicle) => total + (parseFloat(vehicle.totalCharge) || 0),
     0
   );
+
+  const handleAdvanceClick = (vehicle) => {
+    setSelectedVehicleForAdvance(vehicle);
+    setAdvanceModalOpen(true);
+  };
+
+  const handleAdvanceUpdate = (vehicleIndex, advanceData) => {
+    updateVehicleData(vehicleIndex, "driverAdvance", advanceData.driverAdvance);
+    updateVehicleData(vehicleIndex, "advanceType", advanceData.advanceType);
+    updateVehicleData(vehicleIndex, "advanceNotes", advanceData.advanceNotes);
+  };
+
+  const handleCloseAdvanceModal = () => {
+    setAdvanceModalOpen(false);
+    setSelectedVehicleForAdvance(null);
+  };
 
   if (isLoading) {
     return (
@@ -525,10 +602,12 @@ export const TransporterDetails = ({
             updateVehicleData={updateVehicleData}
             transportersList={transportersList}
           />
+
           <VehicleChargesTable
             vehicleDataList={vehicleDataList}
-            services={services}
+            servicesData={allServices}
             updateVehicleData={updateVehicleData}
+            onAdvanceClick={handleAdvanceClick}
           />
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -616,6 +695,14 @@ export const TransporterDetails = ({
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         onVerify={handleVerifyAndProceed}
+      />
+
+      <DriverAdvanceModal
+        isOpen={advanceModalOpen}
+        onClose={handleCloseAdvanceModal}
+        vehicleData={selectedVehicleForAdvance}
+        onAdvanceUpdate={handleAdvanceUpdate}
+        transportRequestId={transportRequestId}
       />
     </div>
   );

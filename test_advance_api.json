@@ -1,0 +1,9 @@
+{
+  "request_id": 1,
+  "driver_name": "Rajesh Kumar",
+  "driver_contact": "9876543210",
+  "vehicle_number": "MH01AB1234",
+  "advance_amount": 2500,
+  "advance_type": "settlement",
+  "notes": "Settlement advance for return journey"
+}

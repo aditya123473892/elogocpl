@@ -788,3 +788,66 @@ export const asnAPI = {
     }
   },
 };
+
+// Driver Advance API
+export const driverAdvanceAPI = {
+  // Get advances by request ID
+  getAdvancesByRequestId: async (requestId) => {
+    try {
+      const response = await api.get(`/driver-advances/request/${requestId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching advances by request ID:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get advances by driver contact
+  getAdvancesByDriver: async (driverContact) => {
+    try {
+      const response = await api.get(
+        `/driver-advances/driver/${driverContact}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching advances by driver:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Create new advance
+  createAdvance: async (advanceData) => {
+    try {
+      const response = await api.post("/driver-advances", advanceData);
+      return response.data;
+    } catch (error) {
+      console.error("Error creating advance:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Update advance status
+  updateAdvanceStatus: async (advanceId, statusData) => {
+    try {
+      const response = await api.put(
+        `/driver-advances/${advanceId}/status`,
+        statusData
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error updating advance status:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Delete advance
+  deleteAdvance: async (advanceId) => {
+    try {
+      const response = await api.delete(`/driver-advances/${advanceId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error deleting advance:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+};

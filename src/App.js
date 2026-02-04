@@ -258,6 +258,26 @@ function App() {
             }
           />
           <Route
+            path="/admin/drivers"
+            element={
+              <ProtectedRoute allowedRoles={["Admin"]}>
+                <DashboardLayout>
+                  <DriverDetails />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/equipments"
+            element={
+              <ProtectedRoute allowedRoles={["Admin"]}>
+                <DashboardLayout>
+                  <EquipmentDetails></EquipmentDetails>
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/customer/reports"
             element={
               <ProtectedRoute allowedRoles={["Customer"]}>

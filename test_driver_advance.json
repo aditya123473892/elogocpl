@@ -1,0 +1,20 @@
+{
+  "transport_request_id": 1,
+  "transporter_name": "ABC Logistics",
+  "vehicle_number": "MH01AB1234",
+  "driver_name": "Rajesh Kumar",
+  "driver_contact": "9876543210",
+  "license_number": "DL123456789",
+  "license_expiry": "2025-12-31",
+  "additional_charges": 2000,
+  "service_charges": "{\"Transportation\":5000,\"Loading\":2000,\"Unloading\":2000}",
+  "total_charge": 11000,
+  "container_no": "CONT123456",
+  "line": "Shipping Line A",
+  "seal_no": "SEAL123456",
+  "number_of_containers": 1,
+  "vehicle_sequence": 1,
+  "driver_advance": 5000,
+  "advance_type": "initial",
+  "advance_notes": "Advance for fuel and driver expenses"
+}
