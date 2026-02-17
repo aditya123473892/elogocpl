@@ -1,24 +1,28 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Check, X, Upload, FileText, Download } from "lucide-react";
-import { asnAPI  } from "../utils/Api"; // Adjust the import path as necessary
+import { Check, X, Upload, FileText, Download, ClipboardPaste } from "lucide-react";
+import { dealerTripDetailsAPI, asnAPI } from "../utils/Api"; // Adjust the import path as necessary
+import * as XLSX from "xlsx";
 
 // Real API functions
 
-const ASNManagement = () => {
+const DealerTripDetailsManagement = () => {
   const [activeTab, setActiveTab] = useState("manual");
   const [formData, setFormData] = useState({
-    vin: "",
-    modelCode: "",
-    modelName: "",
-    dealerCode: "",
-    originCode: "",
-    destinationCode: "",
-    originTerminal: "",
-    destinationTerminal: "",
-    invoiceNo: "",
-    invoiceAmount: "",
-    invoiceDate: "",
-    shipmentNo: "",
+    Rake_NO: "",
+    Load_No: "",
+    Trip_No: "",
+    INVOICE_NO: "",
+    Invoice_Date: "",
+    Destination_City: "",
+    Production_Model: "",
+    GR_Number: "",
+    Engine_No: "",
+    VIN_Number: "",
+    Sales_Model: "",
+    Dealer_Name: "", // Changed back to Dealer_Name to match database
+    LOCATION: "",
+    EWAY_BILL: "",
+    VALID_TILL: "",
   });
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState({ type: "", text: "" });
@@ -27,6 +31,7 @@ const ASNManagement = () => {
   const [csvData, setCsvData] = useState([]);
   const [csvErrors, setCsvErrors] = useState([]);
   const [csvPreview, setCsvPreview] = useState("");
+  const [pastedData, setPastedData] = useState("");
   const fileInputRef = useRef(null);
 
   // Clear success message after 5 seconds
@@ -48,13 +53,18 @@ const ASNManagement = () => {
   };
 
   const validateForm = () => {
+    console.log("Current formData:", formData); // Debug log
     const newErrors = {};
-    if (!formData.originTerminal.trim()) {
-      newErrors.originTerminal = "Origin Terminal is required";
+    if (!formData.Rake_NO || !formData.Rake_NO.toString().trim()) {
+      newErrors.Rake_NO = "Rake No is required";
     }
-    if (!formData.destinationTerminal.trim()) {
-      newErrors.destinationTerminal = "Destination Terminal is required";
+    if (!formData.Load_No || !formData.Load_No.toString().trim()) {
+      newErrors.Load_No = "Load No is required";
     }
+    if (!formData.Trip_No || !formData.Trip_No.toString().trim()) {
+      newErrors.Trip_No = "Trip No is required";
+    }
+    console.log("Validation errors:", newErrors); // Debug log
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -66,43 +76,91 @@ const ASNManagement = () => {
       setLoading(true);
       setMessage({ type: "", text: "" });
 
-      const submitData = {
-        ...formData,
-        invoiceAmount: formData.invoiceAmount
-          ? parseFloat(formData.invoiceAmount)
-          : 0,
-      };
-
-      const result = await asnAPI.createASN(submitData);
+      console.log("Submitting formData:", formData); // Debug log
+      const result = await dealerTripDetailsAPI.createDealerTripDetails(formData);
       console.log("API Response:", result);
       setMessage({
         type: "success",
-        text: result.message || "ASN record created successfully!",
+        text: result.message || "Dealer Trip Details record created successfully!",
       });
 
       // Reset form after successful submission
       setFormData({
-        vin: "",
-        modelCode: "",
-        modelName: "",
-        dealerCode: "",
-        originCode: "",
-        destinationCode: "",
-        originTerminal: "",
-        destinationTerminal: "",
-        invoiceNo: "",
-        invoiceAmount: "",
-        invoiceDate: "",
-        shipmentNo: "",
+        Rake_NO: "",
+        Load_No: "",
+        Trip_No: "",
+        INVOICE_NO: "",
+        Invoice_Date: "",
+        Destination_City: "",
+        Production_Model: "",
+        GR_Number: "",
+        Engine_No: "",
+        VIN_Number: "",
+        Sales_Model: "",
+        Dealer_Name: "", // Changed back to Dealer_Name to match database
+        LOCATION: "",
+        EWAY_BILL: "",
+        VALID_TILL: "",
       });
     } catch (error) {
-      console.error("Error creating ASN:", error);
+      console.error("Error creating Dealer Trip Details:", error);
       setMessage({
         type: "error",
-        text: error.message || "Failed to create ASN record",
+        text: error.message || "Failed to create Dealer Trip Details record",
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const parseExcel = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+          
+          // Convert to CSV format for existing parsing logic
+          const csvContent = jsonData.map(row => 
+            row.map(cell => `"${cell || ''}"`).join(',')
+          ).join('\n');
+          
+          resolve(csvContent);
+        } catch (error) {
+          reject(error);
+        }
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsArrayBuffer(file);
+    });
+  };
+
+  const parsePastedExcel = (text) => {
+    try {
+      // Split by newlines and tabs (Excel paste format)
+      const lines = text.split('\n').filter(line => line.trim());
+      
+      if (lines.length < 2) {
+        throw new Error("Data must have at least a header row and one data row");
+      }
+
+      // Convert tab-separated or comma-separated to CSV format
+      const csvContent = lines.map(line => {
+        // Check if it's tab-separated (from Excel copy-paste)
+        if (line.includes('\t')) {
+          return line.split('\t').map(cell => `"${cell.trim()}"`).join(',');
+        }
+        // Otherwise treat as CSV
+        return line;
+      }).join('\n');
+
+      return csvContent;
+    } catch (error) {
+      throw new Error(`Failed to parse pasted data: ${error.message}`);
     }
   };
 
@@ -116,38 +174,39 @@ const ASNManagement = () => {
     const data = [];
     const errors = [];
 
-    // Create header mapping (case insensitive)
+    // Create header mapping (case insensitive and handles variations)
     const headerMap = {};
     headers.forEach((header, index) => {
-      const cleanHeader = header.toLowerCase().trim();
+      const cleanHeader = header.toLowerCase().trim().replace(/[^a-z0-9_]/g, '_');
       const mappings = {
-        vin: "vin",
-        "model code": "modelCode",
-        modelcode: "modelCode",
-        "model name": "modelName",
-        modelname: "modelName",
-        "dealer code": "dealerCode",
-        dealercode: "dealerCode",
-        "origin code": "originCode",
-        origincode: "originCode",
-        "destination code": "destinationCode",
-        destinationcode: "destinationCode",
-        "origin terminal": "originTerminal",
-        originterminal: "originTerminal",
-        "destination terminal": "destinationTerminal",
-        destinationterminal: "destinationTerminal",
-        "invoice no": "invoiceNo",
-        "invoice number": "invoiceNo",
-        invoiceno: "invoiceNo",
-        invoicenumber: "invoiceNo",
-        "invoice amount": "invoiceAmount",
-        invoiceamount: "invoiceAmount",
-        "invoice date": "invoiceDate",
-        invoicedate: "invoiceDate",
-        "shipment no": "shipmentNo",
-        "shipment number": "shipmentNo",
-        shipmentno: "shipmentNo",
-        shipmentnumber: "shipmentNo",
+        rake_no: "Rake_NO",
+        rakeno: "Rake_NO",
+        load_no: "Load_No",
+        loadno: "Load_No",
+        trip_no: "Trip_No",
+        tripno: "Trip_No",
+        invoice_no: "INVOICE_NO",
+        invoiceno: "INVOICE_NO",
+        invoice_date: "Invoice_Date",
+        invoicedate: "Invoice_Date",
+        destination_city: "Destination_City",
+        destinationcity: "Destination_City",
+        production_model: "Production_Model",
+        productionmodel: "Production_Model",
+        gr_number: "GR_Number",
+        grnumber: "GR_Number",
+        engine_no: "Engine_No",
+        engineno: "Engine_No",
+        vin_number: "VIN_Number",
+        vinnumber: "VIN_Number",
+        sales_model: "Sales_Model",
+        salesmodel: "Sales_Model",
+        dealer_name: "Dealer_Name",
+        location: "LOCATION",
+        eway_bill: "EWAY_BILL",
+        ewaybill: "EWAY_BILL",
+        valid_till: "VALID_TILL",
+        validtill: "VALID_TILL",
       };
 
       if (mappings[cleanHeader]) {
@@ -162,18 +221,21 @@ const ASNManagement = () => {
 
       const values = line.split(",").map((v) => v.trim().replace(/"/g, ""));
       const rowData = {
-        vin: "",
-        modelCode: "",
-        modelName: "",
-        dealerCode: "",
-        originCode: "",
-        destinationCode: "",
-        originTerminal: "",
-        destinationTerminal: "",
-        invoiceNo: "",
-        invoiceAmount: "",
-        invoiceDate: "",
-        shipmentNo: "",
+        Rake_NO: "",
+        Load_No: "",
+        Trip_No: "",
+        INVOICE_NO: "",
+        Invoice_Date: "",
+        Destination_City: "",
+        Production_Model: "",
+        GR_Number: "",
+        Engine_No: "",
+        VIN_Number: "",
+        Sales_Model: "",
+        Dealer_Name: "", // Changed back to Dealer_Name to match database
+        LOCATION: "",
+        EWAY_BILL: "",
+        VALID_TILL: "",
       };
 
       // Map values to fields
@@ -185,25 +247,19 @@ const ASNManagement = () => {
 
       // Validate required fields
       const rowErrors = [];
-      if (!rowData.originTerminal) {
-        rowErrors.push(`Row ${i}: Origin Terminal is required`);
+      if (!rowData.Rake_NO) {
+        rowErrors.push(`Row ${i}: Rake No is required`);
       }
-      if (!rowData.destinationTerminal) {
-        rowErrors.push(`Row ${i}: Destination Terminal is required`);
+      if (!rowData.Load_No) {
+        rowErrors.push(`Row ${i}: Load No is required`);
       }
-      if (rowData.invoiceAmount && isNaN(parseFloat(rowData.invoiceAmount))) {
-        rowErrors.push(`Row ${i}: Invoice Amount must be a valid number`);
+      if (!rowData.Trip_No) {
+        rowErrors.push(`Row ${i}: Trip No is required`);
       }
 
       if (rowErrors.length > 0) {
         errors.push(...rowErrors);
       } else {
-        // Convert invoice amount to number
-        if (rowData.invoiceAmount) {
-          rowData.invoiceAmount = parseFloat(rowData.invoiceAmount);
-        } else {
-          rowData.invoiceAmount = 0;
-        }
         data.push(rowData);
       }
     }
@@ -211,57 +267,130 @@ const ASNManagement = () => {
     return { data, errors };
   };
 
-  const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
+  const handleFileChange = async (event) => {
+    const file = event.target.files[0];
     if (!file) return;
 
-    if (!file.name.toLowerCase().endsWith(".csv")) {
-      setMessage({ type: "error", text: "Please select a valid CSV file" });
+    // Check file type
+    const isCSV = file.name.toLowerCase().endsWith('.csv');
+    const isExcel = file.name.toLowerCase().endsWith('.xlsx') || file.name.toLowerCase().endsWith('.xls');
+    
+    if (!isCSV && !isExcel) {
+      setMessage({
+        type: "error",
+        text: "Please upload a CSV or Excel file (.csv, .xlsx, .xls)",
+      });
       return;
     }
 
     setCsvFile(file);
+    setCsvErrors([]);
     setMessage({ type: "", text: "" });
 
     try {
-      const text = await file.text();
-      const { data, errors } = parseCSV(text);
-
-      if (errors.length > 0) {
-        setCsvErrors(errors);
-        setMessage({
-          type: "error",
-          text: `Validation errors found in ${errors.length} rows`,
-        });
+      let text;
+      
+      if (isExcel) {
+        // Parse Excel file
+        text = await parseExcel(file);
       } else {
-        setCsvErrors([]);
-        setMessage({
-          type: "success",
-          text: `Successfully parsed ${data.length} records`,
+        // Parse CSV file
+        const reader = new FileReader();
+        text = await new Promise((resolve, reject) => {
+          reader.onload = (e) => resolve(e.target.result);
+          reader.onerror = () => reject(new Error('Failed to read CSV file'));
+          reader.readAsText(file);
         });
       }
 
-      setCsvData(data);
+      const { data: parsedData, errors: parseErrors } = parseCSV(text);
+      setCsvData(parsedData);
+      setCsvErrors(parseErrors);
 
-      // Create preview
-      const preview = data
-        .slice(0, 5)
-        .map((row, index) => {
-          return `Record ${index + 1}:\n${Object.entries(row)
-            .map(([key, value]) => `  ${key}: ${value || "N/A"}`)
-            .join("\n")}`;
-        })
-        .join("\n\n");
-
-      setCsvPreview(
-        preview +
-          (data.length > 5 ? `\n\n... and ${data.length - 5} more records` : "")
-      );
+      if (parseErrors.length > 0) {
+        setMessage({
+          type: "error",
+          text: `Found ${parseErrors.length} validation errors. Please fix them before uploading.`,
+        });
+      } else {
+        setMessage({
+          type: "success",
+          text: `Successfully parsed ${parsedData.length} records from ${isExcel ? 'Excel' : 'CSV'} file.`,
+        });
+        
+        // Create preview of first few records
+        const headers = Object.keys(parsedData[0] || {});
+        const previewLines = [headers.join(",")];
+        parsedData.slice(0, 5).forEach(row => {
+          const values = headers.map(header => `"${row[header] || ''}"`);
+          previewLines.push(values.join(","));
+        });
+        setCsvPreview(previewLines.join("\n"));
+      }
     } catch (error) {
       console.error("CSV parsing error:", error);
       setMessage({
         type: "error",
         text: `CSV parsing failed: ${error.message}`,
+      });
+    }
+  };
+
+  const handlePastedDataChange = (e) => {
+    setPastedData(e.target.value);
+    // Clear previous data when user starts typing
+    if (csvData.length > 0) {
+      setCsvData([]);
+      setCsvErrors([]);
+      setCsvPreview("");
+    }
+  };
+
+  const handleParsePastedData = () => {
+    if (!pastedData.trim()) {
+      setMessage({
+        type: "error",
+        text: "Please paste some data first",
+      });
+      return;
+    }
+
+    setCsvErrors([]);
+    setMessage({ type: "", text: "" });
+
+    try {
+      // Convert pasted data to CSV format
+      const csvContent = parsePastedExcel(pastedData);
+      
+      const { data: parsedData, errors: parseErrors } = parseCSV(csvContent);
+      setCsvData(parsedData);
+      setCsvErrors(parseErrors);
+
+      if (parseErrors.length > 0) {
+        setMessage({
+          type: "error",
+          text: `Found ${parseErrors.length} validation errors. Please fix them before submitting.`,
+        });
+      } else {
+        setMessage({
+          type: "success",
+          text: `Successfully parsed ${parsedData.length} records from pasted data.`,
+        });
+        
+        // Create preview of first few records
+        const headers = Object.keys(parsedData[0] || {});
+        const previewLines = [headers.join(",")];
+        parsedData.slice(0, 5).forEach(row => {
+          const values = headers.map(header => `"${row[header] || ''}"`);
+          previewLines.push(values.join(","));
+        });
+        setCsvPreview(previewLines.join("\n"));
+      }
+    } catch (error) {
+      console.error("Paste parsing error:", error);
+      setMessage({
+        type: "error",
+        text: `Failed to parse pasted data: ${error.message}`,
       });
     }
   };
@@ -284,7 +413,7 @@ const ASNManagement = () => {
       setLoading(true);
       setMessage({ type: "", text: "" });
 
-      const response = await asnAPI.createBulkASN(csvData);
+      const response = await dealerTripDetailsAPI.createBulkDealerTripDetails(csvData);
       console.log("Bulk API Response:", response);
       setMessage({
         type: "success",
@@ -292,7 +421,7 @@ const ASNManagement = () => {
           response.message ||
           `Successfully created ${
             response.count || csvData.length
-          } ASN records!`,
+          } Dealer Trip Details records!`,
       });
 
       // Reset CSV data
@@ -300,12 +429,13 @@ const ASNManagement = () => {
       setCsvData([]);
       setCsvPreview("");
       setCsvErrors([]);
+      setPastedData("");
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (error) {
       console.error("Bulk submit error:", error);
       setMessage({
         type: "error",
-        text: error.message || "Failed to create bulk ASN records",
+        text: error.message || "Failed to create bulk Dealer Trip Details records",
       });
     } finally {
       setLoading(false);
@@ -314,42 +444,43 @@ const ASNManagement = () => {
 
   const downloadTemplate = () => {
     const headers = [
-      "VIN",
-      "Model Code",
-      "Model Name",
-      "Dealer Code",
-      "Origin Code",
-      "Destination Code",
-      "Origin Terminal",
-      "Destination Terminal",
-      "Invoice No",
-      "Invoice Amount",
-      "Invoice Date",
-      "Shipment No",
+      "Rake_NO",
+      "Load_No",
+      "Trip_No",
+      "INVOICE_NO",
+      "Invoice_Date",
+      "Destination_City",
+      "Production_Model",
+      "GR_Number",
+      "Engine_No",
+      "VIN_Number",
+      "Sales_Model",
+      "Dealer_Name",
+      "LOCATION",
+      "EWAY_BILL",
+      "VALID_TILL",
     ];
-
-    const csvContent =
-      headers.join(",") +
-      "\n" +
-      "SAMPLE123,MC001,Model X,DLR001,ORG001,DEST001,Terminal A,Terminal B,INV001,25000.00,2024-01-15,SHIP001";
-
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "asn_template.csv";
-    a.click();
-    window.URL.revokeObjectURL(url);
+    
+    const csvContent = headers.join(",") + "\n";
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "dealer_trip_details_template.csv");
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <div className="mb-6">
+    <div className="max-w-7xl mx-auto p-6">
+      <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          ASN Management
+          Dealer Trip Details Management
         </h1>
         <p className="text-gray-600">
-          Create Advanced Shipping Notices manually or via CSV upload
+          Create Dealer Trip Details records manually or via CSV/Excel upload
         </p>
       </div>
 
@@ -399,7 +530,17 @@ const ASNManagement = () => {
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
               }`}
             >
-              CSV Upload
+              CSV/Excel Upload
+            </button>
+            <button
+              onClick={() => setActiveTab("paste")}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === "paste"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              Paste Excel Data
             </button>
           </nav>
         </div>
@@ -410,140 +551,33 @@ const ASNManagement = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                VIN
+                Rake No <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
-                name="vin"
-                value={formData.vin}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Vehicle Identification Number"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Model Code
-              </label>
-              <input
-                type="text"
-                name="modelCode"
-                value={formData.modelCode}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Model Code"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Model Name
-              </label>
-              <input
-                type="text"
-                name="modelName"
-                value={formData.modelName}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Model Name"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Dealer Code
-              </label>
-              <input
-                type="text"
-                name="dealerCode"
-                value={formData.dealerCode}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Dealer Code"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Origin Code
-              </label>
-              <input
-                type="text"
-                name="originCode"
-                value={formData.originCode}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Origin Code"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Destination Code
-              </label>
-              <input
-                type="text"
-                name="destinationCode"
-                value={formData.destinationCode}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Destination Code"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Origin Terminal <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="originTerminal"
-                value={formData.originTerminal}
+                name="Rake_NO"
+                value={formData.Rake_NO}
                 onChange={handleInputChange}
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.originTerminal ? "border-red-300" : "border-gray-300"
+                  errors.Rake_NO ? "border-red-300" : "border-gray-300"
                 }`}
-                placeholder="Origin Terminal"
+                placeholder="Rake Number"
               />
-              {errors.originTerminal && (
+              {errors.Rake_NO && (
                 <p className="mt-1 text-sm text-red-600">
-                  {errors.originTerminal}
+                  {errors.Rake_NO}
                 </p>
               )}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Destination Terminal <span className="text-red-500">*</span>
+                Invoice No
               </label>
               <input
                 type="text"
-                name="destinationTerminal"
-                value={formData.destinationTerminal}
-                onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.destinationTerminal
-                    ? "border-red-300"
-                    : "border-gray-300"
-                }`}
-                placeholder="Destination Terminal"
-              />
-              {errors.destinationTerminal && (
-                <p className="mt-1 text-sm text-red-600">
-                  {errors.destinationTerminal}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Invoice Number
-              </label>
-              <input
-                type="text"
-                name="invoiceNo"
-                value={formData.invoiceNo}
+                name="INVOICE_NO"
+                value={formData.INVOICE_NO}
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Invoice Number"
@@ -552,16 +586,57 @@ const ASNManagement = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Invoice Amount
+                Load No <span className="text-red-500">*</span>
               </label>
               <input
-                type="number"
-                name="invoiceAmount"
-                value={formData.invoiceAmount}
+                type="text"
+                name="Load_No"
+                value={formData.Load_No}
                 onChange={handleInputChange}
-                step="0.01"
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.Load_No ? "border-red-300" : "border-gray-300"
+                }`}
+                placeholder="Load Number"
+              />
+              {errors.Load_No && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.Load_No}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Trip No <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="Trip_No"
+                value={formData.Trip_No}
+                onChange={handleInputChange}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.Trip_No ? "border-red-300" : "border-gray-300"
+                }`}
+                placeholder="Trip Number"
+              />
+              {errors.Trip_No && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.Trip_No}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Production Model
+              </label>
+              <input
+                type="text"
+                name="Production_Model"
+                value={formData.Production_Model}
+                onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Invoice Amount"
+                placeholder="Production Model"
               />
             </div>
 
@@ -571,8 +646,8 @@ const ASNManagement = () => {
               </label>
               <input
                 type="date"
-                name="invoiceDate"
-                value={formData.invoiceDate}
+                name="Invoice_Date"
+                value={formData.Invoice_Date}
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
@@ -580,15 +655,182 @@ const ASNManagement = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Shipment Number
+                Destination City
               </label>
               <input
                 type="text"
-                name="shipmentNo"
-                value={formData.shipmentNo}
+                name="Destination_City"
+                value={formData.Destination_City}
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Shipment Number"
+                placeholder="Destination City"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                GR Number
+              </label>
+              <input
+                type="text"
+                name="GR_Number"
+                value={formData.GR_Number}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="GR Number"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Engine No
+              </label>
+              <input
+                type="text"
+                name="Engine_No"
+                value={formData.Engine_No}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Engine Number"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                VIN Number
+              </label>
+              <input
+                type="text"
+                name="VIN_Number"
+                value={formData.VIN_Number}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="VIN Number"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Sales Model
+              </label>
+              <input
+                type="text"
+                name="Sales_Model"
+                value={formData.Sales_Model}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Sales Model"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Dealer Name
+              </label>
+              <input
+                type="text"
+                name="Dealer_Name"
+                value={formData.Dealer_Name}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Dealer Name"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Location
+              </label>
+              <input
+                type="text"
+                name="LOCATION"
+                value={formData.LOCATION}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Location"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                E-Way Bill
+              </label>
+              <input
+                type="text"
+                name="EWAY_BILL"
+                value={formData.EWAY_BILL}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="E-Way Bill"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Valid Till
+              </label>
+              <input
+                type="date"
+                name="VALID_TILL"
+                value={formData.VALID_TILL}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                For Code
+              </label>
+              <input
+                type="text"
+                name="For_Code"
+                value={formData.For_Code}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="For Code"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Imm For Code
+              </label>
+              <input
+                type="text"
+                name="Imm_For_Code"
+                value={formData.Imm_For_Code}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Imm For Code"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                BVEH Code
+              </label>
+              <input
+                type="text"
+                name="BVEH_Code"
+                value={formData.BVEH_Code}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="BVEH Code"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Status
+              </label>
+              <input
+                type="text"
+                name="Status"
+                value={formData.Status}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Status"
               />
             </div>
 
@@ -600,17 +842,17 @@ const ASNManagement = () => {
                   loading ? "opacity-50 cursor-not-allowed" : ""
                 }`}
               >
-                {loading ? "Creating..." : "Create ASN Record"}
+                {loading ? "Creating..." : "Create Dealer Trip Details Record"}
               </button>
             </div>
           </div>
         </div>
-      ) : (
+      ) : activeTab === "csv" ? (
         <div className="space-y-6">
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900">
-                CSV Upload
+                CSV/Excel Upload
               </h2>
               <button
                 onClick={downloadTemplate}
@@ -626,17 +868,17 @@ const ASNManagement = () => {
               <div className="flex flex-col items-center">
                 <label htmlFor="csv-upload" className="cursor-pointer">
                   <span className="text-lg font-medium text-gray-900">
-                    Upload CSV File
+                    Upload CSV/Excel File
                   </span>
                   <p className="mt-2 text-sm text-gray-500">
-                    Select a CSV file with ASN data to upload multiple records
+                    Select a CSV or Excel file with Dealer Trip Details data to upload multiple records
                   </p>
                 </label>
                 <input
                   id="csv-upload"
                   type="file"
-                  accept=".csv"
-                  onChange={handleFileUpload}
+                  accept=".csv,.xlsx,.xls"
+                  onChange={handleFileChange}
                   className="hidden"
                   ref={fileInputRef}
                   disabled={loading}
@@ -707,12 +949,172 @@ const ASNManagement = () => {
                 )}
               </div>
 
-              <textarea
-                value={csvPreview}
-                readOnly
-                className="w-full h-64 p-4 border border-gray-300 rounded-lg bg-gray-50 font-mono text-sm resize-none"
-                placeholder="CSV preview will appear here..."
-              />
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      {csvData.length > 0 && Object.keys(csvData[0]).map((header) => (
+                        <th
+                          key={header}
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        >
+                          {header.replace(/_/g, ' ')}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {csvData.slice(0, 10).map((row, index) => (
+                      <tr key={index} className="hover:bg-gray-50">
+                        {Object.values(row).map((value, cellIndex) => (
+                          <td
+                            key={cellIndex}
+                            className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                          >
+                            {value || '-'}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {csvData.length > 10 && (
+                  <div className="text-center mt-4 text-sm text-gray-500">
+                    Showing first 10 of {csvData.length} records
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-6">
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Paste Excel Data
+              </h2>
+              <button
+                onClick={downloadTemplate}
+                className="flex items-center px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Download Template
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <div className="flex items-start mb-2">
+                  <ClipboardPaste className="w-5 h-5 text-gray-400 mr-2 mt-1" />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Paste Excel Data Here
+                    </label>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Copy cells from Excel (Ctrl+C) and paste them here. Include the header row.
+                    </p>
+                  </div>
+                </div>
+                <textarea
+                  value={pastedData}
+                  onChange={handlePastedDataChange}
+                  placeholder="Paste your Excel data here... (with headers)&#10;&#10;Example:&#10;Dealer	For	Load_No	Trip_No	Regn_No...&#10;DEALER001	FOR	1001	2001	REG123..."
+                  className="w-full h-64 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  onClick={handleParsePastedData}
+                  disabled={loading || !pastedData.trim()}
+                  className={`px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                    loading || !pastedData.trim() ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                >
+                  Parse Data
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {csvErrors.length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <h3 className="text-sm font-medium text-red-800 mb-2">
+                Validation Errors ({csvErrors.length})
+              </h3>
+              <div className="text-sm text-red-700 max-h-40 overflow-y-auto">
+                {csvErrors.slice(0, 10).map((error, index) => (
+                  <div key={index} className="mb-1">
+                    • {typeof error === "string" ? error : error.message}
+                  </div>
+                ))}
+                {csvErrors.length > 10 && (
+                  <div className="text-red-600 font-medium mt-2">
+                    ... and {csvErrors.length - 10} more errors
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {csvPreview && (
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Data Preview ({csvData.length} records)
+                </h2>
+                {csvData.length > 0 && csvErrors.length === 0 && (
+                  <button
+                    onClick={handleBulkSubmit}
+                    disabled={loading}
+                    className={`px-6 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${
+                      loading ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
+                  >
+                    {loading
+                      ? "Submitting..."
+                      : `Submit ${csvData.length} Records`}
+                  </button>
+                )}
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      {csvData.length > 0 && Object.keys(csvData[0]).map((header) => (
+                        <th
+                          key={header}
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        >
+                          {header.replace(/_/g, ' ')}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {csvData.slice(0, 10).map((row, index) => (
+                      <tr key={index} className="hover:bg-gray-50">
+                        {Object.values(row).map((value, cellIndex) => (
+                          <td
+                            key={cellIndex}
+                            className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                          >
+                            {value || '-'}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {csvData.length > 10 && (
+                  <div className="text-center mt-4 text-sm text-gray-500">
+                    Showing first 10 of {csvData.length} records
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -721,4 +1123,4 @@ const ASNManagement = () => {
   );
 };
 
-export default ASNManagement;
+export default DealerTripDetailsManagement;

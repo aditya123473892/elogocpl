@@ -12,7 +12,12 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  MapPin,
+  Car,
+  Camera,
+  Warehouse,
 } from "lucide-react";
+
 export function CustomerSidebar({
   collapsed,
   toggleSidebar,
@@ -60,11 +65,53 @@ export function CustomerSidebar({
       path: "equipments",
       description: "Analytics & History",
     },
-    {
-      name: "ASN",
-      icon: MessageSquare,
+      {
+      name: "ASN Upload",
+      icon: FileText,
       path: "ASN",
-      description: "Manage ASN",
+      description: "Upload ASN Documents",
+    },
+    {
+      name: "ASN Reports",
+      icon: MessageSquare,
+      path: "asn-reports",
+      description: "View ASN Upload Reports",
+    },
+    {
+      name: "OEM Pickup",
+      icon: Truck,
+      path: "oem-pickup",
+      description: "Register Vehicle Pickup",
+    },
+    {
+      name: "Arrival At Plant",
+      icon: MapPin,
+      path: "arrival-plant",
+      description: "Log Vehicle Arrival",
+    },
+    {
+      name: "VIN Survey",
+      icon: Camera,
+      path: "vin-survey",
+      description: "Vehicle Inspection Survey",
+    },
+    {
+      name: "Loading Stage",
+      icon: Warehouse,
+      path: "loading-stage",
+      description: "Yard In/Out Operations",
+    },
+    {
+      name: "Location Master",
+      icon: MapPin,
+      path: "location-master",
+      description: "Manage Locations",
+    },
+    {
+      name: "Vehicle Master",
+      icon: Car,
+      path: "vehicle-master",
+      description: "Manage Vehicles",
     },
     {
       name: "Reports",

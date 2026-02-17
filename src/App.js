@@ -25,6 +25,13 @@ import DriverDetails from "./Pages/DriverDetails";
 import EquipmentDetails from "./Pages/EquipmentDetails";
 import Vindetails from "./Pages/VinDetailsPage";
 import ASNManagement from "./Pages/ASNupload";
+import ASNReport from "./Pages/ASNReport";
+import OEMPickupPage from "./Pages/Oempickup";
+import ArrivalAtPlantPage from "./Pages/Arrivalatplant";
+import VINSurveyPage from "./Components/Vinsurvey";
+import LoadingStagePage from "./Components/Loadingstage";
+import LocationMaster from "./Pages/LocationMaster";
+import VehicleMaster from "./Pages/VehicleMaster";
 import TransportReports from "./Pages/Reports";
 import VendorController from "./Pages/Vendorcontroller";
 import AllReportsPage from "./Pages/AllAdminreports";
@@ -193,6 +200,76 @@ function App() {
               <ProtectedRoute allowedRoles={["Customer"]}>
                 <DashboardLayout>
                   <ASNManagement></ASNManagement>
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/location-master"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+                  <LocationMaster />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/asn-reports"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+                  <ASNReport />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/oem-pickup"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+                  <OEMPickupPage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/arrival-plant"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+                  <ArrivalAtPlantPage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/vin-survey"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+                  <VINSurveyPage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/loading-stage"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+                  <LoadingStagePage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/vehicle-master"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+                  <VehicleMaster />
                 </DashboardLayout>
               </ProtectedRoute>
             }

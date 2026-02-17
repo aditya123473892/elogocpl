@@ -25,7 +25,7 @@ api.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 api.interceptors.response.use(
@@ -41,7 +41,7 @@ api.interceptors.response.use(
 
     // Simply return the error without any redirection
     return Promise.reject(error);
-  }
+  },
 );
 
 // Utility function to check if token is expired
@@ -127,7 +127,7 @@ export const authAPI = {
     // Check if token exists and has valid format
     if (!token || !isValidTokenFormat(token)) {
       console.log(
-        "Token missing or invalid format, but not clearing auth data"
+        "Token missing or invalid format, but not clearing auth data",
       );
       return false;
     }
@@ -217,7 +217,7 @@ export const transporterAPI = {
   getContainersByRequestId: async (requestId) => {
     try {
       const response = await api.get(
-        `/transport-requests/${requestId}/containers`
+        `/transport-requests/${requestId}/containers`,
       );
       return response.data;
     } catch (error) {
@@ -227,7 +227,7 @@ export const transporterAPI = {
   getTransporterByRequestId: async (requestId) => {
     try {
       const response = await api.get(
-        `/transport-requests/${requestId}/transporter`
+        `/transport-requests/${requestId}/transporter`,
       );
       return response.data;
     } catch (error) {
@@ -238,7 +238,7 @@ export const transporterAPI = {
     try {
       const response = await api.post(
         `/transport-requests/${requestId}/vehicles/batch`,
-        { vehicles }
+        { vehicles },
       );
       return response.data;
     } catch (error) {
@@ -249,7 +249,7 @@ export const transporterAPI = {
     try {
       const response = await api.post(
         `/transport-requests/${requestId}/vehicles/containers/batch`,
-        { vehicleContainers }
+        { vehicleContainers },
       );
       return response.data;
     } catch (error) {
@@ -260,7 +260,7 @@ export const transporterAPI = {
   getContainersByVehicleNumber: async (requestId, vehicleNumber) => {
     try {
       const response = await api.get(
-        `/transport-requests/${requestId}/vehicle/${vehicleNumber}/containers`
+        `/transport-requests/${requestId}/vehicle/${vehicleNumber}/containers`,
       );
       return response.data;
     } catch (error) {
@@ -270,7 +270,7 @@ export const transporterAPI = {
   deleteContainer: async (containerId) => {
     try {
       const response = await api.delete(
-        `/transporter/container/${containerId}`
+        `/transporter/container/${containerId}`,
       );
       return response.data;
     } catch (error) {
@@ -311,7 +311,7 @@ export const transportRequestAPI = {
     try {
       const response = await api.put(
         `/transport/update/${requestId}`,
-        requestData
+        requestData,
       );
       return response.data;
     } catch (error) {
@@ -365,11 +365,11 @@ export const setAuthToken = (token) => {
       console.log("Auth token set in headers:", token);
       console.log(
         "Verification - localStorage token:",
-        localStorage.getItem("token")
+        localStorage.getItem("token"),
       );
       console.log(
         "Verification - axios headers:",
-        api.defaults.headers.common["Authorization"]
+        api.defaults.headers.common["Authorization"],
       );
 
       return true;
@@ -398,7 +398,7 @@ export const locationAPI = {
   // Get all locations
   getAllLocations: async () => {
     try {
-      const response = await api.get("/locations");
+      const response = await api.get("/location-master/locations");
       return response.data;
       console.log("Locations fetched successfully:", response.data);
     } catch (error) {
@@ -472,7 +472,7 @@ export const vendorAPI = {
         `/vendors/${vendorId}/document/${documentNumber}`,
         {
           responseType: "blob",
-        }
+        },
       );
       return response.data;
     } catch (error) {
@@ -687,7 +687,7 @@ export const equipmentAPI = {
     try {
       const response = await api.put(
         `/equipment/${equipmentId}`,
-        equipmentData
+        equipmentData,
       );
       return response.data;
     } catch (error) {
@@ -806,7 +806,7 @@ export const driverAdvanceAPI = {
   getAdvancesByDriver: async (driverContact) => {
     try {
       const response = await api.get(
-        `/driver-advances/driver/${driverContact}`
+        `/driver-advances/driver/${driverContact}`,
       );
       return response.data;
     } catch (error) {
@@ -831,7 +831,7 @@ export const driverAdvanceAPI = {
     try {
       const response = await api.put(
         `/driver-advances/${advanceId}/status`,
-        statusData
+        statusData,
       );
       return response.data;
     } catch (error) {
@@ -847,6 +847,454 @@ export const driverAdvanceAPI = {
       return response.data;
     } catch (error) {
       console.error("Error deleting advance:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+};
+
+// Dealer Trip Details API
+export const dealerTripDetailsAPI = {
+  // Get all Dealer Trip Details records
+  getAllDealerTripDetails: async () => {
+    try {
+      const response = await api.get("/dealer-trip-details");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching Dealer Trip Details records:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get Dealer Trip Details record by ID
+  getDealerTripDetailsById: async (id) => {
+    try {
+      const response = await api.get(`/dealer-trip-details/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching Dealer Trip Details record:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Create Dealer Trip Details record
+  createDealerTripDetails: async (data) => {
+    try {
+      const response = await api.post("/dealer-trip-details", data);
+      return response.data;
+    } catch (error) {
+      console.error("Error creating Dealer Trip Details record:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Update Dealer Trip Details record
+  updateDealerTripDetails: async (id, data) => {
+    try {
+      const response = await api.put(`/dealer-trip-details/${id}`, data);
+      return response.data;
+    } catch (error) {
+      console.error("Error updating Dealer Trip Details record:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Delete Dealer Trip Details record
+  deleteDealerTripDetails: async (id) => {
+    try {
+      const response = await api.delete(`/dealer-trip-details/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error deleting Dealer Trip Details record:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Create bulk Dealer Trip Details records
+  createBulkDealerTripDetails: async (dataArray) => {
+    try {
+      const response = await api.post("/dealer-trip-details/bulk", {
+        records: dataArray,
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error creating bulk Dealer Trip Details records:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+};
+
+// OEM Pickup API - Separate Rows Version
+export const oemPickupSeparateRowsAPI = {
+  // Get all OEM Pickup records
+  getAllOEMPickups: async () => {
+    try {
+      const response = await api.get("/oem-pickup-separate-rows");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching OEM Pickup records:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get OEM Pickup by ID
+  getOEMPickupById: async (id) => {
+    try {
+      const response = await api.get(`/oem-pickup-separate-rows/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching OEM Pickup record:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get available VINs for OEM Pickup
+  getAvailableVINs: async () => {
+    try {
+      const response = await api.get("/oem-pickup-separate-rows/available-vins");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching available VINs:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Validate VINs for OEM Pickup
+  validateVINs: async (vinArray) => {
+    try {
+      const response = await api.post("/oem-pickup-separate-rows/validate-vins", { vinArray });
+      return response.data;
+    } catch (error) {
+      console.error("Error validating VINs:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Create new OEM Pickup record
+  createOEMPickup: async (data) => {
+    try {
+      const response = await api.post("/oem-pickup-separate-rows", data);
+      return response.data;
+    } catch (error) {
+      console.error("Error creating OEM Pickup record:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Update OEM Pickup record
+  updateOEMPickup: async (id, data) => {
+    try {
+      const response = await api.put(`/oem-pickup-separate-rows/${id}`, data);
+      return response.data;
+    } catch (error) {
+      console.error("Error updating OEM Pickup record:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Delete OEM Pickup record
+  deleteOEMPickup: async (id) => {
+    try {
+      const response = await api.delete(`/oem-pickup-separate-rows/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error deleting OEM Pickup record:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+};
+// OEM Pickup API - Simple Single Table Approach
+export const oemPickupAPI = {
+  // Get all OEM Pickup records
+  getAllOEMPickups: async () => {
+    try {
+      const response = await api.get("/oem-pickup");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching OEM Pickup records:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get OEM Pickup by ID
+  getOEMPickupById: async (id) => {
+    try {
+      const response = await api.get(`/oem-pickup/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching OEM Pickup record:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get available VINs for OEM Pickup
+  getAvailableVINs: async () => {
+    try {
+      const response = await api.get("/oem-pickup/available-vins");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching available VINs:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Validate VINs for OEM Pickup
+  validateVINs: async (vinDetails) => {
+    try {
+      const response = await api.post("/oem-pickup/validate-vins", { vinDetails });
+      return response.data;
+    } catch (error) {
+      console.error("Error validating VINs:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Create new OEM Pickup record
+  createOEMPickup: async (data) => {
+    try {
+      const response = await api.post("/oem-pickup", data);
+      return response.data;
+    } catch (error) {
+      console.error("Error creating OEM Pickup record:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Update OEM Pickup record
+  updateOEMPickup: async (id, data) => {
+    try {
+      const response = await api.put(`/oem-pickup/${id}`, data);
+      return response.data;
+    } catch (error) {
+      console.error("Error updating OEM Pickup record:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Delete OEM Pickup record
+  deleteOEMPickup: async (id) => {
+    try {
+      const response = await api.delete(`/oem-pickup/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error deleting OEM Pickup record:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+};
+
+// Location Master API
+export const locationMasterAPI = {
+  // Get all locations
+  getAllLocations: async () => {
+    try {
+      const response = await api.get("/location-master/locations");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching locations:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get location by ID
+  getLocationById: async (id) => {
+    try {
+      const response = await api.get(`/location-master/locations/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching location:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Create new location
+  createLocation: async (locationData) => {
+    try {
+      const response = await api.post("/location-master/locations", locationData);
+      return response.data;
+    } catch (error) {
+      console.error("Error creating location:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Update location
+  updateLocation: async (id, locationData) => {
+    try {
+      const response = await api.put(`/location-master/locations/${id}`, locationData);
+      return response.data;
+    } catch (error) {
+      console.error("Error updating location:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Delete location
+  deleteLocation: async (id) => {
+    try {
+      const response = await api.delete(`/location-master/locations/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error deleting location:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Toggle location status
+  toggleLocationStatus: async (id) => {
+    try {
+      const response = await api.patch(`/location-master/locations/${id}/toggle-status`);
+      return response.data;
+    } catch (error) {
+      console.error("Error toggling location status:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+};
+
+// Arrival At Plant API
+export const arrivalAtPlantAPI = {
+  // Get all OEM Pickup vehicles for arrival
+  getOEMPickupVehicles: async () => {
+    try {
+      const response = await api.get("/arrival-at-plant/oem-pickup-vehicles");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching OEM Pickup vehicles:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get vehicle details by truck number
+  getVehicleDetailsByTruck: async (truckNumber) => {
+    try {
+      const response = await api.get(`/arrival-at-plant/vehicle-details/${truckNumber}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching vehicle details:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Create arrival at plant record
+  createArrival: async (arrivalData) => {
+    try {
+      const response = await api.post("/arrival-at-plant", arrivalData);
+      return response.data;
+    } catch (error) {
+      console.error("Error creating arrival record:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Update arrival record
+  updateArrival: async (id, arrivalData) => {
+    try {
+      const response = await api.put(`/arrival-at-plant/${id}`, arrivalData);
+      return response.data;
+    } catch (error) {
+      console.error("Error updating arrival record:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get all arrival records
+  getAllArrivals: async () => {
+    try {
+      const response = await api.get("/arrival-at-plant");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching arrival records:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+};
+
+// Vehicle Master API
+export const vehicleMasterAPI = {
+  // Get all vehicles
+  getAllVehicles: async () => {
+    try {
+      const response = await api.get("/vehicle-master/vehicles");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching vehicles:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get vehicle by ID
+  getVehicleById: async (id) => {
+    try {
+      const response = await api.get(`/vehicle-master/vehicles/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching vehicle:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Create new vehicle
+  createVehicle: async (vehicleData) => {
+    try {
+      const response = await api.post("/vehicle-master/vehicles", vehicleData);
+      return response.data;
+    } catch (error) {
+      console.error("Error creating vehicle:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Update vehicle
+  updateVehicle: async (id, vehicleData) => {
+    try {
+      const response = await api.put(`/vehicle-master/vehicles/${id}`, vehicleData);
+      return response.data;
+    } catch (error) {
+      console.error("Error updating vehicle:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Delete vehicle
+  deleteVehicle: async (id) => {
+    try {
+      const response = await api.delete(`/vehicle-master/vehicles/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error deleting vehicle:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Toggle vehicle status
+  toggleVehicleStatus: async (id) => {
+    try {
+      const response = await api.patch(`/vehicle-master/vehicles/${id}/toggle-status`);
+      return response.data;
+    } catch (error) {
+      console.error("Error toggling vehicle status:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get transporters
+  getTransporters: async () => {
+    try {
+      const response = await api.get("/vehicle-master/transporters");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching transporters:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get drivers
+  getDrivers: async () => {
+    try {
+      const response = await api.get("/vehicle-master/drivers");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching drivers:", error);
       throw error.response?.data || error.message;
     }
   },
