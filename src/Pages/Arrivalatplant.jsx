@@ -24,13 +24,11 @@ const yardLocations = [
 ];
 
 const today = new Date().toISOString().split("T")[0];
-const currentTime = new Date().toTimeString().slice(0, 5);
 
 const defaultForm = {
   transportMode: "",
   yardLocation: "",
   arrivalDate: today,
-  arrivalTime: currentTime,
   remarks: "",
   selectedTruck: "",
   vehicleDetails: null,
@@ -161,16 +159,11 @@ export default function ArrivalAtPlantPage() {
   };
 
   const validate = () => {
-    const required = ["transportMode", "yardLocation", "arrivalDate", "arrivalTime"];
+    const required = ["selectedTruck", "arrivalDate"];
     const errs = {};
     required.forEach((f) => {
       if (!form[f] || !form[f].trim()) errs[f] = true;
     });
-    
-    // Validate truck selection for Truck transport mode
-    if (form.transportMode === "Truck" && !form.selectedTruck) {
-      errs.selectedTruck = true;
-    }
     
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -183,20 +176,16 @@ export default function ArrivalAtPlantPage() {
     try {
       setLoading(true);
       
+      // For updating existing OEM Pickup records with arrival date and remarks
       const arrivalData = {
-        transportMode: form.transportMode,
-        yardLocation: form.yardLocation,
-        arrivalDate: form.arrivalDate,
-        arrivalTime: form.arrivalTime,
-        remarks: form.remarks,
         truckNumber: form.selectedTruck,
-        vinDetails: vinData.join(", "),
-        vehicleDetails: form.vehicleDetails,
+        arrivalDate: form.arrivalDate,
+        remarks: form.remarks,
       };
       
       await arrivalAtPlantAPI.createArrival(arrivalData);
       setSaved(true);
-      showToast("Arrival at plant recorded successfully!", 'success');
+      showToast("Arrival date and remarks updated successfully!", 'success');
       
       setTimeout(() => {
         setSaved(false);
@@ -204,9 +193,9 @@ export default function ArrivalAtPlantPage() {
         handleReset();
       }, 3500);
     } catch (error) {
-      console.error("Error creating arrival record:", error);
+      console.error("Error updating arrival date and remarks:", error);
       
-      const errorMessage = error.response?.data?.error || error.message || "Failed to record arrival at plant";
+      const errorMessage = error.response?.data?.error || error.message || "Failed to update arrival date and remarks";
       showToast(errorMessage, 'error');
       
       setErrors({ general: errorMessage });
@@ -448,75 +437,57 @@ export default function ArrivalAtPlantPage() {
                 )}
               </div>
               <div>
-                <FieldLabel required>Arrival Time</FieldLabel>
-                <div className="relative">
-                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-                  <input
-                    type="time"
-                    value={form.arrivalTime}
-                    onChange={set("arrivalTime")}
-                    className={`${fc("arrivalTime")} pl-9`}
-                  />
-                </div>
-                {errors.arrivalTime && (
-                  <p className="text-xs text-red-500 mt-1">Arrival time is required</p>
-                )}
+                <FieldLabel>Remarks</FieldLabel>
+                <textarea
+                  value={form.remarks}
+                  onChange={set("remarks")}
+                  placeholder="Enter remarks if any... (e.g. RMK ARRIVAL_DATE_TIME)"
+                  rows={3}
+                  className={`${inputClass} resize-none`}
+                />
               </div>
-            </div>
-          </div>
-
-          {/* ── Section 4: Remarks ──────────────────────────────────── */}
-          <div className="px-6 pt-6 pb-5 border-b border-gray-100">
-            <SectionHeader icon={Navigation} title="Additional Remarks" color="blue" />
-            <div>
-              <FieldLabel>Remarks</FieldLabel>
-              <textarea
-                value={form.remarks}
-                onChange={set("remarks")}
-                placeholder="Enter remarks if any... (e.g. RMK ARRIVAL_DATE_TIME)"
-                rows={3}
-                className={`${inputClass} resize-none`}
-              />
             </div>
           </div>
 
           {/* ── Live Summary ────────────────────────────────────────── */}
           {hasSummary && (
-            <div className="mx-6 my-5 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-xs font-semibold text-green-700 uppercase tracking-wider mb-2">
-                Entry Preview
-              </p>
-              <div className="flex flex-wrap gap-x-8 gap-y-1.5">
-                {form.yardLocation && (
-                  <span className="text-xs text-gray-600">
-                    <span className="font-semibold text-gray-800">Yard:</span>{" "}
-                    {form.yardLocation}
-                  </span>
-                )}
-                {form.selectedTruck && (
-                  <span className="text-xs text-gray-600">
-                    <span className="font-semibold text-gray-800">Truck:</span>{" "}
-                    {form.selectedTruck}
-                  </span>
-                )}
-                {vinData.length > 0 && (
-                  <span className="text-xs text-gray-600">
-                    <span className="font-semibold text-gray-800">VINs:</span>{" "}
-                    {vinData.length} vehicles
-                  </span>
-                )}
-                {form.arrivalDate && (
-                  <span className="text-xs text-gray-600">
-                    <span className="font-semibold text-gray-800">Arrival Date:</span>{" "}
-                    {new Date(form.arrivalDate).toLocaleDateString("en-IN")}
-                  </span>
-                )}
-                {form.arrivalTime && (
-                  <span className="text-xs text-gray-600">
-                    <span className="font-semibold text-gray-800">Arrival Time:</span>{" "}
-                    {form.arrivalTime}
-                  </span>
-                )}
+            <div className="px-6 py-5 border-b border-gray-100">
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-xs font-semibold text-green-700 uppercase tracking-wider mb-2">
+                  Entry Preview
+                </p>
+                <div className="flex flex-wrap gap-x-8 gap-y-1.5">
+                  {form.yardLocation && (
+                    <span className="text-xs text-gray-600">
+                      <span className="font-semibold text-gray-800">Yard:</span>{" "}
+                      {form.yardLocation}
+                    </span>
+                  )}
+                  {form.selectedTruck && (
+                    <span className="text-xs text-gray-600">
+                      <span className="font-semibold text-gray-800">Truck:</span>{" "}
+                      {form.selectedTruck}
+                    </span>
+                  )}
+                  {vinData.length > 0 && (
+                    <span className="text-xs text-gray-600">
+                      <span className="font-semibold text-gray-800">VINs:</span>{" "}
+                      {vinData.length} vehicles
+                    </span>
+                  )}
+                  {form.arrivalDate && (
+                    <span className="text-xs text-gray-600">
+                      <span className="font-semibold text-gray-800">Arrival Date:</span>{" "}
+                      {new Date(form.arrivalDate).toLocaleDateString("en-IN")}
+                    </span>
+                  )}
+                  {form.arrivalTime && (
+                    <span className="text-xs text-gray-600">
+                      <span className="font-semibold text-gray-800">Arrival Time:</span>{" "}
+                      {form.arrivalTime}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           )}

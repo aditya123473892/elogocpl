@@ -4,7 +4,7 @@ CREATE TABLE Arrival_At_Plant (
     transport_mode NVARCHAR(50) NOT NULL, -- 'Truck' or 'Self-Driven'
     yard_location NVARCHAR(100) NOT NULL,
     arrival_date DATE NOT NULL,
-    arrival_time TIME NOT NULL,
+    arrival_time NVARCHAR(10) NOT NULL, -- Changed from TIME to NVARCHAR to store time as string
     remarks NVARCHAR(500) NULL,
     truck_number NVARCHAR(50) NULL, -- Only for Truck mode
     vin_details NVARCHAR(MAX) NULL, -- Comma-separated VINs

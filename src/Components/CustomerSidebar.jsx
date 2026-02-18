@@ -34,90 +34,101 @@ export function CustomerSidebar({
   const { logout, user } = useAuth();
   const navigate = useNavigate();
 
-  const navItems = [
+  const navGroups = [
     {
-      name: "Dashboard",
-      icon: Home,
-      path: "dashboard",
-      description: "Overview & Summary",
+      heading: "Main",
+      items: [
+        {
+          name: "Dashboard",
+          icon: Home,
+          path: "dashboard",
+          description: "Overview & Summary",
+        },
+      ],
     },
     {
-      name: "My Shipments",
-      icon: Truck,
-      path: "my-shipments",
-      description: "Track Deliveries",
+      heading: "Operations",
+      items: [
+      
+        {
+          name: "OEM Pickup",
+          icon: Truck,
+          path: "oem-pickup",
+          description: "Register Vehicle Pickup",
+        },
+        {
+          name: "Arrival At Plant",
+          icon: MapPin,
+          path: "arrival-plant",
+          description: "Log Vehicle Arrival",
+        },
+        {
+          name: "VIN Survey",
+          icon: Camera,
+          path: "vin-survey",
+          description: "Vehicle Inspection Survey",
+        },
+        {
+          name: "Loading Stage",
+          icon: Warehouse,
+          path: "loading-stage",
+          description: "Yard In/Out Operations",
+        },
+      ],
+    },
+  
+    {
+      heading: "Documents",
+      items: [
+        {
+          name: "ASN Upload",
+          icon: FileText,
+          path: "ASN",
+          description: "Upload ASN Documents",
+        },
+        {
+          name: "ASN Reports",
+          icon: MessageSquare,
+          path: "asn-reports",
+          description: "View ASN Upload Reports",
+        },
+     
+      ],
     },
     {
-      name: "Vendor Management",
-      icon: Package,
-      path: "vendors",
-      description: "Manage Vendors",
-    },
-    {
-      name: "Driver Management",
-      icon: Truck,
-      path: "drivers",
-      description: "Drivers Details",
-    },
-    {
-      name: "Fleet Equipment",
-      icon: FileText,
-      path: "equipments",
-      description: "Analytics & History",
-    },
-      {
-      name: "ASN Upload",
-      icon: FileText,
-      path: "ASN",
-      description: "Upload ASN Documents",
-    },
-    {
-      name: "ASN Reports",
-      icon: MessageSquare,
-      path: "asn-reports",
-      description: "View ASN Upload Reports",
-    },
-    {
-      name: "OEM Pickup",
-      icon: Truck,
-      path: "oem-pickup",
-      description: "Register Vehicle Pickup",
-    },
-    {
-      name: "Arrival At Plant",
-      icon: MapPin,
-      path: "arrival-plant",
-      description: "Log Vehicle Arrival",
-    },
-    {
-      name: "VIN Survey",
-      icon: Camera,
-      path: "vin-survey",
-      description: "Vehicle Inspection Survey",
-    },
-    {
-      name: "Loading Stage",
-      icon: Warehouse,
-      path: "loading-stage",
-      description: "Yard In/Out Operations",
-    },
-    {
-      name: "Location Master",
-      icon: MapPin,
-      path: "location-master",
-      description: "Manage Locations",
-    },
-    {
-      name: "Vehicle Master",
-      icon: Car,
-      path: "vehicle-master",
-      description: "Manage Vehicles",
-    },
-    {
-      name: "Reports",
-      icon: Settings,
-      path: "reports",
-      description: "Account Configuration",
+      heading: "Master Data",
+      items: [
+        {
+          name: "Location Master",
+          icon: MapPin,
+          path: "location-master",
+          description: "Manage Locations",
+        },
+        {
+          name: "Vehicle Master",
+          icon: Car,
+          path: "vehicle-master",
+          description: "Manage Vehicles",
+        },
+         {
+          name: "Vendor Master",
+          icon: Package,
+          path: "vendors",
+          description: "Manage Vendors",
+        },
+        {
+          name: "Driver Master",
+          icon: Truck,
+          path: "drivers",
+          description: "Drivers Details",
+        },
+        {
+          name: "Fleet Equipment Master",
+          icon: FileText,
+          path: "equipments",
+          description: "Analytics & History",
+        },
+      ],
     },
   ];
 
@@ -216,57 +227,73 @@ export function CustomerSidebar({
             </div>
           )}
         </div>
-        <div className="flex-1 py-4 px-2 space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800">
-          {navItems.map((item, index) => (
-            <div
-              key={item.path}
-              className="relative"
-              onMouseEnter={() => setHoveredItem(item.path)}
-              onMouseLeave={() => setHoveredItem(null)}
-            >
-              <Link
-                to={
-                  item.path === "dashboard"
-                    ? "/customer-dashboard"
-                    : `/customer/${item.path}`
-                }
-                onClick={() => handleNavigation(item.path)}
-                className={`group flex items-center py-3 px-3 rounded-lg transition-all duration-200 relative overflow-hidden ${
-                  isActiveItem(item.path)
-                    ? "bg-gradient-to-r from-green-600 to-green-700 text-white shadow-md"
-                    : "text-slate-200 hover:bg-slate-800 hover:text-white"
-                } ${collapsed ? "justify-center" : ""}`}
-              >
-                {isActiveItem(item.path) && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-green-600/20 to-green-700/20 rounded-lg"></div>
-                )}
-                <item.icon
-                  className={`h-5 w-5 flex-shrink-0 relative z-10 ${
-                    isActiveItem(item.path)
-                      ? "text-white"
-                      : "text-slate-300 group-hover:text-white"
-                  }`}
-                />
-                {!collapsed && (
-                  <div className="ml-3 flex-1 min-w-0 relative z-10">
-                    <div className="font-semibold text-sm">{item.name}</div>
-                    <div className="text-xs text-slate-300 group-hover:text-slate-200">
-                      {item.description}
+        <div className="flex-1 py-4 px-2 space-y-4 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800">
+          {navGroups.map((group, groupIndex) => (
+            <div key={group.heading} className="space-y-1">
+              {!collapsed && (
+                <div className="px-3 py-2">
+                  <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    {group.heading}
+                  </h3>
+                </div>
+              )}
+              {group.items.map((item, index) => (
+                <div
+                  key={item.path}
+                  className="relative"
+                  onMouseEnter={() => setHoveredItem(item.path)}
+                  onMouseLeave={() => setHoveredItem(null)}
+                >
+                  <Link
+                    to={
+                      item.path === "dashboard"
+                        ? "/customer-dashboard"
+                        : `/customer/${item.path}`
+                    }
+                    onClick={() => handleNavigation(item.path)}
+                    className={`group flex items-center py-2.5 px-3 rounded-lg transition-all duration-200 relative overflow-hidden ${
+                      isActiveItem(item.path)
+                        ? "bg-gradient-to-r from-green-600 to-green-700 text-white shadow-md"
+                        : "text-slate-200 hover:bg-slate-800 hover:text-white"
+                    } ${collapsed ? "justify-center" : ""}`}
+                  >
+                    {isActiveItem(item.path) && (
+                      <div className="absolute inset-0 bg-gradient-to-r from-green-600/20 to-green-700/20 rounded-lg"></div>
+                    )}
+                    <item.icon
+                      className={`h-5 w-5 flex-shrink-0 relative z-10 ${
+                        isActiveItem(item.path)
+                          ? "text-white"
+                          : "text-slate-300 group-hover:text-white"
+                      }`}
+                    />
+                    {!collapsed && (
+                      <div className="ml-3 flex-1 min-w-0 relative z-10">
+                        <div className="font-semibold text-sm">{item.name}</div>
+                        <div className="text-xs text-slate-300 group-hover:text-slate-200">
+                          {item.description}
+                        </div>
+                      </div>
+                    )}
+                    {isActiveItem(item.path) && (
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-white rounded-r"></div>
+                    )}
+                    <div className="absolute inset-0 bg-slate-700/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg"></div>
+                  </Link>
+                  {collapsed && hoveredItem === item.path && (
+                    <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 bg-slate-800 text-white px-3 py-2 rounded-lg shadow-md border border-slate-700 z-50 whitespace-nowrap animate-in fade-in duration-200">
+                      <div className="font-semibold text-sm">{item.name}</div>
+                      <div className="text-xs text-slate-300">
+                        {item.description}
+                      </div>
+                      <div className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-2 border-4 border-transparent border-r-slate-800"></div>
                     </div>
-                  </div>
-                )}
-                {isActiveItem(item.path) && (
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-white rounded-r"></div>
-                )}
-                <div className="absolute inset-0 bg-slate-700/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg"></div>
-              </Link>
-              {collapsed && hoveredItem === item.path && (
-                <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 bg-slate-800 text-white px-3 py-2 rounded-lg shadow-md border border-slate-700 z-50 whitespace-nowrap animate-in fade-in duration-200">
-                  <div className="font-semibold text-sm">{item.name}</div>
-                  <div className="text-xs text-slate-300">
-                    {item.description}
-                  </div>
-                  <div className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-2 border-4 border-transparent border-r-slate-800"></div>
+                  )}
+                </div>
+              ))}
+              {groupIndex < navGroups.length - 1 && !collapsed && (
+                <div className="px-3 py-1">
+                  <div className="border-t border-slate-700/50"></div>
                 </div>
               )}
             </div>
@@ -315,47 +342,61 @@ export function CustomerSidebar({
                 <X className="h-5 w-5 text-slate-200" />
               </button>
             </div>
-            <div className="flex-1 py-4 px-3 space-y-2">
-              {navItems.map((item, index) => (
-                <Link
-                  key={item.path}
-                  to={
-                    item.path === "dashboard"
-                      ? "/customer-dashboard"
-                      : `/customer/${item.path}`
-                  }
-                  onClick={() => handleNavigation(item.path)}
-                  className={`group flex items-center py-3 px-3 rounded-lg transition-all duration-200 relative overflow-hidden ${
-                    isActiveItem(item.path)
-                      ? "bg-gradient-to-r from-green-600 to-green-700 text-white shadow-md"
-                      : "text-slate-200 hover:bg-slate-800 hover:text-white active:bg-slate-700"
-                  }`}
-                >
-                  {isActiveItem(item.path) && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-green-600/20 to-green-700/20 rounded-lg"></div>
-                  )}
-                  <item.icon
-                    className={`h-5 w-5 flex-shrink-0 relative z-10 ${
-                      isActiveItem(item.path)
-                        ? "text-white"
-                        : "text-slate-300 group-hover:text-white"
-                    }`}
-                  />
-                  <div className="ml-3 flex-1 relative z-10">
-                    <div className="font-semibold text-sm">{item.name}</div>
-                    <div className="text-xs text-slate-300 group-hover:text-slate-200">
-                      {item.description}
-                    </div>
+            <div className="flex-1 py-4 px-3 space-y-4">
+              {navGroups.map((group, groupIndex) => (
+                <div key={group.heading} className="space-y-1">
+                  <div className="px-3 py-2">
+                    <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                      {group.heading}
+                    </h3>
                   </div>
-                  <ChevronRight
-                    className={`h-5 w-5 relative z-10 transition-transform duration-200 group-hover:translate-x-1 ${
-                      isActiveItem(item.path) ? "text-white" : "text-slate-300"
-                    }`}
-                  />
-                  {isActiveItem(item.path) && (
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-white rounded-r"></div>
+                  {group.items.map((item, index) => (
+                    <Link
+                      key={item.path}
+                      to={
+                        item.path === "dashboard"
+                          ? "/customer-dashboard"
+                          : `/customer/${item.path}`
+                      }
+                      onClick={() => handleNavigation(item.path)}
+                      className={`group flex items-center py-2.5 px-3 rounded-lg transition-all duration-200 relative overflow-hidden ${
+                        isActiveItem(item.path)
+                          ? "bg-gradient-to-r from-green-600 to-green-700 text-white shadow-md"
+                          : "text-slate-200 hover:bg-slate-800 hover:text-white active:bg-slate-700"
+                      }`}
+                    >
+                      {isActiveItem(item.path) && (
+                        <div className="absolute inset-0 bg-gradient-to-r from-green-600/20 to-green-700/20 rounded-lg"></div>
+                      )}
+                      <item.icon
+                        className={`h-5 w-5 flex-shrink-0 relative z-10 ${
+                          isActiveItem(item.path)
+                            ? "text-white"
+                            : "text-slate-300 group-hover:text-white"
+                        }`}
+                      />
+                      <div className="ml-3 flex-1 relative z-10">
+                        <div className="font-semibold text-sm">{item.name}</div>
+                        <div className="text-xs text-slate-300 group-hover:text-slate-200">
+                          {item.description}
+                        </div>
+                      </div>
+                      <ChevronRight
+                        className={`h-5 w-5 relative z-10 transition-transform duration-200 group-hover:translate-x-1 ${
+                          isActiveItem(item.path) ? "text-white" : "text-slate-300"
+                        }`}
+                      />
+                      {isActiveItem(item.path) && (
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-white rounded-r"></div>
+                      )}
+                    </Link>
+                  ))}
+                  {groupIndex < navGroups.length - 1 && (
+                    <div className="px-3 py-1">
+                      <div className="border-t border-slate-700/50"></div>
+                    </div>
                   )}
-                </Link>
+                </div>
               ))}
             </div>
             <div className="border-t border-slate-700 p-4 space-y-3 bg-slate-800/30">

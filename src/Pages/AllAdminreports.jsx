@@ -45,7 +45,7 @@ const AllReportsPage = () => {
     try {
       // Fetch all transactions
       const transactionsResponse = await fetch(
-        "http://localhost:4000/api/transactions/all",
+        "https://elogivinbackend-1.onrender.com/api/transactions/all",
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -69,7 +69,7 @@ const AllReportsPage = () => {
 
       // Fetch all transport requests
       const requestsResponse = await fetch(
-        "http://localhost:4000/api/transport-requests/all",
+        "https://elogivinbackend-1.onrender.com/api/transport-requests/all",
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
