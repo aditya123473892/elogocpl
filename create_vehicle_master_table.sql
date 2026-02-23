@@ -3,12 +3,12 @@ USE [fleet3]
 GO
 
 -- Drop table if exists
-IF OBJECT_ID('[dbo].[VEHICLE_MASTER2]', 'U') IS NOT NULL
-    DROP TABLE [dbo].[VEHICLE_MASTER2]
+IF OBJECT_ID('[dbo].[VEHICLE_MASTER]', 'U') IS NOT NULL
+    DROP TABLE [dbo].[VEHICLE_MASTER]
 GO
 
 -- Create Vehicle Master table
-CREATE TABLE [dbo].[VEHICLE_MASTER2](
+CREATE TABLE [dbo].[VEHICLE_MASTER](
 	[vehicle_id] [int] IDENTITY(1,1) NOT NULL,
 	[vehicle_number] [varchar](20) NOT NULL,
 	[vehicle_type] [varchar](50) NOT NULL,
@@ -29,14 +29,14 @@ UNIQUE NONCLUSTERED
 GO
 
 -- Add default constraints
-ALTER TABLE [dbo].[VEHICLE_MASTER2] ADD  DEFAULT ((1)) FOR [is_active]
+ALTER TABLE [dbo].[VEHICLE_MASTER] ADD  DEFAULT ((1)) FOR [is_active]
 GO
 
-ALTER TABLE [dbo].[VEHICLE_MASTER2] ADD  DEFAULT (getdate()) FOR [created_at]
+ALTER TABLE [dbo].[VEHICLE_MASTER] ADD  DEFAULT (getdate()) FOR [created_at]
 GO
 
 -- Insert sample data
-INSERT INTO [dbo].[VEHICLE_MASTER2] (
+INSERT INTO [dbo].[VEHICLE_MASTER] (
     vehicle_number, vehicle_type, transporter_id, is_active, capacity_tonnes, default_driver_id
 ) VALUES 
 ('MH-12-AB-1234', 'TRUCK', 1, 1, 10.5, 1),

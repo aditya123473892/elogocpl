@@ -412,7 +412,7 @@ export default function OEMPickupPage() {
                 )}
               </div>
               <div>
-                <FieldLabel required>Delivery Date</FieldLabel>
+                <FieldLabel required>Dispatch Date</FieldLabel>
                 <input
                   type="date"
                   value={form.deliveryDate}
@@ -420,7 +420,7 @@ export default function OEMPickupPage() {
                   className={fc("deliveryDate")}
                 />
                 {errors.deliveryDate && (
-                  <p className="text-xs text-red-500 mt-1">Delivery date is required</p>
+                  <p className="text-xs text-red-500 mt-1">Dispatch date is required</p>
                 )}
               </div>
             </div>

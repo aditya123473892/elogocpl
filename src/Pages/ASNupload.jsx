@@ -792,19 +792,6 @@ const DealerTripDetailsManagement = () => {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Imm For Code
-              </label>
-              <input
-                type="text"
-                name="Imm_For_Code"
-                value={formData.Imm_For_Code}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Imm For Code"
-              />
-            </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -820,19 +807,7 @@ const DealerTripDetailsManagement = () => {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Status
-              </label>
-              <input
-                type="text"
-                name="Status"
-                value={formData.Status}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Status"
-              />
-            </div>
+           
 
             <div className="md:col-span-2 flex justify-end pt-4">
               <button

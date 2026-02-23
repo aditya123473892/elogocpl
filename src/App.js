@@ -32,6 +32,7 @@ import VINSurveyPage from "./Components/Vinsurvey";
 import LoadingStagePage from "./Components/Loadingstage";
 import LocationMaster from "./Pages/LocationMaster";
 import VehicleMaster from "./Pages/VehicleMaster";
+import DriverMaster from "./Pages/DriverMaster";
 import TransportReports from "./Pages/Reports";
 import VendorController from "./Pages/Vendorcontroller";
 import AllReportsPage from "./Pages/AllAdminreports";
@@ -270,6 +271,16 @@ function App() {
               <ProtectedRoute allowedRoles={["Customer"]}>
                 <DashboardLayout>
                   <VehicleMaster />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/driver-master"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+                  <DriverMaster />
                 </DashboardLayout>
               </ProtectedRoute>
             }

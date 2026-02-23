@@ -1299,3 +1299,187 @@ export const vehicleMasterAPI = {
     }
   },
 };
+
+// Driver Master API
+export const driverMasterAPI = {
+  // Get all drivers
+  getAllDrivers: async () => {
+    try {
+      const response = await api.get("/driver-master/drivers");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching drivers:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get active drivers for dropdown
+  getActiveDrivers: async () => {
+    try {
+      const response = await api.get("/driver-master/drivers/active");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching active drivers:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get driver by ID
+  getDriverById: async (id) => {
+    try {
+      const response = await api.get(`/driver-master/drivers/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching driver:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Create new driver
+  createDriver: async (driverData) => {
+    try {
+      const response = await api.post("/driver-master/drivers", driverData);
+      return response.data;
+    } catch (error) {
+      console.error("Error creating driver:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Update driver
+  updateDriver: async (id, driverData) => {
+    try {
+      const response = await api.put(`/driver-master/drivers/${id}`, driverData);
+      return response.data;
+    } catch (error) {
+      console.error("Error updating driver:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Delete driver
+  deleteDriver: async (id) => {
+    try {
+      const response = await api.delete(`/driver-master/drivers/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error deleting driver:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Toggle driver status
+  toggleDriverStatus: async (id) => {
+    try {
+      const response = await api.patch(`/driver-master/drivers/${id}/toggle-status`);
+      return response.data;
+    } catch (error) {
+      console.error("Error toggling driver status:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Upload license image for driver
+  uploadLicenseImage: async (driverId, file) => {
+    try {
+      const formData = new FormData();
+      formData.append('licenseImage', file);
+      
+      const response = await api.post(`/driver-master/drivers/${driverId}/license-image`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error uploading license image:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Upload Aadhaar image for driver
+  uploadAadhaarImage: async (driverId, file) => {
+    try {
+      const formData = new FormData();
+      formData.append('aadhaarImage', file);
+      
+      const response = await api.post(`/driver-master/drivers/${driverId}/aadhaar-image`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error uploading Aadhaar image:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Upload PAN image for driver
+  uploadPanImage: async (driverId, file) => {
+    try {
+      const formData = new FormData();
+      formData.append('panImage', file);
+      
+      const response = await api.post(`/driver-master/drivers/${driverId}/pan-image`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error uploading PAN image:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get license image for driver
+  getLicenseImage: async (driverId) => {
+    try {
+      const response = await api.get(`/driver-master/drivers/${driverId}/license-image`, {
+        responseType: 'blob'
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching license image:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get Aadhaar image for driver
+  getAadhaarImage: async (driverId) => {
+    try {
+      const response = await api.get(`/driver-master/drivers/${driverId}/aadhaar-image`, {
+        responseType: 'blob'
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching Aadhaar image:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get PAN image for driver
+  getPanImage: async (driverId) => {
+    try {
+      const response = await api.get(`/driver-master/drivers/${driverId}/pan-image`, {
+        responseType: 'blob'
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching PAN image:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+  generateQRCode: async (driverId) => {
+    try {
+      const response = await api.get(`/driver-master/drivers/${driverId}/qr-code`, {
+        responseType: 'blob'
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error generating QR code:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+};

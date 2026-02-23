@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Search, Plus, Edit, Trash2, MapPin, ToggleLeft, ToggleRight, X, Check, Camera, Crosshair } from "lucide-react";
+import { Search, Plus, Edit,  MapPin, ToggleLeft, ToggleRight, X, Check, Camera, Crosshair } from "lucide-react";
 import { locationMasterAPI } from "../utils/Api";
 
 const LocationMaster = () => {
@@ -401,9 +401,7 @@ const LocationMaster = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Coordinates
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
+                
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
@@ -453,28 +451,7 @@ const LocationMaster = () => {
                           : "-"}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <button
-                        onClick={() => handleToggleStatus(location.LocationId)}
-                        className={`flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          location.IsActive
-                            ? "bg-green-100 text-green-800 hover:bg-green-200"
-                            : "bg-red-100 text-red-800 hover:bg-red-200"
-                        }`}
-                      >
-                        {location.IsActive ? (
-                          <>
-                            <ToggleRight className="w-4 h-4 mr-1" />
-                            Active
-                          </>
-                        ) : (
-                          <>
-                            <ToggleLeft className="w-4 h-4 mr-1" />
-                            Inactive
-                          </>
-                        )}
-                      </button>
-                    </td>
+                  
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center space-x-2">
                         <button
@@ -484,13 +461,7 @@ const LocationMaster = () => {
                         >
                           <Edit className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => handleDelete(location.LocationId)}
-                          className="text-red-600 hover:text-red-900"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                     
                       </div>
                     </td>
                   </tr>

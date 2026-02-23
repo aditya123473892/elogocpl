@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Search, Filter, Download, Eye, Edit, Trash2, Calendar, FileText, Truck, Package, CheckCircle, XCircle, Clock ,X} from "lucide-react";
+import { Search, Filter, Download, Eye, Edit, Calendar, FileText, Truck, Package, CheckCircle, XCircle, Clock ,X} from "lucide-react";
 import { dealerTripDetailsAPI } from "../utils/Api";
 import { toast } from "react-toastify";
 
@@ -369,13 +369,7 @@ const DealerReport = () => {
                         >
                           <Edit className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => handleDelete(record.ID)}
-                          className="text-red-600 hover:text-red-900"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                      
                       </div>
                     </td>
                   </tr>

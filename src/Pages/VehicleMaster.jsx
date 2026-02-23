@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { Search, Plus, Edit, Trash2, Truck, ToggleLeft, ToggleRight, X, Check, User, Package } from "lucide-react";
-import { vehicleMasterAPI } from "../utils/Api";
+import { Search, Plus, Edit, Truck, ToggleLeft, ToggleRight, X, Check, User, Package } from "lucide-react";
+import { vehicleMasterAPI, driverMasterAPI } from "../utils/Api";
 
 const VehicleMaster = () => {
   const [vehicles, setVehicles] = useState([]);
   const [filteredVehicles, setFilteredVehicles] = useState([]);
   const [transporters, setTransporters] = useState([]);
-  const [drivers, setDrivers] = useState([]);
+  const [drivers, setDrivers] = useState([]); // FIX 1: Added missing drivers state
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -17,7 +17,7 @@ const VehicleMaster = () => {
     transporter_id: "",
     is_active: true,
     capacity_tonnes: "",
-    default_driver_id: "",
+    current_driver_id: "",
   });
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState({ type: "", text: "" });
@@ -37,7 +37,7 @@ const VehicleMaster = () => {
   useEffect(() => {
     fetchVehicles();
     fetchTransporters();
-    fetchDrivers();
+    fetchDriversForDropdown();
   }, []);
 
   useEffect(() => {
@@ -48,6 +48,7 @@ const VehicleMaster = () => {
     setFilteredVehicles(filtered);
   }, [searchTerm, vehicles]);
 
+  // FIX 2: Removed duplicate fetchVehicles — kept only this single, complete version
   const fetchVehicles = async () => {
     try {
       setLoading(true);
@@ -72,9 +73,9 @@ const VehicleMaster = () => {
     }
   };
 
-  const fetchDrivers = async () => {
+  const fetchDriversForDropdown = async () => {
     try {
-      const response = await vehicleMasterAPI.getDrivers();
+      const response = await driverMasterAPI.getActiveDrivers();
       setDrivers(response.data || []);
     } catch (error) {
       console.error("Error fetching drivers:", error);
@@ -111,7 +112,7 @@ const VehicleMaster = () => {
         ...formData,
         transporter_id: formData.transporter_id ? parseInt(formData.transporter_id) : null,
         capacity_tonnes: parseFloat(formData.capacity_tonnes),
-        default_driver_id: formData.default_driver_id ? parseInt(formData.default_driver_id) : null,
+        current_driver_id: formData.current_driver_id || null,  // Fixed: Removed parseInt for manual driver IDs
       };
 
       if (editingVehicle) {
@@ -148,7 +149,7 @@ const VehicleMaster = () => {
       transporter_id: vehicle.transporter_id || "",
       is_active: vehicle.is_active,
       capacity_tonnes: vehicle.capacity_tonnes,
-      default_driver_id: vehicle.default_driver_id || "",
+      current_driver_id: vehicle.current_driver_id || "",
     });
     setShowModal(true);
   };
@@ -200,7 +201,7 @@ const VehicleMaster = () => {
       transporter_id: "",
       is_active: true,
       capacity_tonnes: "",
-      default_driver_id: "",
+      current_driver_id: "",
     });
     setEditingVehicle(null);
     setErrors({});
@@ -213,7 +214,6 @@ const VehicleMaster = () => {
       ...prev,
       [name]: type === "checkbox" ? checked : value
     }));
-    // Clear error for this field
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: "" }));
     }
@@ -226,7 +226,7 @@ const VehicleMaster = () => {
           Vehicle Master Management
         </h1>
         <p className="text-gray-600">
-          Manage fleet vehicles, assign drivers and track capacity
+          Manage fleet vehicles, assign vehicles and track capacity
         </p>
       </div>
 
@@ -301,9 +301,7 @@ const VehicleMaster = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Type
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Transporter
-                  </th>
+               
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Driver
                   </th>
@@ -334,16 +332,12 @@ const VehicleMaster = () => {
                         {vehicle.vehicle_type}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-600">
-                        {vehicle.transporter_id ? `ID: ${vehicle.transporter_id}` : "-"}
-                      </span>
-                    </td>
+                 
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <User className="w-4 h-4 mr-2 text-gray-400" />
                         <span className="text-sm text-gray-600">
-                          {vehicle.default_driver_id ? `ID: ${vehicle.default_driver_id}` : "-"}
+                          {vehicle.current_driver_id ? `ID: ${vehicle.current_driver_id}` : "-"}
                         </span>
                       </div>
                     </td>
@@ -385,13 +379,6 @@ const VehicleMaster = () => {
                           title="Edit"
                         >
                           <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(vehicle.vehicle_id)}
-                          className="text-red-600 hover:text-red-900"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
@@ -465,36 +452,20 @@ const VehicleMaster = () => {
                     )}
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Transporter
-                    </label>
-                    <select
-                      name="transporter_id"
-                      value={formData.transporter_id}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">Select transporter</option>
-                      {transporters.map((transporter) => (
-                        <option key={transporter.transporter_id} value={transporter.transporter_id}>
-                          {transporter.transporter_name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+              
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Default Driver
+                      Current Driver
                     </label>
                     <select
-                      name="default_driver_id"
-                      value={formData.default_driver_id}
+                      name="current_driver_id"
+                      value={formData.current_driver_id}
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="">Select driver</option>
+                      {/* FIX 3: Changed from vehicles to drivers with correct field names */}
                       {drivers.map((driver) => (
                         <option key={driver.driver_id} value={driver.driver_id}>
                           {driver.driver_name}

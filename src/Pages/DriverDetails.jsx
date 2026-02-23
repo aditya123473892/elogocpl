@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
-import { driverAPI, vendorAPI } from "../utils/Api";
+import { driverMasterAPI, vendorAPI, driverAPI } from "../utils/Api";
 
 // Modal Checklist Component
 const ModalChecklist = ({ isOpen, onClose, onVerify }) => {
@@ -327,7 +327,7 @@ const DriverDetails = () => {
   const fetchDrivers = async () => {
     setLoading(true);
     try {
-      const response = await driverAPI.getAllDrivers();
+      const response = await driverMasterAPI.getAllDrivers();
       if (response.success) {
         setDrivers(response.data);
       } else {

@@ -57,7 +57,7 @@ export function CustomerSidebar({
           description: "Register Vehicle Pickup",
         },
         {
-          name: "Arrival At Plant",
+          name: "Siding At Plant",
           icon: MapPin,
           path: "arrival-plant",
           description: "Log Vehicle Arrival",
@@ -119,8 +119,8 @@ export function CustomerSidebar({
         {
           name: "Driver Master",
           icon: Truck,
-          path: "drivers",
-          description: "Drivers Details",
+          path: "driver-master",
+          description: "Manage Drivers",
         },
         {
           name: "Fleet Equipment Master",

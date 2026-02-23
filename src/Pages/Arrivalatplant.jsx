@@ -223,7 +223,7 @@ export default function ArrivalAtPlantPage() {
       {/* ── Page Header ─────────────────────────────────────────────── */}
       <div className="mb-6 flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Arrival At Plant</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Siding At Plant</h2>
           <p className="text-gray-600 mt-1">
             Log vehicle arrival details at the plant with yard and timing info
           </p>
