@@ -37,6 +37,10 @@ import TransportReports from "./Pages/Reports";
 import VendorController from "./Pages/Vendorcontroller";
 import AllReportsPage from "./Pages/AllAdminreports";
 import AdminManageRequest from "./Pages/AdminManageRequest";
+import RakeMaster from "./Pages/Rakemaster";
+import RouteMaster from "./Pages/RouteMaster";
+import RakePlanning from "./Pages/Rakeplanning";
+import ArticleMaster from "./Pages/ArticleMaster";
 
 const DashboardLayout = ({ children }) => {
   const [collapsed, setCollapsed] = useState(false);
@@ -164,6 +168,16 @@ function App() {
             }
           />
           <Route
+            path="/admin/rakemaster"
+            element={
+              <ProtectedRoute allowedRoles={["Admin"]}>
+                <DashboardLayout>
+                  <RakeMaster />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/admin/allreports"
             element={
               <ProtectedRoute allowedRoles={["Admin"]}>
@@ -275,12 +289,32 @@ function App() {
               </ProtectedRoute>
             }
           />
+                <Route
+            path="/customer/rakeplanning"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+              <RakePlanning />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/customer/driver-master"
             element={
               <ProtectedRoute allowedRoles={["Customer"]}>
                 <DashboardLayout>
                   <DriverMaster />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+                   <Route
+            path="/customer/article-master"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+                  <ArticleMaster />
                 </DashboardLayout>
               </ProtectedRoute>
             }
@@ -331,6 +365,26 @@ function App() {
               <ProtectedRoute allowedRoles={["Customer"]}>
                 <DashboardLayout>
                   <EquipmentDetails></EquipmentDetails>
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+                   <Route
+            path="/customer/Route-Master"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+                <RouteMaster />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/rakemaster"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+                  <RakeMaster />
                 </DashboardLayout>
               </ProtectedRoute>
             }

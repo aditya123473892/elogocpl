@@ -3,8 +3,6 @@ import { Check, X, Upload, FileText, Download, ClipboardPaste } from "lucide-rea
 import { dealerTripDetailsAPI, asnAPI } from "../utils/Api"; // Adjust the import path as necessary
 import * as XLSX from "xlsx";
 
-// Real API functions
-
 const DealerTripDetailsManagement = () => {
   const [activeTab, setActiveTab] = useState("manual");
   const [formData, setFormData] = useState({
@@ -19,10 +17,12 @@ const DealerTripDetailsManagement = () => {
     Engine_No: "",
     VIN_Number: "",
     Sales_Model: "",
-    Dealer_Name: "", // Changed back to Dealer_Name to match database
+    Dealer_Name: "",
     LOCATION: "",
     EWAY_BILL: "",
     VALID_TILL: "",
+    For_Code: "",
+    BVEH_Code: "",
   });
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState({ type: "", text: "" });
@@ -32,6 +32,7 @@ const DealerTripDetailsManagement = () => {
   const [csvErrors, setCsvErrors] = useState([]);
   const [csvPreview, setCsvPreview] = useState("");
   const [pastedData, setPastedData] = useState("");
+  const [duplicateVINs, setDuplicateVINs] = useState([]);
   const fileInputRef = useRef(null);
 
   // Clear success message after 5 seconds
@@ -53,7 +54,7 @@ const DealerTripDetailsManagement = () => {
   };
 
   const validateForm = () => {
-    console.log("Current formData:", formData); // Debug log
+    console.log("Current formData:", formData);
     const newErrors = {};
     if (!formData.Rake_NO || !formData.Rake_NO.toString().trim()) {
       newErrors.Rake_NO = "Rake No is required";
@@ -64,7 +65,7 @@ const DealerTripDetailsManagement = () => {
     if (!formData.Trip_No || !formData.Trip_No.toString().trim()) {
       newErrors.Trip_No = "Trip No is required";
     }
-    console.log("Validation errors:", newErrors); // Debug log
+    console.log("Validation errors:", newErrors);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -76,7 +77,7 @@ const DealerTripDetailsManagement = () => {
       setLoading(true);
       setMessage({ type: "", text: "" });
 
-      console.log("Submitting formData:", formData); // Debug log
+      console.log("Submitting formData:", formData);
       const result = await dealerTripDetailsAPI.createDealerTripDetails(formData);
       console.log("API Response:", result);
       setMessage({
@@ -84,7 +85,6 @@ const DealerTripDetailsManagement = () => {
         text: result.message || "Dealer Trip Details record created successfully!",
       });
 
-      // Reset form after successful submission
       setFormData({
         Rake_NO: "",
         Load_No: "",
@@ -97,17 +97,29 @@ const DealerTripDetailsManagement = () => {
         Engine_No: "",
         VIN_Number: "",
         Sales_Model: "",
-        Dealer_Name: "", // Changed back to Dealer_Name to match database
+        Dealer_Name: "",
         LOCATION: "",
         EWAY_BILL: "",
         VALID_TILL: "",
+        For_Code: "",
+        BVEH_Code: "",
       });
     } catch (error) {
       console.error("Error creating Dealer Trip Details:", error);
-      setMessage({
-        type: "error",
-        text: error.message || "Failed to create Dealer Trip Details record",
-      });
+
+      if (error.duplicateVINs && error.duplicateVINs.length > 0) {
+        setDuplicateVINs(error.duplicateVINs);
+        setMessage({
+          type: "error",
+          text: `Duplicate VINs found: ${error.duplicateVINs.join(", ")}`,
+        });
+      } else {
+        setDuplicateVINs([]);
+        setMessage({
+          type: "error",
+          text: error.message || "Failed to create Dealer Trip Details record",
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -119,44 +131,44 @@ const DealerTripDetailsManagement = () => {
       reader.onload = (e) => {
         try {
           const data = new Uint8Array(e.target.result);
-          const workbook = XLSX.read(data, { type: 'array' });
+          const workbook = XLSX.read(data, { type: "array" });
           const sheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[sheetName];
           const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-          
-          // Convert to CSV format for existing parsing logic
-          const csvContent = jsonData.map(row => 
-            row.map(cell => `"${cell || ''}"`).join(',')
-          ).join('\n');
-          
+
+          const csvContent = jsonData
+            .map((row) => row.map((cell) => `"${cell || ""}"`).join(","))
+            .join("\n");
+
           resolve(csvContent);
         } catch (error) {
           reject(error);
         }
       };
-      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.onerror = () => reject(new Error("Failed to read file"));
       reader.readAsArrayBuffer(file);
     });
   };
 
   const parsePastedExcel = (text) => {
     try {
-      // Split by newlines and tabs (Excel paste format)
-      const lines = text.split('\n').filter(line => line.trim());
-      
+      const lines = text.split("\n").filter((line) => line.trim());
+
       if (lines.length < 2) {
         throw new Error("Data must have at least a header row and one data row");
       }
 
-      // Convert tab-separated or comma-separated to CSV format
-      const csvContent = lines.map(line => {
-        // Check if it's tab-separated (from Excel copy-paste)
-        if (line.includes('\t')) {
-          return line.split('\t').map(cell => `"${cell.trim()}"`).join(',');
-        }
-        // Otherwise treat as CSV
-        return line;
-      }).join('\n');
+      const csvContent = lines
+        .map((line) => {
+          if (line.includes("\t")) {
+            return line
+              .split("\t")
+              .map((cell) => `"${cell.trim()}"`)
+              .join(",");
+          }
+          return line;
+        })
+        .join("\n");
 
       return csvContent;
     } catch (error) {
@@ -174,10 +186,12 @@ const DealerTripDetailsManagement = () => {
     const data = [];
     const errors = [];
 
-    // Create header mapping (case insensitive and handles variations)
     const headerMap = {};
     headers.forEach((header, index) => {
-      const cleanHeader = header.toLowerCase().trim().replace(/[^a-z0-9_]/g, '_');
+      const cleanHeader = header
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9_]/g, "_");
       const mappings = {
         rake_no: "Rake_NO",
         rakeno: "Rake_NO",
@@ -214,7 +228,6 @@ const DealerTripDetailsManagement = () => {
       }
     });
 
-    // Parse data rows
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i].trim();
       if (!line) continue;
@@ -232,30 +245,22 @@ const DealerTripDetailsManagement = () => {
         Engine_No: "",
         VIN_Number: "",
         Sales_Model: "",
-        Dealer_Name: "", // Changed back to Dealer_Name to match database
+        Dealer_Name: "",
         LOCATION: "",
         EWAY_BILL: "",
         VALID_TILL: "",
       };
 
-      // Map values to fields
       values.forEach((value, index) => {
         if (headerMap[index]) {
           rowData[headerMap[index]] = value;
         }
       });
 
-      // Validate required fields
       const rowErrors = [];
-      if (!rowData.Rake_NO) {
-        rowErrors.push(`Row ${i}: Rake No is required`);
-      }
-      if (!rowData.Load_No) {
-        rowErrors.push(`Row ${i}: Load No is required`);
-      }
-      if (!rowData.Trip_No) {
-        rowErrors.push(`Row ${i}: Trip No is required`);
-      }
+      if (!rowData.Rake_NO) rowErrors.push(`Row ${i}: Rake No is required`);
+      if (!rowData.Load_No) rowErrors.push(`Row ${i}: Load No is required`);
+      if (!rowData.Trip_No) rowErrors.push(`Row ${i}: Trip No is required`);
 
       if (rowErrors.length > 0) {
         errors.push(...rowErrors);
@@ -271,10 +276,11 @@ const DealerTripDetailsManagement = () => {
     const file = event.target.files[0];
     if (!file) return;
 
-    // Check file type
-    const isCSV = file.name.toLowerCase().endsWith('.csv');
-    const isExcel = file.name.toLowerCase().endsWith('.xlsx') || file.name.toLowerCase().endsWith('.xls');
-    
+    const isCSV = file.name.toLowerCase().endsWith(".csv");
+    const isExcel =
+      file.name.toLowerCase().endsWith(".xlsx") ||
+      file.name.toLowerCase().endsWith(".xls");
+
     if (!isCSV && !isExcel) {
       setMessage({
         type: "error",
@@ -289,16 +295,14 @@ const DealerTripDetailsManagement = () => {
 
     try {
       let text;
-      
+
       if (isExcel) {
-        // Parse Excel file
         text = await parseExcel(file);
       } else {
-        // Parse CSV file
         const reader = new FileReader();
         text = await new Promise((resolve, reject) => {
           reader.onload = (e) => resolve(e.target.result);
-          reader.onerror = () => reject(new Error('Failed to read CSV file'));
+          reader.onerror = () => reject(new Error("Failed to read CSV file"));
           reader.readAsText(file);
         });
       }
@@ -315,14 +319,15 @@ const DealerTripDetailsManagement = () => {
       } else {
         setMessage({
           type: "success",
-          text: `Successfully parsed ${parsedData.length} records from ${isExcel ? 'Excel' : 'CSV'} file.`,
+          text: `Successfully parsed ${parsedData.length} records from ${
+            isExcel ? "Excel" : "CSV"
+          } file.`,
         });
-        
-        // Create preview of first few records
+
         const headers = Object.keys(parsedData[0] || {});
         const previewLines = [headers.join(",")];
-        parsedData.slice(0, 5).forEach(row => {
-          const values = headers.map(header => `"${row[header] || ''}"`);
+        parsedData.slice(0, 5).forEach((row) => {
+          const values = headers.map((header) => `"${row[header] || ""}"`);
           previewLines.push(values.join(","));
         });
         setCsvPreview(previewLines.join("\n"));
@@ -338,7 +343,6 @@ const DealerTripDetailsManagement = () => {
 
   const handlePastedDataChange = (e) => {
     setPastedData(e.target.value);
-    // Clear previous data when user starts typing
     if (csvData.length > 0) {
       setCsvData([]);
       setCsvErrors([]);
@@ -348,10 +352,7 @@ const DealerTripDetailsManagement = () => {
 
   const handleParsePastedData = () => {
     if (!pastedData.trim()) {
-      setMessage({
-        type: "error",
-        text: "Please paste some data first",
-      });
+      setMessage({ type: "error", text: "Please paste some data first" });
       return;
     }
 
@@ -359,9 +360,7 @@ const DealerTripDetailsManagement = () => {
     setMessage({ type: "", text: "" });
 
     try {
-      // Convert pasted data to CSV format
       const csvContent = parsePastedExcel(pastedData);
-      
       const { data: parsedData, errors: parseErrors } = parseCSV(csvContent);
       setCsvData(parsedData);
       setCsvErrors(parseErrors);
@@ -376,12 +375,11 @@ const DealerTripDetailsManagement = () => {
           type: "success",
           text: `Successfully parsed ${parsedData.length} records from pasted data.`,
         });
-        
-        // Create preview of first few records
+
         const headers = Object.keys(parsedData[0] || {});
         const previewLines = [headers.join(",")];
-        parsedData.slice(0, 5).forEach(row => {
-          const values = headers.map(header => `"${row[header] || ''}"`);
+        parsedData.slice(0, 5).forEach((row) => {
+          const values = headers.map((header) => `"${row[header] || ""}"`);
           previewLines.push(values.join(","));
         });
         setCsvPreview(previewLines.join("\n"));
@@ -419,12 +417,9 @@ const DealerTripDetailsManagement = () => {
         type: "success",
         text:
           response.message ||
-          `Successfully created ${
-            response.count || csvData.length
-          } Dealer Trip Details records!`,
+          `Successfully created ${response.count || csvData.length} Dealer Trip Details records!`,
       });
 
-      // Reset CSV data
       setCsvFile(null);
       setCsvData([]);
       setCsvPreview("");
@@ -433,10 +428,20 @@ const DealerTripDetailsManagement = () => {
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (error) {
       console.error("Bulk submit error:", error);
-      setMessage({
-        type: "error",
-        text: error.message || "Failed to create bulk Dealer Trip Details records",
-      });
+
+      if (error.duplicateVINs && error.duplicateVINs.length > 0) {
+        setDuplicateVINs(error.duplicateVINs);
+        setMessage({
+          type: "error",
+          text: `Duplicate VINs found: ${error.duplicateVINs.join(", ")}`,
+        });
+      } else {
+        setDuplicateVINs([]);
+        setMessage({
+          type: "error",
+          text: error.message || "Failed to create bulk Dealer Trip Details records",
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -460,7 +465,7 @@ const DealerTripDetailsManagement = () => {
       "EWAY_BILL",
       "VALID_TILL",
     ];
-    
+
     const csvContent = headers.join(",") + "\n";
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
@@ -484,6 +489,7 @@ const DealerTripDetailsManagement = () => {
         </p>
       </div>
 
+      {/* ── Message Banner ── */}
       {message.text && (
         <div
           className={`mb-6 p-4 rounded-lg flex items-center justify-between ${
@@ -509,6 +515,7 @@ const DealerTripDetailsManagement = () => {
         </div>
       )}
 
+      {/* ── Tab Navigation ── */}
       <div className="mb-6">
         <div className="border-b border-gray-200">
           <nav className="-mb-px flex space-x-8">
@@ -546,9 +553,11 @@ const DealerTripDetailsManagement = () => {
         </div>
       </div>
 
+      {/* ── Tab Content ── */}
       {activeTab === "manual" ? (
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Rake No */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Rake No <span className="text-red-500">*</span>
@@ -564,12 +573,11 @@ const DealerTripDetailsManagement = () => {
                 placeholder="Rake Number"
               />
               {errors.Rake_NO && (
-                <p className="mt-1 text-sm text-red-600">
-                  {errors.Rake_NO}
-                </p>
+                <p className="mt-1 text-sm text-red-600">{errors.Rake_NO}</p>
               )}
             </div>
 
+            {/* Invoice No */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Invoice No
@@ -584,6 +592,7 @@ const DealerTripDetailsManagement = () => {
               />
             </div>
 
+            {/* Load No */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Load No <span className="text-red-500">*</span>
@@ -599,12 +608,11 @@ const DealerTripDetailsManagement = () => {
                 placeholder="Load Number"
               />
               {errors.Load_No && (
-                <p className="mt-1 text-sm text-red-600">
-                  {errors.Load_No}
-                </p>
+                <p className="mt-1 text-sm text-red-600">{errors.Load_No}</p>
               )}
             </div>
 
+            {/* Trip No */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Trip No <span className="text-red-500">*</span>
@@ -620,12 +628,11 @@ const DealerTripDetailsManagement = () => {
                 placeholder="Trip Number"
               />
               {errors.Trip_No && (
-                <p className="mt-1 text-sm text-red-600">
-                  {errors.Trip_No}
-                </p>
+                <p className="mt-1 text-sm text-red-600">{errors.Trip_No}</p>
               )}
             </div>
 
+            {/* Production Model */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Production Model
@@ -640,6 +647,7 @@ const DealerTripDetailsManagement = () => {
               />
             </div>
 
+            {/* Invoice Date */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Invoice Date
@@ -653,6 +661,7 @@ const DealerTripDetailsManagement = () => {
               />
             </div>
 
+            {/* Destination City */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Destination City
@@ -667,6 +676,7 @@ const DealerTripDetailsManagement = () => {
               />
             </div>
 
+            {/* GR Number */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 GR Number
@@ -681,6 +691,7 @@ const DealerTripDetailsManagement = () => {
               />
             </div>
 
+            {/* Engine No */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Engine No
@@ -695,6 +706,7 @@ const DealerTripDetailsManagement = () => {
               />
             </div>
 
+            {/* VIN Number */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 VIN Number
@@ -709,6 +721,7 @@ const DealerTripDetailsManagement = () => {
               />
             </div>
 
+            {/* Sales Model */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Sales Model
@@ -723,6 +736,7 @@ const DealerTripDetailsManagement = () => {
               />
             </div>
 
+            {/* Dealer Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Dealer Name
@@ -737,6 +751,7 @@ const DealerTripDetailsManagement = () => {
               />
             </div>
 
+            {/* Location */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Location
@@ -751,6 +766,7 @@ const DealerTripDetailsManagement = () => {
               />
             </div>
 
+            {/* E-Way Bill */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 E-Way Bill
@@ -765,6 +781,7 @@ const DealerTripDetailsManagement = () => {
               />
             </div>
 
+            {/* Valid Till */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Valid Till
@@ -778,6 +795,7 @@ const DealerTripDetailsManagement = () => {
               />
             </div>
 
+            {/* For Code */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 For Code
@@ -792,7 +810,7 @@ const DealerTripDetailsManagement = () => {
               />
             </div>
 
-
+            {/* BVEH Code */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 BVEH Code
@@ -807,8 +825,7 @@ const DealerTripDetailsManagement = () => {
               />
             </div>
 
-           
-
+            {/* Submit */}
             <div className="md:col-span-2 flex justify-end pt-4">
               <button
                 onClick={handleSubmit}
@@ -846,7 +863,8 @@ const DealerTripDetailsManagement = () => {
                     Upload CSV/Excel File
                   </span>
                   <p className="mt-2 text-sm text-gray-500">
-                    Select a CSV or Excel file with Dealer Trip Details data to upload multiple records
+                    Select a CSV or Excel file with Dealer Trip Details data to
+                    upload multiple records
                   </p>
                 </label>
                 <input
@@ -917,9 +935,7 @@ const DealerTripDetailsManagement = () => {
                       loading ? "opacity-50 cursor-not-allowed" : ""
                     }`}
                   >
-                    {loading
-                      ? "Submitting..."
-                      : `Submit ${csvData.length} Records`}
+                    {loading ? "Submitting..." : `Submit ${csvData.length} Records`}
                   </button>
                 )}
               </div>
@@ -928,14 +944,15 @@ const DealerTripDetailsManagement = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      {csvData.length > 0 && Object.keys(csvData[0]).map((header) => (
-                        <th
-                          key={header}
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          {header.replace(/_/g, ' ')}
-                        </th>
-                      ))}
+                      {csvData.length > 0 &&
+                        Object.keys(csvData[0]).map((header) => (
+                          <th
+                            key={header}
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          >
+                            {header.replace(/_/g, " ")}
+                          </th>
+                        ))}
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -946,7 +963,7 @@ const DealerTripDetailsManagement = () => {
                             key={cellIndex}
                             className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
                           >
-                            {value || '-'}
+                            {value || "-"}
                           </td>
                         ))}
                       </tr>
@@ -987,14 +1004,17 @@ const DealerTripDetailsManagement = () => {
                       Paste Excel Data Here
                     </label>
                     <p className="text-xs text-gray-500 mt-1">
-                      Copy cells from Excel (Ctrl+C) and paste them here. Include the header row.
+                      Copy cells from Excel (Ctrl+C) and paste them here.
+                      Include the header row.
                     </p>
                   </div>
                 </div>
                 <textarea
                   value={pastedData}
                   onChange={handlePastedDataChange}
-                  placeholder="Paste your Excel data here... (with headers)&#10;&#10;Example:&#10;Dealer	For	Load_No	Trip_No	Regn_No...&#10;DEALER001	FOR	1001	2001	REG123..."
+                  placeholder={
+                    "Paste your Excel data here... (with headers)\n\nExample:\nDealer\tFor\tLoad_No\tTrip_No\tRegn_No...\nDEALER001\tFOR\t1001\t2001\tREG123..."
+                  }
                   className="w-full h-64 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
                   disabled={loading}
                 />
@@ -1005,7 +1025,9 @@ const DealerTripDetailsManagement = () => {
                   onClick={handleParsePastedData}
                   disabled={loading || !pastedData.trim()}
                   className={`px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                    loading || !pastedData.trim() ? "opacity-50 cursor-not-allowed" : ""
+                    loading || !pastedData.trim()
+                      ? "opacity-50 cursor-not-allowed"
+                      : ""
                   }`}
                 >
                   Parse Data
@@ -1048,9 +1070,7 @@ const DealerTripDetailsManagement = () => {
                       loading ? "opacity-50 cursor-not-allowed" : ""
                     }`}
                   >
-                    {loading
-                      ? "Submitting..."
-                      : `Submit ${csvData.length} Records`}
+                    {loading ? "Submitting..." : `Submit ${csvData.length} Records`}
                   </button>
                 )}
               </div>
@@ -1059,14 +1079,15 @@ const DealerTripDetailsManagement = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      {csvData.length > 0 && Object.keys(csvData[0]).map((header) => (
-                        <th
-                          key={header}
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          {header.replace(/_/g, ' ')}
-                        </th>
-                      ))}
+                      {csvData.length > 0 &&
+                        Object.keys(csvData[0]).map((header) => (
+                          <th
+                            key={header}
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          >
+                            {header.replace(/_/g, " ")}
+                          </th>
+                        ))}
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -1077,7 +1098,7 @@ const DealerTripDetailsManagement = () => {
                             key={cellIndex}
                             className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
                           >
-                            {value || '-'}
+                            {value || "-"}
                           </td>
                         ))}
                       </tr>

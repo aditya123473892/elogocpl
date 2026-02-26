@@ -14,6 +14,7 @@ import {
   LogOut,
   Shield,
   Activity,
+  Train,
 } from "lucide-react";
 
 export function AdminSidebar({
@@ -71,6 +72,12 @@ export function AdminSidebar({
       icon: Activity,
       path: "editrequest",
       description: "Edit Requests",
+    },
+    {
+      name: "Rake Master",
+      icon: Train,
+      path: "rakemaster",
+      description: "Rake Management",
     },
     // {
     //   name: "Fleet Equipment",

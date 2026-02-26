@@ -14,7 +14,7 @@ import {
   X,
   Check,
 } from "lucide-react";
-import { arrivalAtPlantAPI } from "../utils/Api";
+import { arrivalAtPlantAPI, locationMasterAPI } from "../utils/Api";
 
 const yardLocations = [
   "Yard Terminal 1 - Gate A",
@@ -23,11 +23,16 @@ const yardLocations = [
   "Yard Terminal 4 - Gate D",
 ];
 
+const sidingLocations = [
+  // Add siding locations here
+];
+
 const today = new Date().toISOString().split("T")[0];
 
 const defaultForm = {
   transportMode: "",
   yardLocation: "",
+  sidingLocation: "",
   arrivalDate: today,
   remarks: "",
   selectedTruck: "",
@@ -81,6 +86,10 @@ export default function ArrivalAtPlantPage() {
   const [errors, setErrors] = useState({});
   const [vinData, setVinData] = useState([]);
   const [availableTrucks, setAvailableTrucks] = useState([]);
+  const [availableSelfDriven, setAvailableSelfDriven] = useState([]);
+  const [locations, setLocations] = useState([]);
+  const [sidings, setSidings] = useState([]);
+  const [yards, setYards] = useState([]);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
 
@@ -92,16 +101,51 @@ export default function ArrivalAtPlantPage() {
 
   // Fetch available trucks from OEM Pickup
   useEffect(() => {
-    const fetchAvailableTrucks = async () => {
+    const fetchAvailableVehicles = async () => {
       try {
         const response = await arrivalAtPlantAPI.getOEMPickupVehicles();
-        setAvailableTrucks(response.data || []);
+        const allVehicles = response.data || [];
+        
+        // Separate vehicles by transportation type
+        const trucks = allVehicles.filter(vehicle => 
+          vehicle.transportationType === 'TRUCK'
+        );
+        const selfDriven = allVehicles.filter(vehicle => 
+          vehicle.transportationType === 'SELF_DRIVEN'
+        );
+        
+        setAvailableTrucks(trucks);
+        setAvailableSelfDriven(selfDriven);
       } catch (error) {
-        console.error("Error fetching available trucks:", error);
-        showToast("Failed to load available trucks", 'error');
+        console.error("Error fetching available vehicles:", error);
+        showToast("Failed to load available vehicles", 'error');
       }
     };
-    fetchAvailableTrucks();
+
+    const fetchLocations = async () => {
+      try {
+        const response = await locationMasterAPI.getAllLocations();
+        const allLocations = response.data || [];
+        setLocations(allLocations);
+        
+        // Separate locations by type
+        const sidingLocations = allLocations
+          .filter(loc => loc.LocationType === 'SIDING' && loc.IsActive)
+          .map(loc => loc.LocationName);
+        const yardLocations = allLocations
+          .filter(loc => loc.LocationType === 'YARD' && loc.IsActive)
+          .map(loc => loc.LocationName);
+        
+        setSidings(sidingLocations);
+        setYards(yardLocations);
+      } catch (error) {
+        console.error('Error fetching locations:', error);
+        showToast('Failed to fetch locations', 'error');
+      }
+    };
+
+    fetchAvailableVehicles();
+    fetchLocations();
   }, [showToast]);
 
   const set = (field) => async (val) => {
@@ -315,25 +359,34 @@ export default function ArrivalAtPlantPage() {
             </div>
           </div>
 
-          {/* ── Section 1.5: Truck Selection (for Truck mode) ──────── */}
-          {form.transportMode === "Truck" && (
+          {/* ── Section 1.5: Vehicle Selection (for both modes) ──────── */}
+          {form.transportMode && (
             <div className="px-6 pt-6 pb-5 border-b border-gray-100">
-              <SectionHeader icon={Truck} title="Truck Selection" color="blue" />
+              <SectionHeader icon={Truck} title="Vehicle Selection" color="blue" />
               <div className="grid grid-cols-2 gap-5">
                 <div>
-                  <FieldLabel required>Select Truck</FieldLabel>
+                  <FieldLabel required>
+                    Select {form.transportMode === "Self-Driven" ? "Self-Driven Vehicle" : "Truck"}
+                  </FieldLabel>
                   <SelectField
                     value={form.selectedTruck}
                     onChange={set("selectedTruck")}
-                    options={availableTrucks.map(truck => truck.truckNumber)}
-                    placeholder="Select Truck from OEM Pickup"
+                    options={form.transportMode === "Self-Driven" 
+                      ? availableSelfDriven.map(vehicle => vehicle.vehicleNumber || vehicle.truckNumber)
+                      : availableTrucks.map(truck => truck.truckNumber)
+                    }
+                    placeholder={`Select ${form.transportMode === "Self-Driven" ? "Self-Driven Vehicle" : "Truck"} from OEM Pickup`}
                     hasError={!!errors.selectedTruck}
                   />
                   {errors.selectedTruck && (
-                    <p className="text-xs text-red-500 mt-1">Truck selection is required</p>
+                    <p className="text-xs text-red-500 mt-1">
+                      {form.transportMode === "Self-Driven" ? "Vehicle" : "Truck"} selection is required
+                    </p>
                   )}
-                  {availableTrucks.length === 0 && (
-                    <p className="text-xs text-gray-400 mt-1">No trucks available from OEM Pickup</p>
+                  {(form.transportMode === "Self-Driven" ? availableSelfDriven : availableTrucks).length === 0 && (
+                    <p className="text-xs text-gray-400 mt-1">
+                      No {form.transportMode === "Self-Driven" ? "self-driven vehicles" : "trucks"} available from OEM Pickup
+                    </p>
                   )}
                 </div>
                 <div>
@@ -351,27 +404,31 @@ export default function ArrivalAtPlantPage() {
             </div>
           )}
 
-          {/* ── Section 2: Yard & VIN ───────────────────────────────── */}
+          {/* ── Section 2: Location & VIN ───────────────────────────────── */}
           <div className="px-6 pt-6 pb-5 border-b border-gray-100">
-            <SectionHeader icon={MapPin} title="Yard Location & VIN Details" color="blue" />
+            <SectionHeader icon={MapPin} title="Location & VIN Details" color="blue" />
             <div className="grid grid-cols-2 gap-5">
               <div>
-                <FieldLabel required>Yard Location</FieldLabel>
+                <FieldLabel required>
+                  {form.transportMode === "Self-Driven" ? "Siding Location" : "Yard Location"}
+                </FieldLabel>
                 <SelectField
-                  value={form.yardLocation}
-                  onChange={set("yardLocation")}
-                  options={yardLocations}
-                  placeholder="Select Yard Location"
-                  hasError={!!errors.yardLocation}
+                  value={form.transportMode === "Self-Driven" ? form.sidingLocation : form.yardLocation}
+                  onChange={set(form.transportMode === "Self-Driven" ? "sidingLocation" : "yardLocation")}
+                  options={form.transportMode === "Self-Driven" ? sidings : yards}
+                  placeholder={`Select ${form.transportMode === "Self-Driven" ? "Siding" : "Yard"} Location`}
+                  hasError={!!(form.transportMode === "Self-Driven" ? errors.sidingLocation : errors.yardLocation)}
                 />
-                {errors.yardLocation && (
-                  <p className="text-xs text-red-500 mt-1">Yard location is required</p>
+                {(form.transportMode === "Self-Driven" ? errors.sidingLocation : errors.yardLocation) && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {form.transportMode === "Self-Driven" ? "Siding" : "Yard"} location is required
+                  </p>
                 )}
               </div>
 
               <div>
                 <FieldLabel required>VIN Details</FieldLabel>
-                {form.selectedTruck && vinData.length > 0 ? (
+                {form.selectedTruck && Array.isArray(vinData) && vinData.length > 0 ? (
                   <div className="border border-gray-300 rounded-lg bg-white overflow-hidden">
                     <div className="px-3 py-2 bg-green-50 border-b border-gray-200 flex items-center justify-between">
                       <span className="text-xs font-semibold text-green-700">
@@ -393,12 +450,12 @@ export default function ArrivalAtPlantPage() {
                       ))}
                     </div>
                   </div>
-                ) : form.transportMode === "Truck" && !form.selectedTruck ? (
+                ) : form.transportMode && !form.selectedTruck ? (
                   <div className="w-full px-3 py-4 border border-gray-300 rounded-lg bg-yellow-50 text-sm text-yellow-600 text-center min-h-[88px] flex items-center justify-center">
                     <div>
                       <Truck className="h-5 w-5 text-yellow-400 mx-auto mb-1" />
                       <p className="text-xs">
-                        Please select a truck to load VIN data
+                        Please select a {form.transportMode === "Self-Driven" ? "vehicle" : "truck"} to load VIN data
                       </p>
                     </div>
                   </div>
@@ -407,8 +464,7 @@ export default function ArrivalAtPlantPage() {
                     <div>
                       <Package className="h-5 w-5 text-gray-300 mx-auto mb-1" />
                       <p className="text-xs">
-                        VIN data will appear here after selecting{" "}
-                        <span className="font-semibold">Truck</span>
+                        VIN data will appear here after selecting {form.transportMode === "Self-Driven" ? "vehicle" : "truck"}
                       </p>
                     </div>
                   </div>
@@ -419,7 +475,8 @@ export default function ArrivalAtPlantPage() {
 
           {/* ── Section 3: Arrival Schedule ─────────────────────────── */}
           <div className="px-6 pt-6 pb-5 border-b border-gray-100">
-            <SectionHeader icon={Calendar} title="Arrival Schedule" color="green" />
+            <SectionHeader icon={Calendar} title="Arrival Details" color="green" />
+
             <div className="grid grid-cols-2 gap-5">
               <div>
                 <FieldLabel required>Arrival Date</FieldLabel>
@@ -457,15 +514,11 @@ export default function ArrivalAtPlantPage() {
                   Entry Preview
                 </p>
                 <div className="flex flex-wrap gap-x-8 gap-y-1.5">
-                  {form.yardLocation && (
-                    <span className="text-xs text-gray-600">
-                      <span className="font-semibold text-gray-800">Yard:</span>{" "}
-                      {form.yardLocation}
-                    </span>
-                  )}
                   {form.selectedTruck && (
                     <span className="text-xs text-gray-600">
-                      <span className="font-semibold text-gray-800">Truck:</span>{" "}
+                      <span className="font-semibold text-gray-800">
+                        {form.transportMode === "Self-Driven" ? "Vehicle" : "Truck"}:
+                      </span>{" "}
                       {form.selectedTruck}
                     </span>
                   )}

@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Use environment variable with fallback to localhost
 const API_BASE_URL =
-  process.env.REACT_APP_API_URL || "https://elogivinbackend-1.onrender.com/api";
+  process.env.REACT_APP_API_URL || "https://elogivinbackend.onrender.com/api";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -1479,6 +1479,306 @@ export const driverMasterAPI = {
       return response.data;
     } catch (error) {
       console.error("Error generating QR code:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+};
+
+// VIN Survey API
+export const vinSurveyAPI = {
+  // Get all surveys
+  getAllSurveys: async () => {
+    try {
+      const response = await api.get("/vin-survey/surveys");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching surveys:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get survey statistics
+  getSurveyStats: async () => {
+    try {
+      const response = await api.get("/vin-survey/surveys/stats");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching survey statistics:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get survey by ID
+  getSurveyById: async (surveyId) => {
+    try {
+      const response = await api.get(`/vin-survey/surveys/${surveyId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching survey:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Create new survey
+  createSurvey: async (surveyData) => {
+    console.log("vinSurveyAPI.createSurvey called with:", surveyData);
+    try {
+      console.log("Making POST request to /vin-survey/surveys");
+      const response = await api.post("/vin-survey/surveys", surveyData);
+      console.log("API response received:", response);
+      return response.data;
+    } catch (error) {
+      console.error("Error in createSurvey:", error);
+      console.error("Error response:", error.response);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Update survey
+  updateSurvey: async (surveyId, surveyData) => {
+    try {
+      const response = await api.put(`/vin-survey/surveys/${surveyId}`, surveyData);
+      return response.data;
+    } catch (error) {
+      console.error("Error updating survey:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Delete survey
+  deleteSurvey: async (surveyId) => {
+    try {
+      const response = await api.delete(`/vin-survey/surveys/${surveyId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error deleting survey:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get surveys by VIN
+  getSurveysByVin: async (vin) => {
+    try {
+      const response = await api.get(`/vin-survey/surveys/vin/${vin}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching surveys by VIN:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get surveys by date range
+  getSurveysByDateRange: async (startDate, endDate) => {
+    try {
+      const response = await api.get("/vin-survey/surveys/date-range", {
+        params: { startDate, endDate }
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching surveys by date range:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Add photo to survey
+  addPhoto: async (surveyId, photoData) => {
+    try {
+      const response = await api.post(`/vin-survey/surveys/${surveyId}/photos`, photoData);
+      return response.data;
+    } catch (error) {
+      console.error("Error adding photo:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Remove photo from survey
+  removePhoto: async (photoId) => {
+    try {
+      const response = await api.delete(`/vin-survey/photos/${photoId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error removing photo:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get photo by ID (for displaying images)
+  getPhoto: async (photoId) => {
+    try {
+      const response = await api.get(`/vin-survey/photos/${photoId}`, {
+        responseType: 'blob'
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching photo:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+};
+
+// Rake Master API
+export const rakeMasterAPI = {
+  // Get all rakes
+  getAllRakes: async () => {
+    try {
+      const response = await api.get("/rake-master");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching rakes:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get rake by ID
+  getRakeById: async (id) => {
+    try {
+      const response = await api.get(`/rake-master/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching rake:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get rake by name
+  getRakeByName: async (rakeName) => {
+    try {
+      const response = await api.get(`/rake-master/name/${rakeName}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching rake by name:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Create new rake
+  createRake: async (rakeData) => {
+    try {
+      const response = await api.post("/rake-master", rakeData);
+      return response.data;
+    } catch (error) {
+      console.error("Error creating rake:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Update existing rake
+  updateRake: async (id, rakeData) => {
+    try {
+      const response = await api.put(`/rake-master/${id}`, rakeData);
+      return response.data;
+    } catch (error) {
+      console.error("Error updating rake:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Delete rake
+  deleteRake: async (id) => {
+    try {
+      const response = await api.delete(`/rake-master/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error deleting rake:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get wagons for a rake
+  getWagonsByRakeId: async (rakeId) => {
+    try {
+      const response = await api.get(`/rake-master/${rakeId}/wagons`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching wagons:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+};
+
+// Article Master API
+export const articleMasterAPI = {
+  // Get all articles
+  getAllArticles: async () => {
+    try {
+      const response = await api.get("/article-master/articles");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching articles:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get article by ID
+  getArticleById: async (id) => {
+    try {
+      const response = await api.get(`/article-master/articles/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching article:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Create new article
+  createArticle: async (formData) => {
+    try {
+      const response = await api.post("/article-master/articles", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error creating article:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Update article
+  updateArticle: async (id, formData) => {
+    try {
+      const response = await api.put(`/article-master/articles/${id}`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error updating article:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Delete article
+  deleteArticle: async (id) => {
+    try {
+      const response = await api.delete(`/article-master/articles/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error deleting article:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Toggle article status
+  toggleArticleStatus: async (id) => {
+    try {
+      const response = await api.patch(`/article-master/articles/${id}/toggle-status`);
+      return response.data;
+    } catch (error) {
+      console.error("Error toggling article status:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get article groups
+  getArticleGroups: async () => {
+    try {
+      const response = await api.get("/article-master/article-groups");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching article groups:", error);
       throw error.response?.data || error.message;
     }
   },

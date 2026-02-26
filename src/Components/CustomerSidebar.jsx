@@ -16,6 +16,7 @@ import {
   Car,
   Camera,
   Warehouse,
+  Train,
 } from "lucide-react";
 
 export function CustomerSidebar({
@@ -57,7 +58,7 @@ export function CustomerSidebar({
           description: "Register Vehicle Pickup",
         },
         {
-          name: "Siding At Plant",
+          name: "Siding Arrival",
           icon: MapPin,
           path: "arrival-plant",
           description: "Log Vehicle Arrival",
@@ -128,7 +129,28 @@ export function CustomerSidebar({
           path: "equipments",
           description: "Analytics & History",
         },
+      
+
+        {
+          name: "Route Master",
+          icon: Train,
+          path: "route-master",
+          description: "Rake Management",
+        },
+         {
+          name: "Rake Planning",
+          icon: Train,
+          path: "rakeplanning",
+          description: "Rake Management",
+        },
+             {
+          name: "Article Master",
+          icon: Train,
+          path: "article-master",
+          description: "Rake Management",
+        },
       ],
+
     },
   ];
 

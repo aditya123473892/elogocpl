@@ -5,7 +5,7 @@ async function testAPI() {
   try {
     console.log('Testing driver master API...');
     
-    const response = await axios.get('https://elogivinbackend-1.onrender.com/api/driver-master/drivers');
+    const response = await axios.get('https://elogivinbackend.onrender.com/api/driver-master/drivers');
     console.log('✅ API Response:', response.data);
     
     if (response.data.success && response.data.data.length === 0) {

@@ -1,4 +1,5 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { vinSurveyAPI, locationMasterAPI } from "../utils/Api";
 import {
   ScanLine,
   MapPin,
@@ -14,12 +15,7 @@ import {
   FileSearch,
 } from "lucide-react";
 
-const yardTerminals = [
-  "Yard Terminal 1 - Gate A",
-  "Yard Terminal 2 - Gate B",
-  "Yard Terminal 3 - Gate C",
-  "Yard Terminal 4 - Gate D",
-];
+const yardTerminals = []; // Will be populated from API
 
 const surveyTypes = [
   "Pre-Dispatch Survey",
@@ -90,10 +86,43 @@ export default function VINSurveyPage() {
   const [photos, setPhotos] = useState([]);
   const [saved, setSaved] = useState(false);
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [uploadedPhotos, setUploadedPhotos] = useState([]); // Store uploaded photo data
+  const [yardTerminals, setYardTerminals] = useState([]); // Yard terminals from API
   const fileInputRef = useRef(null);
 
   const set = (field) => (val) =>
     setForm((prev) => ({ ...prev, [field]: typeof val === "string" ? val : val.target.value }));
+
+  // Fetch yard terminals from location API
+  const fetchYardTerminals = useCallback(async () => {
+    try {
+      const response = await locationMasterAPI.getAllLocations();
+      const allLocations = response.data || [];
+
+      // Filter for YARD locations that are active
+      const yardLocations = allLocations
+        .filter(loc => loc.LocationType === 'YARD' && loc.IsActive)
+        .map(loc => loc.LocationName);
+
+      setYardTerminals(yardLocations);
+    } catch (error) {
+      console.error('Error fetching yard terminals:', error);
+      // Fallback to hardcoded options if API fails
+      setYardTerminals([
+        "Yard Terminal 1 - Gate A",
+        "Yard Terminal 2 - Gate B",
+        "Yard Terminal 3 - Gate C",
+        "Yard Terminal 4 - Gate D",
+      ]);
+    }
+  }, []);
+
+  // Fetch yard terminals on component mount
+  useEffect(() => {
+    fetchYardTerminals();
+  }, [fetchYardTerminals]);
 
   const validate = () => {
     const errs = {};
@@ -103,16 +132,78 @@ export default function VINSurveyPage() {
     return Object.keys(errs).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
+    console.log("handleSubmit called!");
     e.preventDefault();
-    if (!validate()) return;
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3500);
+    console.log("Form data:", form);
+    console.log("Photos:", photos);
+    
+    if (!validate()) {
+      console.log("Validation failed");
+      return;
+    }
+
+    console.log("Validation passed, setting loading to true");
+    setLoading(true);
+    setSubmitError("");
+
+    try {
+      console.log("Starting API call...");
+      // Create survey
+      const surveyData = {
+        vin_details: form.vinDetails,
+        yard_terminal: form.yardTerminal,
+        survey_type: form.surveyType,
+        damage_type: form.damageType,
+        damage_remarks: form.damageRemarks,
+      };
+      
+      console.log("Survey data:", surveyData);
+      const response = await vinSurveyAPI.createSurvey(surveyData);
+      console.log("API response:", response);
+
+      // Upload photos if any
+      if (photos.length > 0 && response.data) {
+        const surveyId = response.data.survey_id;
+        const uploadedPhotoData = [];
+        
+        for (const photo of photos) {
+          try {
+            const formData = new FormData();
+            formData.append('photoFile', photo.file); // Send actual file
+            
+            const photoResponse = await vinSurveyAPI.addPhoto(surveyId, formData);
+            uploadedPhotoData.push({
+              ...photo,
+              id: photoResponse.data.photo_id,
+              dbPhotoId: photoResponse.data.photo_id
+            });
+          } catch (photoError) {
+            console.error("Error uploading photo:", photoError);
+            // Continue with other photos even if one fails
+          }
+        }
+        
+        setUploadedPhotos(uploadedPhotoData);
+      }
+
+      setSaved(true);
+      setTimeout(() => {
+        setSaved(false);
+        handleReset();
+      }, 3500);
+    } catch (error) {
+      console.error("Error submitting survey:", error);
+      setSubmitError(error.message || "Failed to save survey. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleReset = () => {
     setForm(defaultForm);
     setPhotos([]);
+    setUploadedPhotos([]);
     setErrors({});
     setSaved(false);
   };
@@ -124,6 +215,7 @@ export default function VINSurveyPage() {
       name: file.name,
       url: URL.createObjectURL(file),
       size: (file.size / 1024).toFixed(1) + " KB",
+      file: file, // Store actual file object
     }));
     setPhotos((prev) => [...prev, ...newPhotos]);
   };
@@ -158,13 +250,24 @@ export default function VINSurveyPage() {
           <button
             type="button"
             onClick={handleSubmit}
-            className="flex items-center px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-semibold transition-colors shadow-sm"
+            disabled={loading}
+            className="flex items-center px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-semibold transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Save className="h-4 w-4 mr-2" />
-            Save Survey
+            {loading ? "Saving..." : "Save Survey"}
           </button>
         </div>
       </div>
+
+      {/* ── Error Banner ──────────────────────────────────────────── */}
+      {submitError && (
+        <div className="mb-5 flex items-center gap-3 px-5 py-3 rounded-lg bg-red-50 border border-red-200 text-red-800">
+          <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0" />
+          <span className="text-sm font-medium">
+            {submitError}
+          </span>
+        </div>
+      )}
 
       {/* ── Success Banner ──────────────────────────────────────────── */}
       {saved && (
@@ -408,10 +511,11 @@ export default function VINSurveyPage() {
               </button>
               <button
                 type="submit"
-                className="flex items-center px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-semibold transition-colors shadow-sm"
+                disabled={loading}
+                className="flex items-center px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-semibold transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save className="h-4 w-4 mr-2" />
-                Save
+                {loading ? "Saving..." : "Save"}
               </button>
             </div>
           </div>

@@ -24,14 +24,8 @@ const LocationMaster = () => {
   const [message, setMessage] = useState({ type: "", text: "" });
 
   const locationTypes = [
-    "WAREHOUSE",
-    "FACTORY",
-    "OFFICE",
-    "DEPOT",
-    "STATION",
-    "PORT",
-    "AIRPORT",
-    "OTHER"
+    "SIDING",
+    "YARD"
   ];
 
   useEffect(() => {

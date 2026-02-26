@@ -13,21 +13,8 @@ import {
   X,
   Check,
 } from "lucide-react";
-import { oemPickupAPI } from "../utils/Api";
+import { oemPickupAPI, locationMasterAPI, driverMasterAPI } from "../utils/Api";
 
-const plants = [
-  "Plant A - Mumbai",
-  "Plant B - Pune",
-  "Plant C - Delhi",
-  "Plant D - Bangalore",
-  "Plant E - Chennai",
-];
-const terminals = [
-  "Yard Terminal 1 - Gate A",
-  "Yard Terminal 2 - Gate B",
-  "Yard Terminal 3 - Gate C",
-  "Yard Terminal 4 - Gate D",
-];
 const transporters = [
   "Transporter A Ltd.",
   "Transporter B Pvt.",
@@ -48,6 +35,7 @@ const defaultForm = {
   deliveryDate: today,
   driverName: "",
   remarks: "",
+  transportationType: "TRUCK", // Default to truck
 };
 
 const SectionHeader = ({ icon: Icon, title, color = "green" }) => (
@@ -99,13 +87,78 @@ export default function OEMPickupPage() {
   const [vinValidation, setVinValidation] = useState(null);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
+  const [locations, setLocations] = useState([]);
+  const [sidings, setSidings] = useState([]);
+  const [yards, setYards] = useState([]);
+  const [plants, setPlants] = useState([]);
+  const [drivers, setDrivers] = useState([]);
+  const [allDriversData, setAllDriversData] = useState([]);
+  const [driverDetails, setDriverDetails] = useState(null);
   const debounceTimerRef = useRef(null);
 
-  // Toast notification function
+  // Toast notification function - moved before fetchLocations
   const showToast = useCallback((message, type = 'error') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 5000);
   }, []);
+
+  const fetchLocations = useCallback(async () => {
+    try {
+      const response = await locationMasterAPI.getAllLocations();
+      const allLocations = response.data || [];
+      setLocations(allLocations);
+      
+      // Separate locations by type
+      const sidingLocations = allLocations
+        .filter(loc => loc.LocationType === 'SIDING' && loc.IsActive)
+        .map(loc => loc.LocationName);
+      const yardLocations = allLocations
+        .filter(loc => loc.LocationType === 'YARD' && loc.IsActive)
+        .map(loc => loc.LocationName);
+      
+      setSidings(sidingLocations);
+      setYards(yardLocations);
+      // Use siding locations as plant options for OEM Pickup
+      setPlants(sidingLocations);
+    } catch (error) {
+      console.error('Error fetching locations:', error);
+      showToast('Failed to fetch locations', 'error');
+    }
+  }, [showToast]);
+
+  const fetchDrivers = useCallback(async () => {
+    try {
+      const response = await driverMasterAPI.getActiveDrivers();
+      const allDrivers = response.data || [];
+      // Store full driver data for details lookup
+      setAllDriversData(allDrivers);
+      // Extract driver names for dropdown
+      const driverNames = allDrivers.map(driver => driver.driver_name);
+      setDrivers(driverNames);
+    } catch (error) {
+      console.error('Error fetching drivers:', error);
+      showToast('Failed to fetch drivers', 'error');
+    }
+  }, [showToast]);
+
+  const handleDriverSelection = useCallback((driverName) => {
+    setForm(prev => ({ ...prev, driverName }));
+    
+    // Find driver details from stored data
+    const selectedDriver = allDriversData.find(driver => driver.driver_name === driverName);
+    
+    if (selectedDriver) {
+      setDriverDetails(selectedDriver);
+    } else {
+      setDriverDetails(null);
+    }
+  }, [allDriversData]);
+
+  // Fetch locations and drivers on component mount
+  useEffect(() => {
+    fetchLocations();
+    fetchDrivers();
+  }, [fetchLocations, fetchDrivers]);
 
   // Debounced VIN validation - stops API calls while typing
   const validateVINsDebounced = useCallback(async (vinDetails) => {
@@ -115,7 +168,7 @@ export default function OEMPickupPage() {
     }
 
     // Parse VINs from textarea to array for validation
-    const vinArray = vinDetails.split(/[,\\s\\n]+/).map((vin) => vin.trim().toUpperCase()).filter((vin) => vin.length > 0);
+    const vinArray = vinDetails.split(/[,\s\n]+/).map((vin) => vin.trim().toUpperCase()).filter((vin) => vin.length > 0);
 
     try {
       const validation = await oemPickupAPI.validateVINs(vinArray);
@@ -161,6 +214,7 @@ export default function OEMPickupPage() {
       "deliveryDate",
       "vinDetails",
       "driverName",
+      "transportationType",
     ];
     const errs = {};
     required.forEach((f) => {
@@ -178,10 +232,12 @@ export default function OEMPickupPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log("Form data before validation:", form);
     if (!validate()) return;
 
     try {
       setLoading(true);
+      console.log("Sending to API:", form);
       
       await oemPickupAPI.createOEMPickup(form);
       setSaved(true);
@@ -192,6 +248,7 @@ export default function OEMPickupPage() {
       }, 3500);
     } catch (error) {
       console.error("Error creating OEM Pickup:", error);
+      console.error("Error response:", error.response);
       
       // Show detailed error message from backend
       const errorMessage = error.response?.data?.error || error.message || "Failed to create OEM Pickup record";
@@ -264,18 +321,17 @@ export default function OEMPickupPage() {
       {/* ── Main Card ───────────────────────────────────────────────── */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <form onSubmit={handleSubmit} noValidate>
-
           {/* ── Section 1: Assignment ───────────────────────────────── */}
           <div className="px-6 pt-6 pb-5 border-b border-gray-100">
             <SectionHeader icon={ClipboardList} title="Assignment Details" color="green" />
-            <div className="grid grid-cols-3 gap-5">
+            <div className="grid grid-cols-4 gap-5">
               <div>
-                <FieldLabel required>Plant</FieldLabel>
+                <FieldLabel required>Sideing</FieldLabel>
                 <SelectField
                   value={form.plant}
                   onChange={set("plant")}
                   options={plants}
-                  placeholder="Select Plant"
+                  placeholder="Select Sideing"
                   hasError={!!errors.plant}
                 />
                 {errors.plant && (
@@ -287,8 +343,8 @@ export default function OEMPickupPage() {
                 <SelectField
                   value={form.yardLocation}
                   onChange={set("yardLocation")}
-                  options={terminals}
-                  placeholder="Select Terminal"
+                  options={yards}
+                  placeholder="Select Yard"
                   hasError={!!errors.yardLocation}
                 />
                 {errors.yardLocation && (
@@ -306,6 +362,19 @@ export default function OEMPickupPage() {
                 />
                 {errors.vendorTransporter && (
                   <p className="text-xs text-red-500 mt-1">Transporter is required</p>
+                )}
+              </div>
+              <div>
+                <FieldLabel required>Transportation Type</FieldLabel>
+                <SelectField
+                  value={form.transportationType}
+                  onChange={set("transportationType")}
+                  options={["TRUCK", "SELF_DRIVEN"]}
+                  placeholder="Select Transportation Type"
+                  hasError={!!errors.transportationType}
+                />
+                {errors.transportationType && (
+                  <p className="text-xs text-red-500 mt-1">Transportation type is required</p>
                 )}
               </div>
             </div>
@@ -425,23 +494,19 @@ export default function OEMPickupPage() {
               </div>
             </div>
           </div>
-
           {/* ── Section 4: Driver Details ───────────────────────────── */}
           <div className="px-6 pt-6 pb-5 border-b border-gray-100">
             <SectionHeader icon={User} title="Driver Details" color="green" />
             <div className="grid grid-cols-2 gap-5">
               <div>
                 <FieldLabel required>Driver Name</FieldLabel>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-                  <input
-                    type="text"
-                    value={form.driverName}
-                    onChange={set("driverName")}
-                    placeholder="Enter driver name"
-                    className={`${fc("driverName")} pl-9`}
-                  />
-                </div>
+                <SelectField
+                  value={form.driverName}
+                  onChange={handleDriverSelection}
+                  options={drivers}
+                  placeholder="Select Driver"
+                  hasError={!!errors.driverName}
+                />
                 {errors.driverName && (
                   <p className="text-xs text-red-500 mt-1">Driver name is required</p>
                 )}
@@ -457,6 +522,26 @@ export default function OEMPickupPage() {
                 />
               </div>
             </div>
+
+            {/* Driver Details Display */}
+            {driverDetails && (
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center gap-2 mb-3">
+                  <User className="h-5 w-5 text-blue-600" />
+                  <h4 className="text-sm font-semibold text-blue-800">Driver Information</h4>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-600">Driver ID:</span>
+                    <p className="font-medium text-gray-900">{driverDetails.driver_id}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Phone:</span>
+                    <p className="font-medium text-gray-900">{driverDetails.driver_contact || 'N/A'}</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* ── Form Actions ────────────────────────────────────────── */}
