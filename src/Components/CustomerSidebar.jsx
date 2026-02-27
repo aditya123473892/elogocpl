@@ -129,7 +129,12 @@ export function CustomerSidebar({
           path: "equipments",
           description: "Analytics & History",
         },
-      
+        {
+          name: "Rake Master",
+          icon: Train,
+          path: "rakemaster",
+          description: "Rake Management",
+        },
 
         {
           name: "Route Master",

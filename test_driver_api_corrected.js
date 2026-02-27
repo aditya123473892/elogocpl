@@ -6,7 +6,7 @@ async function testDriverAPI() {
     console.log('🧪 Testing Driver Master API...');
     
     // Test LOCAL backend (development)
-    const localResponse = await axios.get('https://elogivinbackend.onrender.com/api/driver-master/drivers/active');
+    const localResponse = await axios.get('http://localhost:4000/api/driver-master/drivers/active');
     
     console.log('✅ LOCAL API Status:', localResponse.status);
     console.log('✅ LOCAL API Data:', localResponse.data);
