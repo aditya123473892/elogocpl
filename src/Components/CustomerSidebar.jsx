@@ -107,7 +107,7 @@ export function CustomerSidebar({
       heading: "Master Data",
       items: [
         {
-          name: "Location Master",
+          name: "Sideing Master",
           icon: MapPin,
           path: "location-master",
           description: "Manage Locations",

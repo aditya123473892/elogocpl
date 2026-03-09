@@ -239,7 +239,7 @@ export default function Login() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email Address
+                  User Id 
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
@@ -359,7 +359,7 @@ export default function Login() {
                       required
                     >
                       <option value="" disabled>
-                        Select Location
+                        Select Location/Sideing
                       </option>
                       {locations.map((loc) => (
                         <option key={loc.LocationId} value={loc.LocationId}>
@@ -472,7 +472,7 @@ export default function Login() {
         </div>
 
         <div className="p-4 text-center text-sm text-gray-500">
-          &copy; {new Date().getFullYear()} Fleet Management System. All rights
+          &copy; {new Date().getFullYear()} Auto Freight System. All rights
           reserved.
         </div>
       </div>
@@ -485,7 +485,7 @@ export default function Login() {
               Manage Your VIN's with Confidence
             </h2>
             <p className="text-blue-100 mb-6">
-              Our comprehensive fleet management system helps you track
+              Our comprehensive Auto Freight system helps you track
               vehicles, manage drivers, and optimize routes for maximum
               efficiency.
             </p>
