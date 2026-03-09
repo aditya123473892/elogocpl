@@ -1,896 +1,1112 @@
-import { useState, useCallback, useEffect } from "react";
-import { useAuth } from "../contexts/AuthContext";
+import React, { useState, useEffect } from "react";
+import { Search, Filter, Download, Eye, Edit, Calendar, FileText, Truck, Package, CheckCircle, XCircle, Clock, X, TrendingUp, AlertTriangle, MapPin, Users, Activity, BarChart3, PieChart } from "lucide-react";
+import { dealerTripDetailsAPI } from "../utils/Api";
+import { toast } from "react-toastify";
 
-import { generateInvoice } from "../utils/pdfGenerator";
-
-import ServiceRequestForm from "../Components/dashboard/Servicerequest";
-
-import {
-  CheckCircle,
-  AlertTriangle,
-  Clock,
-  Bell,
-  Search,
-  User,
-  LogOut,
-  Settings,
-  Menu,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  Download,
-} from "lucide-react";
-
-import api, { transporterAPI } from "../utils/Api";
-
-import { toast, ToastContainer } from "react-toastify";
-
-import "react-toastify/dist/ReactToastify.css";
-
-import { useNavigate } from "react-router-dom";
-
-import StatsCards from "../Components/dashboard/StatCards";
-
-import { TransporterDetails } from "./Transporterdetails";
-
-export default function CustomerDashboard({
-  collapsed,
-  toggleSidebar,
-  activePage,
-  setActivePage,
-  mobileMenuOpen,
-  toggleMobileMenu,
-}) {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const [notifications, setNotifications] = useState([]);
-
-  // In CustomerDashboard.js - Update the initial requestData state around line 50-80
-  // Add SHIPA_NO to the initial state
-
-  const [requestData, setRequestData] = useState({
-    id: null,
-    SHIPA_NO: "", // ADD THIS LINE
-    consignee: "",
-    consigner: "",
-    vehicle_type: "",
-    vehicle_size: "",
-
-    containers_20ft: 0,
-    containers_40ft: 0,
-    total_containers: 0,
-    pickup_location: "",
-    stuffing_location: "",
-    delivery_location: "",
-    commodity: "",
-    cargo_type: "",
-    cargo_weight: "",
-    service_type: [],
-    service_prices: {},
-    expected_pickup_date: "",
-    expected_pickup_time: "",
-    expected_delivery_date: "",
-    expected_delivery_time: "",
-    requested_price: "",
-    status: "Pending",
-    admin_comment: "",
-  });
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [pastRequests, setPastRequests] = useState([]);
-  const [allRequests, setAllRequests] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
+const DealerReport = () => {
+  const [dealerRecords, setDealerRecords] = useState([]);
+  const [filteredRecords, setFilteredRecords] = useState([]);
   const [loading, setLoading] = useState(false);
-  const requestsPerPage = 5;
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("");
+  const [selectedRecord, setSelectedRecord] = useState(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editFormData, setEditFormData] = useState({});
 
-  const [transporterData, setTransporterData] = useState({
-    transporterName: "",
-    vehicleNumber: "",
-    driverName: "",
-    driverContact: "",
-    vendorName: "",
-    vendorContact: "",
-    vehicleNumber: "",
-    driverName: "",
-  });
+  // Load Dealer Trip Details records
+  useEffect(() => {
+    loadDealerRecords();
+  }, []);
 
-  // Add this state near your other state declarations
-  const [containerSearchQuery, setContainerSearchQuery] = useState("");
-
-  // Header functions (matching AdminDashboard)
-  const handleSearch = (e) => {
-    setSearchQuery(e.target.value);
+  // Calculate statistics
+  const statistics = {
+    totalRecords: dealerRecords.length,
+    todayRecords: dealerRecords.filter(record => {
+      if (!record.CreatedAt) return false;
+      const recordDate = new Date(record.CreatedAt);
+      return !isNaN(recordDate.getTime()) && recordDate.toISOString().split('T')[0] === new Date().toISOString().split('T')[0];
+    }).length,
+    uniqueDealers: new Set(dealerRecords.map(record => record.Dealer_Name).filter(Boolean)).size,
+    uniqueCities: new Set(dealerRecords.map(record => record.Destination_City).filter(Boolean)).size,
+    pendingEwayBills: dealerRecords.filter(record => {
+      if (!record.EWAY_BILL || !record.VALID_TILL) return false;
+      const validTill = new Date(record.VALID_TILL);
+      return !isNaN(validTill.getTime()) && validTill > new Date();
+    }).length,
+    expiredEwayBills: dealerRecords.filter(record => {
+      if (!record.EWAY_BILL || !record.VALID_TILL) return false;
+      const validTill = new Date(record.VALID_TILL);
+      return !isNaN(validTill.getTime()) && validTill < new Date();
+    }).length,
+    topDealer: dealerRecords.length > 0 ? 
+      Object.entries(
+        dealerRecords.reduce((acc, record) => {
+          if (record.Dealer_Name) {
+            acc[record.Dealer_Name] = (acc[record.Dealer_Name] || 0) + 1;
+          }
+          return acc;
+        }, {})
+      ).sort((a, b) => b[1] - a[1])[0] : null,
+    topCity: dealerRecords.length > 0 ?
+      Object.entries(
+        dealerRecords.reduce((acc, record) => {
+          if (record.Destination_City) {
+            acc[record.Destination_City] = (acc[record.Destination_City] || 0) + 1;
+          }
+          return acc;
+        }, {})
+      ).sort((a, b) => b[1] - a[1])[0] : null
   };
 
-  const toggleNotifications = () => {
-    setShowNotifications(!showNotifications);
-    if (showUserMenu) setShowUserMenu(false);
-  };
+  // Filter records based on search and filters
+  useEffect(() => {
+    let filtered = dealerRecords;
 
-  const toggleUserMenu = () => {
-    setShowUserMenu(!showUserMenu);
-    if (showNotifications) setShowNotifications(false);
-  };
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(record =>
+        record.VIN_Number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        record.Sales_Model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        record.Dealer_Name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        record.Destination_City?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        record.INVOICE_NO?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
+    // Apply date filter
+    if (dateFilter) {
+      filtered = filtered.filter(record => {
+        const recordDate = new Date(record.CreatedAt).toISOString().split('T')[0];
+        return recordDate === dateFilter;
+      });
+    }
 
-  // Update the fetchRequests function
-  const fetchRequests = async () => {
-    setLoading(true);
+    setFilteredRecords(filtered);
+  }, [dealerRecords, searchTerm, statusFilter, dateFilter]);
+
+  const loadDealerRecords = async () => {
     try {
-      const response = await api.get("/transport-requests/my-requests");
-      if (response.data?.success) {
-        // Fetch container details for each request
-        const requestsWithContainers = await Promise.all(
-          response.data.requests.map(async (request) => {
-            try {
-              const containerResponse =
-                await transporterAPI.getContainersByRequestId(request.id);
-              return {
-                ...request,
-                containerDetails:
-                  containerResponse.success && containerResponse.data
-                    ? containerResponse.data
-                    : [],
-              };
-            } catch (error) {
-              console.error(
-                `Error fetching containers for request ${request.id}:`,
-                error
-              );
-              return {
-                ...request,
-                containerDetails: [],
-              };
-            }
-          })
-        );
-
-        setAllRequests(requestsWithContainers);
-        updateDisplayedRequests(requestsWithContainers, 1);
-      } else {
-        toast.error("Failed to fetch requests");
-      }
+      setLoading(true);
+      const data = await dealerTripDetailsAPI.getAllDealerTripDetails();
+      setDealerRecords(data.data || data || []);
+      setFilteredRecords(data.data || data || []);
     } catch (error) {
-      console.error("Fetch requests error:", error);
-      toast.error(error.response?.data?.message || "Failed to fetch requests");
+      console.error("Error loading Dealer Trip Details records:", error);
+      toast.error("Failed to load Dealer Trip Details records");
     } finally {
       setLoading(false);
     }
   };
 
-  const updateDisplayedRequests = (
-    requests,
-    page,
-    searchQuery = containerSearchQuery
-  ) => {
-    // First filter all requests
-    const filteredRequests = getFilteredRequests(requests);
-
-    // Then paginate the filtered results
-    const startIndex = (page - 1) * requestsPerPage;
-    const endIndex = startIndex + requestsPerPage;
-    const paginatedRequests = filteredRequests.slice(startIndex, endIndex);
-
-    setPastRequests(paginatedRequests);
-    setCurrentPage(page);
-  };
-
-  // Update getTotalPages to consider filtered results
-  const getTotalPages = () => {
-    const filteredLength = getFilteredRequests(allRequests).length;
-    return Math.ceil(filteredLength / requestsPerPage);
-  };
-
-  // In CustomerDashboard.js - Update the handleSubmit function around line 200-250
-  // Add SHIPA_NO to the formData object
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this Dealer Trip Details record?")) {
+      return;
+    }
 
     try {
-      // Validate required fields before submission
-      if (!requestData.expected_pickup_date) {
-        toast.error("Expected pickup date is required");
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (!requestData.expected_delivery_date) {
-        toast.error("Expected delivery date is required");
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Validate date format
-      const isValidDate = (dateString) => {
-        const date = new Date(dateString);
-        return !isNaN(date.getTime());
-      };
-
-      if (!isValidDate(requestData.expected_pickup_date)) {
-        toast.error("Invalid pickup date");
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (!isValidDate(requestData.expected_delivery_date)) {
-        toast.error("Invalid delivery date");
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Format time for time(7) compatibility (append :00 for seconds)
-      const formatTimeForDatabase = (timeString) => {
-        if (!timeString) return null;
-        // Ensure HH:MM:SS format by appending :00
-        return `${timeString.trim()}:00`;
-      };
-
-      // Clean form data preparation
-      const formData = {
-        SHIPA_NO: requestData.SHIPA_NO?.trim() || "",
-        consignee: requestData.consignee.trim(),
-        consigner: requestData.consigner.trim(),
-        vehicle_type: requestData.vehicle_type,
-        vehicle_size: requestData.vehicle_size,
-        vehicle_status: requestData.vehicle_status,
-        no_of_vehicles: parseInt(requestData.no_of_vehicles) || 1,
-        pickup_location: requestData.pickup_location.trim(),
-        stuffing_location: requestData.stuffing_location.trim(),
-        delivery_location: requestData.delivery_location.trim(),
-        commodity: requestData.commodity.trim(),
-        cargo_type: requestData.cargo_type,
-        cargo_weight: parseFloat(requestData.cargo_weight) || 0,
-        service_type: JSON.stringify(requestData.service_type),
-        service_prices: JSON.stringify(requestData.service_prices),
-        containers_20ft: parseInt(requestData.containers_20ft) || 0,
-        containers_40ft: parseInt(requestData.containers_40ft) || 0,
-        total_containers: parseInt(requestData.total_containers) || 0,
-        expected_pickup_date: requestData.expected_pickup_date,
-        expected_pickup_time: formatTimeForDatabase(
-          requestData.expected_pickup_time
-        ),
-        expected_delivery_date: requestData.expected_delivery_date,
-        expected_delivery_time: formatTimeForDatabase(
-          requestData.expected_delivery_time
-        ),
-        requested_price: parseFloat(requestData.requested_price) || 0,
-        status: "Pending",
-      };
-
-      console.log("Form data being sent:", formData); // Debug log
-
-      // Determine if it's create or update
-      const isUpdate = Boolean(requestData.id);
-      const endpoint = isUpdate
-        ? `/transport-requests/update/${requestData.id}`
-        : "/transport-requests/create";
-
-      const response = isUpdate
-        ? await api.put(endpoint, formData)
-        : await api.post(endpoint, formData);
-
-      if (response.data.success) {
-        const successMessage = isUpdate
-          ? "Request updated successfully!"
-          : "Request created successfully!";
-
-        toast.success(successMessage);
-        console.log("Response:", response.data);
-
-        // Get the request ID from response
-        const requestId = isUpdate ? requestData.id : response.data.request?.id;
-
-        if (requestId) {
-          // For new requests, load the created request back into the form
-          if (!isUpdate) {
-            try {
-              // Fetch the newly created request to get all its details
-              const fetchResponse = await api.get(
-                `/transport-requests/${requestId}`
-              );
-
-              if (fetchResponse.data.success) {
-                const newRequest = fetchResponse.data.request;
-
-                // Load the new request data into the form
-                setRequestData({
-                  id: newRequest.id,
-                  SHIPA_NO: newRequest.SHIPA_NO || "",
-                  consignee: newRequest.consignee || "",
-                  consigner: newRequest.consigner || "",
-                  vehicle_type: newRequest.vehicle_type || "",
-                  vehicle_size: newRequest.vehicle_size || "",
-                  vehicle_status: newRequest.vehicle_status || "Empty",
-                  no_of_vehicles: newRequest.no_of_vehicles || "1",
-                  pickup_location: newRequest.pickup_location || "",
-                  stuffing_location: newRequest.stuffing_location || "",
-                  delivery_location: newRequest.delivery_location || "",
-                  commodity: newRequest.commodity || "",
-                  cargo_type: newRequest.cargo_type || "",
-                  cargo_weight: parseFloat(newRequest.cargo_weight) || 0,
-                  service_type: Array.isArray(newRequest.service_type)
-                    ? newRequest.service_type
-                    : JSON.parse(newRequest.service_type || "[]"),
-                  service_prices:
-                    typeof newRequest.service_prices === "string"
-                      ? JSON.parse(newRequest.service_prices)
-                      : newRequest.service_prices || {},
-                  containers_20ft: parseInt(newRequest.containers_20ft) || 0,
-                  containers_40ft: parseInt(newRequest.containers_40ft) || 0,
-                  total_containers: parseInt(newRequest.total_containers) || 0,
-                  expected_pickup_date: newRequest.expected_pickup_date
-                    ? newRequest.expected_pickup_date.split("T")[0]
-                    : "",
-                  expected_delivery_date: newRequest.expected_delivery_date
-                    ? newRequest.expected_delivery_date.split("T")[0]
-                    : "",
-                  expected_pickup_time: newRequest.expected_pickup_time
-                    ? newRequest.expected_pickup_time.slice(0, 5)
-                    : "",
-                  expected_delivery_time: newRequest.expected_delivery_time
-                    ? newRequest.expected_delivery_time.slice(0, 5)
-                    : "",
-                  requested_price: parseFloat(newRequest.requested_price) || 0,
-                  status: newRequest.status || "Pending",
-                  admin_comment: newRequest.admin_comment || "",
-                });
-
-                // Show additional success message for new bookings
-                toast.info(`Booking #${requestId} is now loaded for editing`);
-              }
-            } catch (fetchError) {
-              console.error(
-                "Error fetching newly created request:",
-                fetchError
-              );
-              // If we can't fetch the new request, at least update the ID
-              setRequestData((prev) => ({
-                ...prev,
-                id: requestId,
-              }));
-            }
-          }
-        }
-
-        // Refresh the requests list to show the updated/new request
-        fetchRequests();
-      } else {
-        toast.error(response.data.message || "Failed to submit request");
-      }
+      await dealerTripDetailsAPI.deleteDealerTripDetails(id);
+      toast.success("Dealer Trip Details record deleted successfully");
+      loadDealerRecords();
     } catch (error) {
-      console.error("Submit error:", error);
-
-      // Enhanced error handling
-      if (error.response?.data?.message) {
-        toast.error(error.response.data.message);
-      } else if (error.message.includes("date")) {
-        toast.error("Invalid date format. Please select a valid date");
-      } else {
-        toast.error(
-          "Failed to submit request. Please check all fields and try again."
-        );
-      }
-    } finally {
-      setIsSubmitting(false);
+      console.error("Error deleting Dealer Trip Details record:", error);
+      toast.error("Failed to delete Dealer Trip Details record");
     }
   };
 
-  const handleCancelEdit = () => {
-    setRequestData({
-      id: null,
-      SHIPA_NO: "", // ADD THIS LINE
-      consignee: "",
-      consigner: "",
-      vehicle_type: "",
-      vehicle_size: "",
-      vehicle_status: "Empty",
-      containers_20ft: 0,
-      containers_40ft: 0,
-      no_of_vehicles: "",
-      total_containers: 0,
-      pickup_location: "",
-      stuffing_location: "",
-      delivery_location: "",
-      commodity: "",
-      cargo_type: "",
-      cargo_weight: "",
-      service_type: [],
-      service_prices: {},
-      expected_pickup_date: "",
-      expected_pickup_time: "",
-      expected_delivery_date: "",
-      expected_delivery_time: "",
-      requested_price: "",
-      status: "Pending",
-      admin_comment: "",
-    });
-  };
-  const canEditRequest = (status) => {
-    const normalizedStatus = status.toLowerCase();
-    return normalizedStatus !== "completed";
+  const handleEdit = (record) => {
+    setSelectedRecord(record);
+    setEditFormData(record);
+    setShowEditModal(true);
   };
 
-  const handleRequestClick = (request) => {
-    if (canEditRequest(request.status)) {
-      setRequestData({
-        id: request.id,
-        SHIPA_NO: request.SHIPA_NO || "", // ADD THIS LINE
-        consignee: request.consignee || "",
-        consigner: request.consigner || "",
-        vehicle_type: request.vehicle_type || "",
-        vehicle_size: request.vehicle_size || "",
-        vehicle_status: request.vehicle_status || "Empty",
-        no_of_vehicles: request.no_of_vehicles || "1",
-        pickup_location: request.pickup_location || "",
-        stuffing_location: request.stuffing_location || "",
-        delivery_location: request.delivery_location || "",
-        commodity: request.commodity || "",
-        cargo_type: request.cargo_type || "",
-        cargo_weight: parseFloat(request.cargo_weight) || 0,
-        service_type: Array.isArray(request.service_type)
-          ? request.service_type
-          : JSON.parse(request.service_type || "[]"),
-        service_prices:
-          typeof request.service_prices === "string"
-            ? JSON.parse(request.service_prices)
-            : request.service_prices || {},
-        containers_20ft: parseInt(request.containers_20ft) || 0,
-        containers_40ft: parseInt(request.containers_40ft) || 0,
-        total_containers: parseInt(request.total_containers) || 0,
-        expected_pickup_date: request.expected_pickup_date
-          ? request.expected_pickup_date.split("T")[0]
-          : "",
-        expected_delivery_date: request.expected_delivery_date
-          ? request.expected_delivery_date.split("T")[0]
-          : "",
-        requested_price: parseFloat(request.requested_price) || 0,
-
-        status: request.status || "Pending",
-        admin_comment: request.admin_comment || "",
-      });
-
-      document
-        .querySelector(".request-form")
-        ?.scrollIntoView({ behavior: "smooth" });
-      toast.info("Request loaded for editing");
-    } else {
-      toast.info("Completed requests cannot be edited");
-    }
-  };
-  // Download invoice handler
-  const handleDownloadInvoice = (request) => {
+  const handleUpdate = async () => {
     try {
-      const loadingToast = toast.loading("Generating invoice...");
-      const doc = generateInvoice(request);
-
-      if (!doc) {
-        throw new Error("Failed to generate PDF document");
-      }
-
-      const timestamp = new Date().toISOString().split("T")[0];
-      const filename = `invoice-${request.id}-${timestamp}.pdf`;
-      doc.save(filename);
-
-      toast.dismiss(loadingToast);
-      toast.success("Invoice downloaded successfully!");
+      await dealerTripDetailsAPI.updateDealerTripDetails(selectedRecord.ID, editFormData);
+      toast.success("Dealer Trip Details record updated successfully");
+      setShowEditModal(false);
+      setSelectedRecord(null);
+      setEditFormData({});
+      loadDealerRecords();
     } catch (error) {
-      console.error("Invoice download error:", error);
-      toast.error("Failed to generate invoice. Please try again.");
+      console.error("Error updating Dealer Trip Details record:", error);
+      toast.error("Failed to update Dealer Trip Details record");
     }
   };
 
-  // Compact status badge component
-  const getStatusBadge = (status) => {
-    const statusConfig = {
-      Completed: {
-        bg: "bg-green-100",
-        text: "text-green-700",
-        dot: "bg-green-500",
-      },
-      "In Progress": {
-        bg: "bg-blue-100",
-        text: "text-blue-700",
-        dot: "bg-blue-500",
-      },
-      Pending: {
-        bg: "bg-yellow-100",
-        text: "text-yellow-700",
-        dot: "bg-yellow-500",
-      },
-    };
+  const exportToCSV = () => {
+    const headers = [
+      "ID", "Rake_NO", "Load_No", "Trip_No", "INVOICE_NO", 
+      "Invoice_Date", "Destination_City", "Production_Model", 
+      "GR_Number", "Engine_No", "VIN_Number", "Sales_Model", 
+      "Dealer_Name", "LOCATION", "EWAY_BILL", "VALID_TILL", "Created At"
+    ];
+    
+    const csvContent = [
+      headers.join(","),
+      ...filteredRecords.map(record => [
+        record.ID || "",
+        record.Rake_NO || "",
+        record.Load_No || "",
+        record.Trip_No || "",
+        record.INVOICE_NO || "",
+        record.Invoice_Date || "",
+        record.Destination_City || "",
+        record.Production_Model || "",
+        record.GR_Number || "",
+        record.Engine_No || "",
+        record.VIN_Number || "",
+        record.Sales_Model || "",
+        record.Dealer_Name || "",
+        record.LOCATION || "",
+        record.EWAY_BILL || "",
+        record.VALID_TILL || "",
+        record.CreatedAt ? new Date(record.CreatedAt).toLocaleString() : ""
+      ].map(field => `"${field}"`).join(","))
+    ].join("\n");
 
-    const config = statusConfig[status] || {
-      bg: "bg-gray-100",
-      text: "text-gray-700",
-      dot: "bg-gray-500",
-    };
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `dealer_trip_details_report_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
 
+  if (loading) {
     return (
-      <span
-        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text}`}
-      >
-        <span className={`w-2 h-2 rounded-full mr-1 ${config.dot}`}></span>
-        {status}
-      </span>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading Dealer Trip Details records...</p>
+        </div>
+      </div>
     );
-  };
-
-  // Update the getFilteredRequests function to work with all requests
-  const getFilteredRequests = (requests) => {
-    if (!containerSearchQuery) return requests;
-
-    return requests.filter((request) =>
-      request.containerDetails?.some((container) =>
-        container.container_no
-          ?.toLowerCase()
-          .includes(containerSearchQuery.toLowerCase())
-      )
-    );
-  };
-
-  // Pagination handlers
-  const handlePrevPage = () => {
-    if (currentPage > 1) {
-      updateDisplayedRequests(allRequests, currentPage - 1);
-    }
-  };
-
-  const handleNextPage = () => {
-    const totalPages = getTotalPages();
-    if (currentPage < totalPages) {
-      updateDisplayedRequests(allRequests, currentPage + 1);
-    }
-  };
-
-  // Fetch requests on component mount
-  useEffect(() => {
-    fetchRequests();
-  }, []);
-
-  // Update the useEffect for containerSearchQuery
-  useEffect(() => {
-    // When search query changes, reset to first page and update display
-    updateDisplayedRequests(allRequests, 1, containerSearchQuery);
-  }, [containerSearchQuery, allRequests]);
+  }
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
-      <ToastContainer
-        position="top-right"
-        autoClose={2000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-      />
+    <div className="p-6 max-w-7xl mx-auto">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          Dealer Trip Details Reports
+        </h1>
+        <p className="text-gray-600">
+          View and manage all Dealer Trip Details records uploaded to the system
+        </p>
+      </div>
 
-      {/* Custom Header matching AdminDashboard style */}
-      <header className="bg-white shadow-sm flex items-center justify-between p-4">
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={toggleMobileMenu}
-            className="text-gray-600 md:hidden"
-          >
-            <Menu className="h-6 w-6" />
-          </button>
-        </div>
-
-        <div className="flex items-center space-x-4">
-          {/* Notifications */}
-          <div className="relative">
-            <button
-              onClick={toggleNotifications}
-              className="relative text-gray-600 hover:text-gray-800"
-            >
-              <Bell className="h-6 w-6" />
-              <span className="absolute top-0 right-0 h-3 w-3 bg-red-500 rounded-full border-2 border-white"></span>
-            </button>
-
-            {showNotifications && (
-              <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg z-50">
-                <div className="p-3 border-b">
-                  <h3 className="font-medium">Notifications</h3>
-                </div>
-                <div className="p-4 text-sm text-gray-500">
-                  No new notifications
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* User Menu */}
-          <div className="relative">
-            <button
-              onClick={toggleUserMenu}
-              className="flex items-center text-gray-700 focus:outline-none"
-            >
-              <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
-                {user?.name?.charAt(0) || <User className="h-5 w-5" />}
-              </div>
-              <span className="ml-2 hidden md:block">
-                {user?.name || "User"}
-              </span>
-              <ChevronDown className="h-4 w-4 ml-1" />
-            </button>
-
-            {showUserMenu && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg z-50">
-                <div className="py-2 px-4 border-b">
-                  <p className="text-sm font-medium">{user?.name}</p>
-                  <p className="text-xs text-gray-500">{user?.email}</p>
-                </div>
-                <div className="py-1">
-                  <button className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left flex items-center">
-                    <User className="h-4 w-4 mr-2" />
-                    Profile
-                  </button>
-                  <button className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left flex items-center">
-                    <Settings className="h-4 w-4 mr-2" />
-                    Settings
-                  </button>
-                  <button
-                    onClick={handleLogout}
-                    className="px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left flex items-center"
-                  >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Logout
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-1 overflow-auto bg-gray-50 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Dashboard</h2>
-            <p className="mt-1 text-sm text-gray-500">
-              Welcome back, {user?.name || "Customer"}! Request services and
-              manage your shipments
-            </p>
-          </div>
-
-          <StatsCards />
-
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Service Request Form - Takes 3 columns */}
-            <div className="lg:col-span-3 bg-white rounded-lg shadow">
-              <div>
-                <ServiceRequestForm
-                  requestData={requestData}
-                  setRequestData={setRequestData}
-                  handleSubmit={handleSubmit}
-                  isSubmitting={isSubmitting}
-                  handleCancelEdit={handleCancelEdit}
-                />
-
-                <TransporterDetails
-                  transportRequestId={requestData.id}
-                  transporterData={transporterData}
-                  setTransporterData={setTransporterData}
-                  isEditMode={Boolean(requestData.id)}
-                  selectedServices={requestData.service_type}
-                  vehicleType={requestData.vehicle_type} // Add this line
-                />
-              </div>
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        {/* Total Records Card */}
+        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Records</p>
+              <p className="text-2xl font-bold text-gray-900">{statistics.totalRecords}</p>
+              <p className="text-xs text-gray-500 mt-1">All time shipments</p>
             </div>
+            <div className="bg-blue-100 rounded-full p-3">
+              <Package className="w-6 h-6 text-blue-600" />
+            </div>
+          </div>
+        </div>
 
-            {/* Compact Past Requests - Takes 1 column */}
-            <div className="lg:col-span-1 bg-white rounded-lg shadow h-fit">
-              <div className="px-4 py-3 border-b border-gray-200">
-                <h3 className="text-sm font-medium text-gray-900">
-                  Recent Requests
+        {/* Today's Records Card */}
+        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Today's Records</p>
+              <p className="text-2xl font-bold text-gray-900">{statistics.todayRecords}</p>
+              <p className="text-xs text-gray-500 mt-1">Added today</p>
+            </div>
+            <div className="bg-green-100 rounded-full p-3">
+              <Calendar className="w-6 h-6 text-green-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* Unique Dealers Card */}
+        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Unique Dealers</p>
+              <p className="text-2xl font-bold text-gray-900">{statistics.uniqueDealers}</p>
+              <p className="text-xs text-gray-500 mt-1">Active dealers</p>
+            </div>
+            <div className="bg-purple-100 rounded-full p-3">
+              <Users className="w-6 h-6 text-purple-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* Destination Cities Card */}
+        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-orange-500">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Destination Cities</p>
+              <p className="text-2xl font-bold text-gray-900">{statistics.uniqueCities}</p>
+              <p className="text-xs text-gray-500 mt-1">Service locations</p>
+            </div>
+            <div className="bg-orange-100 rounded-full p-3">
+              <MapPin className="w-6 h-6 text-orange-600" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Intelligence Cards */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        {/* Top Performance Card */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex items-center mb-4">
+            <TrendingUp className="w-5 h-5 text-green-600 mr-2" />
+            <h3 className="text-lg font-semibold text-gray-900">Top Performers</h3>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <p className="text-sm text-gray-600">Top Dealer</p>
+              <p className="font-semibold text-gray-900">
+                {statistics.topDealer ? `${statistics.topDealer[0]} (${statistics.topDealer[1]} shipments)` : 'No data'}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Top Destination</p>
+              <p className="font-semibold text-gray-900">
+                {statistics.topCity ? `${statistics.topCity[0]} (${statistics.topCity[1]} shipments)` : 'No data'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* E-Way Bill Status Card */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex items-center mb-4">
+            <FileText className="w-5 h-5 text-blue-600 mr-2" />
+            <h3 className="text-lg font-semibold text-gray-900">E-Way Bill Status</h3>
+          </div>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Active</span>
+              <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
+                {statistics.pendingEwayBills}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Expired</span>
+              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                statistics.expiredEwayBills > 0 ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
+              }`}>
+                {statistics.expiredEwayBills}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Alerts Card */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex items-center mb-4">
+            <AlertTriangle className="w-5 h-5 text-yellow-600 mr-2" />
+            <h3 className="text-lg font-semibold text-gray-900">Alerts & Notifications</h3>
+          </div>
+          <div className="space-y-2">
+            {statistics.expiredEwayBills > 0 && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <p className="text-sm text-red-800">
+                  ⚠️ {statistics.expiredEwayBills} expired E-Way Bill(s) found
+                </p>
+              </div>
+            )}
+            {statistics.todayRecords > 0 && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <p className="text-sm text-green-800">
+                  ✅ {statistics.todayRecords} new shipment(s) today
+                </p>
+              </div>
+            )}
+            {statistics.expiredEwayBills === 0 && statistics.todayRecords === 0 && (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                <p className="text-sm text-gray-600">
+                  ℹ️ No new alerts
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Results Summary */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <Filter className="w-5 h-5 text-blue-600 mr-2" />
+            <span className="text-blue-800 font-medium">
+              Showing {filteredRecords.length} of {dealerRecords.length} records
+            </span>
+          </div>
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm("")}
+              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+            >
+              Clear Search
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Visual Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* Destination Cities Chart */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex items-center mb-4">
+            <BarChart3 className="w-5 h-5 text-blue-600 mr-2" />
+            <h3 className="text-lg font-semibold text-gray-900">Top Destination Cities</h3>
+          </div>
+          <div className="space-y-3">
+            {Object.entries(
+              dealerRecords.reduce((acc, record) => {
+                if (record.Destination_City) {
+                  acc[record.Destination_City] = (acc[record.Destination_City] || 0) + 1;
+                }
+                return acc;
+              }, {})
+            )
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 5)
+              .map(([city, count], index) => {
+                const maxCount = Math.max(
+                  ...Object.values(
+                    dealerRecords.reduce((acc, record) => {
+                      if (record.Destination_City) {
+                        acc[record.Destination_City] = (acc[record.Destination_City] || 0) + 1;
+                      }
+                      return acc;
+                    }, {})
+                  )
+                );
+                const percentage = (count / maxCount) * 100;
+                
+                return (
+                  <div key={city} className="flex items-center space-x-3">
+                    <span className="text-sm text-gray-600 w-20 truncate">{city}</span>
+                    <div className="flex-1 bg-gray-200 rounded-full h-6 relative">
+                      <div 
+                        className="bg-blue-500 h-6 rounded-full flex items-center justify-end pr-2"
+                        style={{ width: `${percentage}%` }}
+                      >
+                        <span className="text-xs text-white font-medium">{count}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            {dealerRecords.filter(record => record.Destination_City).length === 0 && (
+              <p className="text-gray-500 text-center py-4">No destination data available</p>
+            )}
+          </div>
+        </div>
+
+        {/* Dealer Distribution Chart */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex items-center mb-4">
+            <PieChart className="w-5 h-5 text-purple-600 mr-2" />
+            <h3 className="text-lg font-semibold text-gray-900">Top Dealers by Shipments</h3>
+          </div>
+          <div className="space-y-3">
+            {Object.entries(
+              dealerRecords.reduce((acc, record) => {
+                if (record.Dealer_Name) {
+                  acc[record.Dealer_Name] = (acc[record.Dealer_Name] || 0) + 1;
+                }
+                return acc;
+              }, {})
+            )
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 5)
+              .map(([dealer, count], index) => {
+                const maxCount = Math.max(
+                  ...Object.values(
+                    dealerRecords.reduce((acc, record) => {
+                      if (record.Dealer_Name) {
+                        acc[record.Dealer_Name] = (acc[record.Dealer_Name] || 0) + 1;
+                      }
+                      return acc;
+                    }, {})
+                  )
+                );
+                const percentage = (count / maxCount) * 100;
+                
+                return (
+                  <div key={dealer} className="flex items-center space-x-3">
+                    <span className="text-sm text-gray-600 w-32 truncate">{dealer}</span>
+                    <div className="flex-1 bg-gray-200 rounded-full h-6 relative">
+                      <div 
+                        className="bg-purple-500 h-6 rounded-full flex items-center justify-end pr-2"
+                        style={{ width: `${percentage}%` }}
+                      >
+                        <span className="text-xs text-white font-medium">{count}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            {dealerRecords.filter(record => record.Dealer_Name).length === 0 && (
+              <p className="text-gray-500 text-center py-4">No dealer data available</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Actions Bar */}
+      <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center space-x-2">
+            <Activity className="w-5 h-5 text-gray-600" />
+            <span className="text-sm font-medium text-gray-700">Quick Actions:</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => {
+                setSearchTerm("");
+                setStatusFilter("all");
+                setDateFilter("");
+              }}
+              className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Reset Filters
+            </button>
+         
+            <button
+              onClick={() => {
+                const expiredRecords = dealerRecords.filter(record => 
+                  record.EWAY_BILL && record.VALID_TILL && (() => {
+                    const validTill = new Date(record.VALID_TILL);
+                    return !isNaN(validTill.getTime()) && validTill < new Date();
+                  })()
+                );
+                setFilteredRecords(expiredRecords);
+              }}
+              className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+            >
+              Show Expired E-Way Bills
+            </button>
+            <button
+              onClick={loadDealerRecords}
+              className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
+            >
+              Refresh Data
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters and Search - Moved above table */}
+      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Search */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Search
+            </label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by ASN number, vehicle, supplier..."
+                className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
+
+          {/* Status Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Status
+            </label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="all">All Status</option>
+              <option value="pending">PENDING (LEFT FOR OEM PICKUP)</option>
+              <option value="processing">STARTER (OEM PICKUP DONE)</option>
+             
+            </select>
+          </div>
+
+          {/* Date Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Date Filter
+            </label>
+            <input
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          {/* Export Button */}
+          <div className="flex items-end">
+            <button
+              onClick={exportToCSV}
+              className="w-full flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Export CSV
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Results Summary */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <Filter className="w-5 h-5 text-blue-600 mr-2" />
+            <span className="text-blue-800 font-medium">
+              Showing {filteredRecords.length} of {dealerRecords.length} records
+            </span>
+          </div>
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm("")}
+              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+            >
+              Clear Search
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Records Table */}
+      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  ID
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Rake No
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Load No
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Trip No
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Invoice No
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Invoice Date
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Destination City
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  VIN Number
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Dealer Name
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  E-Way Bill Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Created At
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredRecords.length === 0 ? (
+                <tr>
+                  <td colSpan="12" className="px-6 py-12 text-center text-gray-500">
+                    <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-lg font-medium">No Dealer Trip Details records found</p>
+                    <p className="text-sm">
+                      {searchTerm || statusFilter !== "all" || dateFilter
+                        ? "Try adjusting your filters"
+                        : "No Dealer Trip Details records have been uploaded yet"}
+                    </p>
+                  </td>
+                </tr>
+              ) : (
+                filteredRecords.map((record) => (
+                  <tr key={record.ID} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        {record.ID}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-600">
+                        {record.Rake_NO || "-"}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-600">
+                        {record.Load_No || "-"}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-600">
+                        {record.Trip_No || "-"}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-600">
+                        {record.INVOICE_NO || "-"}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-600">
+                        {record.Invoice_Date ? new Date(record.Invoice_Date).toLocaleDateString() : "-"}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-600">
+                        {record.Destination_City || "-"}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-600">
+                        {record.VIN_Number || "-"}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-600">
+                        {record.Dealer_Name || "-"}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {record.EWAY_BILL ? (
+                        record.VALID_TILL ? (
+                          (() => {
+                            const validTill = new Date(record.VALID_TILL);
+                            if (isNaN(validTill.getTime())) {
+                              return (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                  <Clock className="w-3 h-3 mr-1" />
+                                  Invalid Date
+                                </span>
+                              );
+                            }
+                            return validTill > new Date() ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Active
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                <XCircle className="w-3 h-3 mr-1" />
+                                Expired
+                              </span>
+                            );
+                          })()
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            <Clock className="w-3 h-3 mr-1" />
+                            No Validity
+                          </span>
+                        )
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                          <FileText className="w-3 h-3 mr-1" />
+                              No E-Way Bill
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-600">
+                        {record.CreatedAt ? new Date(record.CreatedAt).toLocaleDateString() : "-"}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end space-x-2">
+                        <button
+                          onClick={() => {
+                            setSelectedRecord(record);
+                            setShowDetailsModal(true);
+                          }}
+                          className="text-blue-600 hover:text-blue-900"
+                          title="View Details"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleEdit(record)}
+                          className="text-green-600 hover:text-green-900"
+                          title="Edit"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                      
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Details Modal */}
+      {showDetailsModal && selectedRecord && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative min-h-screen flex items-center justify-center p-4">
+            <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                <h3 className="text-lg font-medium text-gray-900">
+                  Dealer Trip Details - ID: {selectedRecord.ID}
                 </h3>
-                {/* Add search input */}
-                <div className="mt-2">
-                  <div className="relative rounded-md shadow-sm">
-                    <input
-                      type="text"
-                      value={containerSearchQuery}
-                      onChange={(e) => setContainerSearchQuery(e.target.value)}
-                      placeholder="Search containers..."
-                      className="block w-full rounded-md border-gray-300 pl-3 pr-10 py-2 text-sm focus:border-blue-500 focus:ring-blue-500"
-                    />
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                      <Search className="h-4 w-4 text-gray-400" />
+                <button
+                  onClick={() => {
+                    setShowDetailsModal(false);
+                    setSelectedRecord(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900 mb-4">Basic Information</h4>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-xs font-medium text-gray-500">ID</label>
+                        <p className="text-sm text-gray-900">{selectedRecord.ID}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-500">Rake No</label>
+                        <p className="text-sm text-gray-900">{selectedRecord.Rake_NO || "-"}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-500">Load No</label>
+                        <p className="text-sm text-gray-900">{selectedRecord.Load_No || "-"}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-500">Trip No</label>
+                        <p className="text-sm text-gray-900">{selectedRecord.Trip_No || "-"}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-500">Invoice No</label>
+                        <p className="text-sm text-gray-900">{selectedRecord.INVOICE_NO || "-"}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-500">Created At</label>
+                        <p className="text-sm text-gray-900">
+                          {selectedRecord.CreatedAt ? new Date(selectedRecord.CreatedAt).toLocaleString() : "-"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900 mb-4">Vehicle & Location Details</h4>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-xs font-medium text-gray-500">VIN Number</label>
+                        <p className="text-sm text-gray-900">{selectedRecord.VIN_Number || "-"}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-500">Production Model</label>
+                        <p className="text-sm text-gray-900">{selectedRecord.Production_Model || "-"}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-500">Sales Model</label>
+                        <p className="text-sm text-gray-900">{selectedRecord.Sales_Model || "-"}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-500">Dealer Name</label>
+                        <p className="text-sm text-gray-900">{selectedRecord.Dealer_Name || "-"}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-500">Destination City</label>
+                        <p className="text-sm text-gray-900">{selectedRecord.Destination_City || "-"}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-500">Location</label>
+                        <p className="text-sm text-gray-900">{selectedRecord.LOCATION || "-"}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-500">Invoice Date</label>
+                        <p className="text-sm text-gray-900">
+                          {selectedRecord.Invoice_Date ? new Date(selectedRecord.Invoice_Date).toLocaleDateString() : "-"}
+                        </p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-500">GR Number</label>
+                        <p className="text-sm text-gray-900">{selectedRecord.GR_Number || "-"}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-500">Engine No</label>
+                        <p className="text-sm text-gray-900">{selectedRecord.Engine_No || "-"}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-500">E-Way Bill</label>
+                        <p className="text-sm text-gray-900">{selectedRecord.EWAY_BILL || "-"}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-500">Valid Till</label>
+                        <p className="text-sm text-gray-900">{selectedRecord.VALID_TILL || "-"}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
 
-              <div className="p-4">
-                {loading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+      {/* Edit Modal */}
+      {showEditModal && selectedRecord && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative min-h-screen flex items-center justify-center p-4">
+            <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                <h3 className="text-lg font-medium text-gray-900">
+                  Edit Dealer Trip Details - ID: {selectedRecord.ID}
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setSelectedRecord(null);
+                    setEditFormData({});
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="p-6">
+                <form onSubmit={(e) => { e.preventDefault(); handleUpdate(); }} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Rake No
+                      </label>
+                      <input
+                        type="text"
+                        value={editFormData.Rake_NO || ""}
+                        onChange={(e) => setEditFormData({...editFormData, Rake_NO: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Load No
+                      </label>
+                      <input
+                        type="text"
+                        value={editFormData.Load_No || ""}
+                        onChange={(e) => setEditFormData({...editFormData, Load_No: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Trip No
+                      </label>
+                      <input
+                        type="text"
+                        value={editFormData.Trip_No || ""}
+                        onChange={(e) => setEditFormData({...editFormData, Trip_No: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Invoice No
+                      </label>
+                      <input
+                        type="text"
+                        value={editFormData.INVOICE_NO || ""}
+                        onChange={(e) => setEditFormData({...editFormData, INVOICE_NO: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Invoice Date
+                      </label>
+                      <input
+                        type="date"
+                        value={editFormData.Invoice_Date ? new Date(editFormData.Invoice_Date).toISOString().split('T')[0] : ""}
+                        onChange={(e) => setEditFormData({...editFormData, Invoice_Date: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Destination City
+                      </label>
+                      <input
+                        type="text"
+                        value={editFormData.Destination_City || ""}
+                        onChange={(e) => setEditFormData({...editFormData, Destination_City: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Production Model
+                      </label>
+                      <input
+                        type="text"
+                        value={editFormData.Production_Model || ""}
+                        onChange={(e) => setEditFormData({...editFormData, Production_Model: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        VIN Number
+                      </label>
+                      <input
+                        type="text"
+                        value={editFormData.VIN_Number || ""}
+                        onChange={(e) => setEditFormData({...editFormData, VIN_Number: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Sales Model
+                      </label>
+                      <input
+                        type="text"
+                        value={editFormData.Sales_Model || ""}
+                        onChange={(e) => setEditFormData({...editFormData, Sales_Model: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Dealer Name
+                      </label>
+                      <input
+                        type="text"
+                        value={editFormData.Dealer_Name || ""}
+                        onChange={(e) => setEditFormData({...editFormData, Dealer_Name: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Location
+                      </label>
+                      <input
+                        type="text"
+                        value={editFormData.LOCATION || ""}
+                        onChange={(e) => setEditFormData({...editFormData, LOCATION: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        GR Number
+                      </label>
+                      <input
+                        type="text"
+                        value={editFormData.GR_Number || ""}
+                        onChange={(e) => setEditFormData({...editFormData, GR_Number: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Engine No
+                      </label>
+                      <input
+                        type="text"
+                        value={editFormData.Engine_No || ""}
+                        onChange={(e) => setEditFormData({...editFormData, Engine_No: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        E-Way Bill
+                      </label>
+                      <input
+                        type="text"
+                        value={editFormData.EWAY_BILL || ""}
+                        onChange={(e) => setEditFormData({...editFormData, EWAY_BILL: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Valid Till
+                      </label>
+                      <input
+                        type="text"
+                        value={editFormData.VALID_TILL || ""}
+                        onChange={(e) => setEditFormData({...editFormData, VALID_TILL: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
                   </div>
-                ) : (
-                  <div className="space-y-3">
-                    {getFilteredRequests(pastRequests).length === 0 ? (
-                      <div className="text-center py-8 text-gray-500">
-                        <p className="text-sm">
-                          {containerSearchQuery
-                            ? "No containers found matching your search"
-                            : "No requests found"}
-                        </p>
-                      </div>
-                    ) : (
-                      getFilteredRequests(pastRequests).map((request) => (
-                        <div
-                          key={request.id}
-                          onClick={() => handleRequestClick(request)}
-                          className={`border rounded-lg p-3 transition-all duration-200 ${
-                            canEditRequest(request.status)
-                              ? "cursor-pointer hover:border-blue-300 hover:shadow-sm"
-                              : "cursor-not-allowed opacity-60"
-                          }`}
-                        >
-                          <div className="flex justify-between items-start mb-2">
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900 truncate">
-                                Booking #{request.id}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                {new Date(
-                                  request.created_at
-                                ).toLocaleDateString()}
-                              </p>
-                            </div>
-                            <div className="flex items-center space-x-1 ml-2">
-                              {getStatusBadge(request.status)}
-                              {request.status === "approved" && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDownloadInvoice(request);
-                                  }}
-                                  className="text-green-600 hover:text-green-800 p-1 rounded"
-                                  title="Download Invoice"
-                                >
-                                  <Download className="w-3 h-3" />
-                                </button>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="space-y-1">
-                            <div className="flex justify-between text-xs">
-                              <span className="text-gray-500">Vehicle:</span>
-                              <span className="text-gray-900 font-medium">
-                                {request.vehicle_type}
-                              </span>
-                            </div>
-
-                            <div className="text-xs">
-                              <span className="text-gray-500">Services:</span>
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {(() => {
-                                  try {
-                                    const services = JSON.parse(
-                                      request.service_type || "[]"
-                                    );
-                                    const serviceArray = Array.isArray(services)
-                                      ? services
-                                      : [String(services)];
-                                    return serviceArray
-                                      .slice(0, 2)
-                                      .map((service, idx) => (
-                                        <span
-                                          key={idx}
-                                          className="inline-block px-1.5 py-0.5 rounded text-xs bg-blue-50 text-blue-700"
-                                        >
-                                          {service}
-                                        </span>
-                                      ));
-                                  } catch (error) {
-                                    return (
-                                      <span className="inline-block px-1.5 py-0.5 rounded text-xs bg-gray-50 text-gray-700">
-                                        N/A
-                                      </span>
-                                    );
-                                  }
-                                })()}
-                              </div>
-                            </div>
-
-                            {/* Container Details Section */}
-                            {request.containerDetails &&
-                              request.containerDetails.length > 0 && (
-                                <div className="mt-2 text-xs">
-                                  <span className="text-gray-500">
-                                    Containers:
-                                  </span>
-                                  <div className="flex flex-wrap gap-1 mt-1">
-                                    {request.containerDetails.map(
-                                      (container) => (
-                                        <div
-                                          key={container.id}
-                                          className="inline-block px-2 py-1 rounded text-xs bg-gray-50 border border-gray-200 text-gray-700"
-                                        >
-                                          {container.container_no}
-                                        </div>
-                                      )
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-
-                            {/* Fallback for no containers */}
-                            {(!request.containerDetails ||
-                              request.containerDetails.length === 0) && (
-                              <div className="mt-2 text-xs">
-                                <span className="text-gray-500">
-                                  Containers:
-                                </span>
-                                <div className="flex gap-2 mt-1">
-                                  <span className="text-gray-600 bg-gray-50 px-2 py-1 rounded border border-gray-200">
-                                    No containers assigned
-                                  </span>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                          {request.admin_comment && (
-                            <div className="mt-2 p-2 bg-gray-50 rounded text-xs">
-                              <p className="text-gray-600 font-medium">
-                                Admin:
-                              </p>
-                              <p className="text-gray-700 truncate">
-                                {request.admin_comment}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                )}
-
-                {/* Pagination */}
-                {getTotalPages() > 1 && (
-                  <div className="flex items-center justify-between mt-4 pt-3 border-t">
+                  
+                  <div className="flex justify-end space-x-3 pt-4">
                     <button
-                      onClick={handlePrevPage}
-                      disabled={currentPage === 1}
-                      className="flex items-center px-2 py-1 text-xs text-gray-500 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      type="button"
+                      onClick={() => {
+                        setShowEditModal(false);
+                        setSelectedRecord(null);
+                        setEditFormData({});
+                      }}
+                      className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
                     >
-                      <ChevronLeft className="w-3 h-3 mr-1" />
-                      Prev
+                      Cancel
                     </button>
-
-                    <span className="text-xs text-gray-500">
-                      {currentPage} of {getTotalPages()}
-                    </span>
-
                     <button
-                      onClick={handleNextPage}
-                      disabled={currentPage === getTotalPages()}
-                      className="flex items-center px-2 py-1 text-xs text-gray-500 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      type="submit"
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                     >
-                      Next
-                      <ChevronRight className="w-3 h-3 ml-1" />
+                      Update Dealer Trip Details
                     </button>
                   </div>
-                )}
+                </form>
               </div>
             </div>
           </div>
         </div>
-      </main>
+      )}
     </div>
   );
-}
+};
+
+export default DealerReport;

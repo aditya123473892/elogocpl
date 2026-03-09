@@ -471,7 +471,7 @@ const DealerTripDetailsManagement = () => {
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", "dealer_trip_details_template.csv");
+    link.setAttribute("download", "ASN_UPLOAD_FORMAT.csv");
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
@@ -482,7 +482,7 @@ const DealerTripDetailsManagement = () => {
     <div className="max-w-7xl mx-auto p-6">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Dealer Trip Details Management
+          Advance Shipping Note Management
         </h1>
         <p className="text-gray-600">
           Create Dealer Trip Details records manually or via CSV/Excel upload

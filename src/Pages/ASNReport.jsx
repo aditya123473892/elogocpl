@@ -38,8 +38,10 @@ const DealerReport = () => {
     // Apply date filter
     if (dateFilter) {
       filtered = filtered.filter(record => {
-        const recordDate = new Date(record.CreatedAt).toISOString().split('T')[0];
-        return recordDate === dateFilter;
+        if (!record.CreatedAt) return false;
+        const recordDate = new Date(record.CreatedAt);
+        if (isNaN(recordDate.getTime())) return false;
+        return recordDate.toISOString().split('T')[0] === dateFilter;
       });
     }
 
@@ -122,7 +124,10 @@ const DealerReport = () => {
         record.LOCATION || "",
         record.EWAY_BILL || "",
         record.VALID_TILL || "",
-        record.CreatedAt ? new Date(record.CreatedAt).toLocaleString() : ""
+        record.CreatedAt ? (() => {
+          const date = new Date(record.CreatedAt);
+          return !isNaN(date.getTime()) ? date.toLocaleString() : "";
+        })() : ""
       ].map(field => `"${field}"`).join(","))
     ].join("\n");
 
@@ -130,7 +135,7 @@ const DealerReport = () => {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `dealer_trip_details_report_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `ASN_FORMAT${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
   };
@@ -327,7 +332,10 @@ const DealerReport = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-600">
-                        {record.Invoice_Date ? new Date(record.Invoice_Date).toLocaleDateString() : "-"}
+                        {record.Invoice_Date ? (() => {
+                          const date = new Date(record.Invoice_Date);
+                          return !isNaN(date.getTime()) ? date.toLocaleDateString() : "-";
+                        })() : "-"}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -347,7 +355,10 @@ const DealerReport = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-600">
-                        {record.CreatedAt ? new Date(record.CreatedAt).toLocaleDateString() : "-"}
+                        {record.CreatedAt ? (() => {
+                          const date = new Date(record.CreatedAt);
+                          return !isNaN(date.getTime()) ? date.toLocaleDateString() : "-";
+                        })() : "-"}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -428,7 +439,10 @@ const DealerReport = () => {
                       <div>
                         <label className="text-xs font-medium text-gray-500">Created At</label>
                         <p className="text-sm text-gray-900">
-                          {selectedRecord.CreatedAt ? new Date(selectedRecord.CreatedAt).toLocaleString() : "-"}
+                          {selectedRecord.CreatedAt ? (() => {
+                          const date = new Date(selectedRecord.CreatedAt);
+                          return !isNaN(date.getTime()) ? date.toLocaleString() : "-";
+                        })() : "-"}
                         </p>
                       </div>
                     </div>
@@ -464,7 +478,10 @@ const DealerReport = () => {
                       <div>
                         <label className="text-xs font-medium text-gray-500">Invoice Date</label>
                         <p className="text-sm text-gray-900">
-                          {selectedRecord.Invoice_Date ? new Date(selectedRecord.Invoice_Date).toLocaleDateString() : "-"}
+                          {selectedRecord.Invoice_Date ? (() => {
+                          const date = new Date(selectedRecord.Invoice_Date);
+                          return !isNaN(date.getTime()) ? date.toLocaleDateString() : "-";
+                        })() : "-"}
                         </p>
                       </div>
                       <div>
@@ -570,7 +587,10 @@ const DealerReport = () => {
                       </label>
                       <input
                         type="date"
-                        value={editFormData.Invoice_Date ? new Date(editFormData.Invoice_Date).toISOString().split('T')[0] : ""}
+                        value={editFormData.Invoice_Date ? (() => {
+                          const date = new Date(editFormData.Invoice_Date);
+                          return !isNaN(date.getTime()) ? date.toISOString().split('T')[0] : "";
+                        })() : ""}
                         onChange={(e) => setEditFormData({...editFormData, Invoice_Date: e.target.value})}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
