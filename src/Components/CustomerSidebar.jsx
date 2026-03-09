@@ -17,6 +17,7 @@ import {
   Camera,
   Warehouse,
   Train,
+  Calendar,
 } from "lucide-react";
 
 export function CustomerSidebar({
@@ -93,6 +94,12 @@ export function CustomerSidebar({
           path: "asn-reports",
           description: "View ASN Upload Reports",
         },
+        {
+          name: "Monthly Report",
+          icon: Calendar,
+          path: "monthly-report",
+          description: "View Monthly Transportation Report",
+        },
      
       ],
     },
@@ -135,6 +142,7 @@ export function CustomerSidebar({
           path: "rakemaster",
           description: "Rake Management",
         },
+  
 
         {
           name: "Route Master",
@@ -146,6 +154,12 @@ export function CustomerSidebar({
           name: "Rake Planning",
           icon: Train,
           path: "rakeplanning",
+          description: "Rake Management",
+        },
+             {
+          name: "Rake Deaprture",
+          icon: Train,
+          path: "rake-deaprture",
           description: "Rake Management",
         },
              {

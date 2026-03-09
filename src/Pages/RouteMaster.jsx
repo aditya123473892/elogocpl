@@ -27,7 +27,7 @@ const RouteMaster = () => {
   const [editingRoute, setEditingRoute] = useState(null);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState(DEFAULT_FORM);
-  const [subRoutes, setSubRoutes] = useState(["", "", "", ""]);
+  const [subRoutes, setSubRoutes] = useState([""]);
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState({ type: "", text: "" });
 
@@ -138,7 +138,7 @@ const RouteMaster = () => {
     setEditingRoute(route);
     setFormData({ ...route });
     const sr = route.sub_routes || [];
-    setSubRoutes([sr[0] || "", sr[1] || "", sr[2] || "", sr[3] || ""]);
+    setSubRoutes([sr[0] || ""]);
     setShowModal(true);
   };
 
@@ -149,7 +149,7 @@ const RouteMaster = () => {
 
   const resetForm = () => {
     setFormData(DEFAULT_FORM);
-    setSubRoutes(["", "", "", ""]);
+    setSubRoutes([""]);
     setEditingRoute(null);
     setErrors({});
     setShowModal(false);
@@ -159,6 +159,20 @@ const RouteMaster = () => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
+    
+    // Auto-populate Route_Name and Train_No_Prefix when both terminals are selected
+    if (name === "From_Terminal" || name === "To_Terminal") {
+      const newFormData = { ...formData, [name]: value };
+      if (newFormData.From_Terminal && newFormData.To_Terminal) {
+        const routeName = `${newFormData.From_Terminal}-${newFormData.To_Terminal}`;
+        setFormData((prev) => ({ 
+          ...prev, 
+          [name]: value,
+          Route_Name: routeName,
+          Train_No_Prefix: routeName
+        }));
+      }
+    }
   };
 
   const handleSubRouteChange = (index, value) => {
@@ -293,13 +307,7 @@ const RouteMaster = () => {
                         >
                           <Edit className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => handleDelete(route.RouteId)}
-                          className="text-red-500 hover:text-red-700"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                       
                       </div>
                     </td>
                   </tr>
@@ -362,15 +370,22 @@ const RouteMaster = () => {
                     name="Route_Name"
                     value={formData.Route_Name}
                     onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.Route_Name ? "border-red-300" : "border-gray-300"}`}
+                    disabled={formData.From_Terminal && formData.To_Terminal}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      errors.Route_Name ? "border-red-300" : 
+                      formData.From_Terminal && formData.To_Terminal ? "border-gray-200 bg-gray-50" : "border-gray-300"
+                    }`}
                     placeholder="e.g. CCH-ICOD"
                   />
                   {errors.Route_Name && <p className="mt-1 text-sm text-red-600">{errors.Route_Name}</p>}
+                  {formData.From_Terminal && formData.To_Terminal && (
+                    <p className="mt-1 text-sm text-gray-500">Auto-generated from terminal selection</p>
+                  )}
                 </div>
 
                 {/* Route Type */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Route Type</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Route Type/Carrying Capacity (RBS)</label>
                   <select
                     name="Route_Type"
                     value={formData.Route_Type}
@@ -378,8 +393,9 @@ const RouteMaster = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="GENERAL">GENERAL</option>
-                    <option value="EXPRESS">EXPRESS</option>
-                    <option value="SPECIAL">SPECIAL</option>
+                    <option value="EXPRESS">CC+8</option>
+                    <option value="SPECIAL">CC+3</option>
+                    <option value="SPECIAL">25 t Axle</option>
                   </select>
                 </div>
 
@@ -425,10 +441,17 @@ const RouteMaster = () => {
                     name="Train_No_Prefix"
                     value={formData.Train_No_Prefix}
                     onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.Train_No_Prefix ? "border-red-300" : "border-gray-300"}`}
+                    disabled={formData.From_Terminal && formData.To_Terminal}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      errors.Train_No_Prefix ? "border-red-300" : 
+                      formData.From_Terminal && formData.To_Terminal ? "border-gray-200 bg-gray-50" : "border-gray-300"
+                    }`}
                     placeholder="e.g. CCH-ICOD"
                   />
                   {errors.Train_No_Prefix && <p className="mt-1 text-sm text-red-600">{errors.Train_No_Prefix}</p>}
+                  {formData.From_Terminal && formData.To_Terminal && (
+                    <p className="mt-1 text-sm text-gray-500">Auto-generated from terminal selection</p>
+                  )}
                 </div>
 
                 {/* Beginning Number */}
@@ -471,20 +494,17 @@ const RouteMaster = () => {
               {/* Sub Route Mapping */}
               <div className="mt-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Sub Route Mapping</label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                  {subRoutes.map((route, index) => (
-                    <select
-                      key={index}
-                      value={route}
-                      onChange={(e) => handleSubRouteChange(index, e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-sm"
-                    >
-                      <option value="">---- Select Sub Route ----</option>
-                      {routes.map((r) => (
-                        <option key={r.RouteId} value={r.Route_Name}>{r.Route_Name}</option>
-                      ))}
-                    </select>
-                  ))}
+                <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                  <select
+                    value={subRoutes[0]}
+                    onChange={(e) => handleSubRouteChange(0, e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-sm"
+                  >
+                    <option value="">---- Select Sub Route ----</option>
+                    {routes.map((r) => (
+                      <option key={r.RouteId} value={r.Route_Name}>{r.Route_Name}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

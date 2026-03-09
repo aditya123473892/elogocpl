@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Search, Plus, Edit, Trash2, Package, X, Check, Camera } from "lucide-react";
+import { Search, Plus, Edit,  Package, X, Check, Camera } from "lucide-react";
+
+
 import { articleMasterAPI } from "../utils/Api";
 
 const ARTICLE_GROUPS = ["Hatchback", "Sedan", "SUV", "Commercial", "Other"];
@@ -348,13 +350,7 @@ const ArticleMaster = () => {
                         >
                           <Edit className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => handleDelete(article.article_id)}
-                          className="text-red-500 hover:text-red-700"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                     
                       </div>
                     </td>
                   </tr>

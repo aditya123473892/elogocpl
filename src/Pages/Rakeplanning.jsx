@@ -16,9 +16,9 @@ const TERMINAL_OPTIONS = [
 
 const DEFAULT_FORM = {
 
-  Rake_Name: "NMG49WJ-FN5",
+  Rake_Name: "",
 
-  Base_Depot: "CCH",
+  Base_Depot: "",
 
   Rake_Operator: "INDIAN RAILWAY",
 
@@ -28,9 +28,9 @@ const DEFAULT_FORM = {
 
   Sub_Route: "Main Route",
 
-  Journey_Id: "CCH-ICOD17",
+  Journey_Id: "",
 
-  IB_Train_No: "NMG49WJ-FN5",
+  IB_Train_No: "",
 
   Rake_Owner: "INDIAN RAILWAY",
 
@@ -38,11 +38,11 @@ const DEFAULT_FORM = {
 
   Device_ID: "Select",
 
-  Route: "CCH-ICOD",
+  Route: "",
 
-  Train_No: "CCH-ICOD17",
+  Train_No: "",
 
-  Plan_Date: "23/02/2026 19:09",
+  Plan_Date: "",
 
 };
 
@@ -241,6 +241,28 @@ const RakePlanning = () => {
 
 
 
+  const regenerateJourneyId = () => {
+    if (formData.Route) {
+      const baseDepot = formData.Base_Depot || "CCH";
+      const routeParts = formData.Route.split("-");
+      const destination = routeParts[1] || routeParts[0];
+      
+      // Generate unique Journey ID with current timestamp
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('en-GB').replace(/\//g, ''); // DDMMYYYY format
+      const timeStr = now.toLocaleTimeString('en-GB', { hour12: false }).replace(/:/g, ''); // HHMMSS format
+      const uniqueId = `${dateStr}${timeStr}`.slice(-8); // Take last 8 digits for uniqueness
+      
+      const journeyId = `${baseDepot}-${destination}-${uniqueId}`;
+      
+      setFormData((prev) => ({ 
+        ...prev, 
+        Journey_Id: journeyId,
+        Train_No: journeyId
+      }));
+    }
+  };
+
   const handleInputChange = (e) => {
 
     const { name, value } = e.target;
@@ -248,6 +270,66 @@ const RakePlanning = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
 
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
+
+    // Auto-populate Base_Depot when Rake_Name is selected
+    if (name === "Rake_Name" && value) {
+      const selectedRake = availableRakes.find(rake => rake.Rake_Name === value);
+      if (selectedRake && selectedRake.Base_Depot) {
+        setFormData((prev) => ({ 
+          ...prev, 
+          [name]: value,
+          Base_Depot: selectedRake.Base_Depot
+        }));
+      }
+    }
+
+    // Auto-populate Journey_Id, Train_No, and IB_Train_No when Route is selected
+    if (name === "Route" && value) {
+      const baseDepot = formData.Base_Depot || "CCH";
+      const routeParts = value.split("-");
+      const destination = routeParts[1] || routeParts[0];
+      
+      // Generate unique Journey ID with timestamp
+      const now = new Date();
+      const timestamp = now.getTime(); // Get milliseconds since epoch
+      const dateStr = now.toLocaleDateString('en-GB').replace(/\//g, ''); // DDMMYYYY format
+      const timeStr = now.toLocaleTimeString('en-GB', { hour12: false }).replace(/:/g, ''); // HHMMSS format
+      const uniqueId = `${dateStr}${timeStr}`.slice(-8); // Take last 8 digits for uniqueness
+      
+      const journeyId = `${baseDepot}-${destination}-${uniqueId}`;
+      
+      // Generate IB Train No using route and current date/time
+      const ibDateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' }).replace(/\//g, '');
+      const ibTimeStr = now.toLocaleTimeString('en-GB', { hour12: false, hour: '2-digit', minute: '2-digit' }).replace(/:/g, '');
+      const ibTrainNo = `${value}-${ibDateStr}${ibTimeStr}`;
+      
+      setFormData((prev) => ({ 
+        ...prev, 
+        [name]: value,
+        Journey_Id: journeyId,
+        Train_No: journeyId, // Set Train_No to match Journey_Id
+        IB_Train_No: ibTrainNo // Set IB_Train_No using route and current date/time
+      }));
+    }
+
+    // Auto-generate Plan_Date when form is being submitted or when relevant fields change
+    if ((name === "Route" || name === "Trip_No") && formData.Route && formData.Trip_No) {
+      const currentDate = new Date();
+      const formattedDate = currentDate.toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      }) + " " + currentDate.toLocaleTimeString('en-GB', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+      
+      setFormData((prev) => ({ 
+        ...prev, 
+        Plan_Date: formattedDate
+      }));
+    }
 
   };
 
@@ -262,7 +344,6 @@ const RakePlanning = () => {
     "Empty Return": "bg-gray-100 text-gray-700",
 
   };
-
 
 
   return (
@@ -519,19 +600,7 @@ const RakePlanning = () => {
 
                         </button>
 
-                        <button
-
-                          onClick={() => handleDelete(plan.PlanId)}
-
-                          className="text-red-500 hover:text-red-700"
-
-                          title="Delete"
-
-                        >
-
-                          <Trash2 className="w-4 h-4" />
-
-                        </button>
+                       
 
                       </div>
 
@@ -633,25 +702,26 @@ const RakePlanning = () => {
 
                   </label>
 
-                  <select
-
-                    name="Base_Depot"
-
-                    value={formData.Base_Depot}
-
-                    onChange={handleInputChange}
-
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.Base_Depot ? "border-red-300" : "border-gray-300"}`}
-
-                  >
-
-                    {TERMINAL_OPTIONS.map((t) => (
-
-                      <option key={t} value={t}>{t}</option>
-
-                    ))}
-
-                  </select>
+                  {formData.Rake_Name ? (
+                    <input
+                      type="text"
+                      name="Base_Depot"
+                      value={formData.Base_Depot}
+                      readOnly
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700"
+                    />
+                  ) : (
+                    <select
+                      name="Base_Depot"
+                      value={formData.Base_Depot}
+                      onChange={handleInputChange}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.Base_Depot ? "border-red-300" : "border-gray-300"}`}
+                    >
+                      {TERMINAL_OPTIONS.map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                  )}
 
                   {errors.Base_Depot && <p className="mt-1 text-sm text-red-600">{errors.Base_Depot}</p>}
 
@@ -941,25 +1011,45 @@ const RakePlanning = () => {
 
 
 
-                {/* Journey Id (read-only) */}
+                {/* Journey Id (read-only with regenerate) */}
 
                 <div>
 
                   <label className="block text-sm font-medium text-gray-700 mb-2">Journey Id</label>
 
-                  <input
+                  <div className="flex space-x-2">
 
-                    type="text"
+                    <input
 
-                    name="Journey_Id"
+                      type="text"
 
-                    value={formData.Journey_Id}
+                      name="Journey_Id"
 
-                    readOnly
+                      value={formData.Journey_Id}
 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500"
+                      readOnly
 
-                  />
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500"
+
+                    />
+
+                    <button
+
+                      type="button"
+
+                      onClick={regenerateJourneyId}
+
+                      className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+
+                      title="Regenerate Journey ID"
+
+                    >
+
+                      ↻
+
+                    </button>
+
+                  </div>
 
                 </div>
 
@@ -1013,7 +1103,7 @@ const RakePlanning = () => {
 
 
 
-                {/* Plan Date (read-only) */}
+                {/* Plan Date (editable datetime) */}
 
                 <div>
 
@@ -1021,15 +1111,15 @@ const RakePlanning = () => {
 
                   <input
 
-                    type="text"
+                    type="datetime-local"
 
                     name="Plan_Date"
 
-                    value={formData.Plan_Date}
+                    value={formData.Plan_Date ? new Date(formData.Plan_Date.replace(/(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2})/, '$3-$2-$1T$4:$5')).toISOString().slice(0, 16) : ''}
 
-                    readOnly
+                    onChange={handleInputChange}
 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
 
                   />
 

@@ -3764,3 +3764,164 @@ export const rakePlanningAPI = {
   },
 };
 
+// Rake Departure API
+export const rakeDepartureAPI = {
+  // Get all rake departures
+  getAllRakeDepartures: async () => {
+    try {
+      const response = await api.get("/rake-departure");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching rake departures:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get rake departure by ID
+  getRakeDepartureById: async (id) => {
+    try {
+      const response = await api.get(`/rake-departure/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching rake departure:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Create new rake departure
+  createRakeDeparture: async (rakeDepartureData) => {
+    try {
+      const response = await api.post("/rake-departure", rakeDepartureData);
+      return response.data;
+    } catch (error) {
+      console.error("Error creating rake departure:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Update rake departure
+  updateRakeDeparture: async (id, rakeDepartureData) => {
+    try {
+      const response = await api.put(`/rake-departure/${id}`, rakeDepartureData);
+      return response.data;
+    } catch (error) {
+      console.error("Error updating rake departure:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Delete rake departure (soft delete)
+  deleteRakeDeparture: async (id) => {
+    try {
+      const response = await api.delete(`/rake-departure/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error deleting rake departure:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get rake departures by filters
+  getRakeDeparturesByFilters: async (filters) => {
+    try {
+      const response = await api.get("/rake-departure/filter", { params: filters });
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching filtered rake departures:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get rake departures by date range
+  getRakeDeparturesByDateRange: async (startDate, endDate, additionalFilters = {}) => {
+    try {
+      const params = { startDate, endDate, ...additionalFilters };
+      const response = await api.get("/rake-departure/date-range", { params });
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching rake departures by date range:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+};
+
+// Rake Visit API
+export const rakeVisitAPI = {
+  // Get all rake visits
+  getAllRakeVisits: async () => {
+    try {
+      const response = await api.get("/rake-visit");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching rake visits:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get rake visit by ID
+  getRakeVisitById: async (id) => {
+    try {
+      const response = await api.get(`/rake-visit/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching rake visit:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Create new rake visit
+  createRakeVisit: async (rakeVisitData) => {
+    try {
+      const response = await api.post("/rake-visit", rakeVisitData);
+      return response.data;
+    } catch (error) {
+      console.error("Error creating rake visit:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Update rake visit
+  updateRakeVisit: async (id, rakeVisitData) => {
+    try {
+      const response = await api.put(`/rake-visit/${id}`, rakeVisitData);
+      return response.data;
+    } catch (error) {
+      console.error("Error updating rake visit:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Delete rake visit
+  deleteRakeVisit: async (id) => {
+    try {
+      const response = await api.delete(`/rake-visit/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error deleting rake visit:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get rake visits by rake ID
+  getRakeVisitsByRakeId: async (rakeId) => {
+    try {
+      const response = await api.get(`/rake-visit/rake/${rakeId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching rake visits by rake ID:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get rake visits by terminal ID
+  getRakeVisitsByTerminalId: async (terminalId) => {
+    try {
+      const response = await api.get(`/rake-visit/terminal/${terminalId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching rake visits by terminal ID:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+};
+

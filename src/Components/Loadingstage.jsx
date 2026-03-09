@@ -24,6 +24,10 @@ const defaultForm = {
   loadingStation: "",
   operationType: "",
   vinDetails: "",
+  fnrNo: "",
+  rakeNo: "",
+  deckPosition: "",
+  wagonNo: "",
 };
 
 const SectionHeader = ({ icon: Icon, title, color = "green" }) => (
@@ -86,6 +90,13 @@ export default function LoadingStagePage() {
     if (!form.loadingStation) errs.loadingStation = true;
     if (!form.operationType) errs.operationType = true;
     if (!form.vinDetails.trim()) errs.vinDetails = true;
+    // Validate Yard Out specific fields
+    if (form.operationType === "Yard Out") {
+      if (!form.fnrNo.trim()) errs.fnrNo = true;
+      if (!form.rakeNo.trim()) errs.rakeNo = true;
+      if (!form.deckPosition.trim()) errs.deckPosition = true;
+      if (!form.wagonNo.trim()) errs.wagonNo = true;
+    }
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -311,6 +322,75 @@ export default function LoadingStagePage() {
             </div>
           </div>
 
+          {/* ── Section 3: Yard Out Details ─────────────────────────────── */}
+          {form.operationType === "Yard Out" && (
+            <div className="px-6 pt-6 pb-5 border-b border-gray-100">
+              <SectionHeader icon={LogOut} title="Yard Out Details" color="blue" />
+              <div className="grid grid-cols-2 gap-5">
+
+                {/* FNR No. */}
+                <div>
+                  <FieldLabel required>FNR No.</FieldLabel>
+                  <input
+                    type="text"
+                    value={form.fnrNo}
+                    onChange={set("fnrNo")}
+                    placeholder="Enter FNR number"
+                    className={fc("fnrNo")}
+                  />
+                  {errors.fnrNo && (
+                    <p className="text-xs text-red-500 mt-1">FNR No. is required for Yard Out</p>
+                  )}
+                </div>
+
+                {/* Rake No. */}
+                <div>
+                  <FieldLabel required>Rake No.</FieldLabel>
+                  <input
+                    type="text"
+                    value={form.rakeNo}
+                    onChange={set("rakeNo")}
+                    placeholder="Enter Rake number"
+                    className={fc("rakeNo")}
+                  />
+                  {errors.rakeNo && (
+                    <p className="text-xs text-red-500 mt-1">Rake No. is required for Yard Out</p>
+                  )}
+                </div>
+
+                {/* Deck Position */}
+                <div>
+                  <FieldLabel required>Deck Position</FieldLabel>
+                  <input
+                    type="text"
+                    value={form.deckPosition}
+                    onChange={set("deckPosition")}
+                    placeholder="Enter Deck position"
+                    className={fc("deckPosition")}
+                  />
+                  {errors.deckPosition && (
+                    <p className="text-xs text-red-500 mt-1">Deck Position is required for Yard Out</p>
+                  )}
+                </div>
+
+                {/* Wagon No. */}
+                <div>
+                  <FieldLabel required>Wagon No.</FieldLabel>
+                  <input
+                    type="text"
+                    value={form.wagonNo}
+                    onChange={set("wagonNo")}
+                    placeholder="Enter Wagon number"
+                    className={fc("wagonNo")}
+                  />
+                  {errors.wagonNo && (
+                    <p className="text-xs text-red-500 mt-1">Wagon No. is required for Yard Out</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* ── Live Summary ────────────────────────────────────────── */}
           {hasSummary && (
             <div className="mx-6 my-5 p-4 bg-green-50 border border-green-200 rounded-lg">
@@ -335,6 +415,34 @@ export default function LoadingStagePage() {
                     <span className="font-semibold text-gray-800">VINs:</span>{" "}
                     {scannedVINs.length} vehicle{scannedVINs.length !== 1 ? "s" : ""}
                   </span>
+                )}
+                {form.operationType === "Yard Out" && (
+                  <>
+                    {form.fnrNo && (
+                      <span className="text-xs text-gray-600">
+                        <span className="font-semibold text-gray-800">FNR No.:</span>{" "}
+                        {form.fnrNo}
+                      </span>
+                    )}
+                    {form.rakeNo && (
+                      <span className="text-xs text-gray-600">
+                        <span className="font-semibold text-gray-800">Rake No.:</span>{" "}
+                        {form.rakeNo}
+                      </span>
+                    )}
+                    {form.deckPosition && (
+                      <span className="text-xs text-gray-600">
+                        <span className="font-semibold text-gray-800">Deck Position:</span>{" "}
+                        {form.deckPosition}
+                      </span>
+                    )}
+                    {form.wagonNo && (
+                      <span className="text-xs text-gray-600">
+                        <span className="font-semibold text-gray-800">Wagon No.:</span>{" "}
+                        {form.wagonNo}
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
             </div>

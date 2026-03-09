@@ -41,6 +41,9 @@ import RakeMaster from "./Pages/Rakemaster";
 import RouteMaster from "./Pages/RouteMaster";
 import RakePlanning from "./Pages/Rakeplanning";
 import ArticleMaster from "./Pages/ArticleMaster";
+import RakeDeaprture from "./Pages/RakeDeaprture";
+import RakeVisit from "./Pages/RakeVisit";
+import MonthlyReport from "./Pages/MonthlyReport";  
 
 const DashboardLayout = ({ children }) => {
   const [collapsed, setCollapsed] = useState(false);
@@ -178,6 +181,16 @@ function App() {
             }
           />
           <Route
+            path="/admin/rakevisit"
+            element={
+              <ProtectedRoute allowedRoles={["Admin"]}>
+                <DashboardLayout>
+                  <RakeVisit />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/admin/allreports"
             element={
               <ProtectedRoute allowedRoles={["Admin"]}>
@@ -235,6 +248,16 @@ function App() {
               <ProtectedRoute allowedRoles={["Customer"]}>
                 <DashboardLayout>
                   <ASNReport />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/monthly-report"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+                  <MonthlyReport />
                 </DashboardLayout>
               </ProtectedRoute>
             }
@@ -319,6 +342,16 @@ function App() {
               </ProtectedRoute>
             }
           />
+                             <Route
+            path="/customer/rake-deaprture"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+                  <RakeDeaprture />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/customer/my-shipments" // Changed from "/my-shipments"
             element={
@@ -385,6 +418,16 @@ function App() {
               <ProtectedRoute allowedRoles={["Customer"]}>
                 <DashboardLayout>
                   <RakeMaster />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/rakevisit"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+                  <RakeVisit />
                 </DashboardLayout>
               </ProtectedRoute>
             }

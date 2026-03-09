@@ -79,6 +79,12 @@ export function AdminSidebar({
       path: "rakemaster",
       description: "Rake Management",
     },
+    {
+      name: "Rake Visit",
+      icon: Train,
+      path: "rakevisit",
+      description: "Rake Visit Management",
+    },
     // {
     //   name: "Fleet Equipment",
     //   icon: Activity, // Add this line to fix the error

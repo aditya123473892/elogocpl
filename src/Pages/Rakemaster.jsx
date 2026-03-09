@@ -14,6 +14,8 @@ import { rakeMasterAPI } from "../utils/Api";
 
 const LOCATION_OPTIONS = ["CCH", "BRC", "BCT", "NDLS", "MAS"];
 
+const WAGON_TYPE_OPTIONS = ["BOX", "FLAT", "TANKER", "HOPPER", "COVERED", "OPEN", "BOXN", "BCN", "BRN"];
+
 const DEFAULT_FORM = {
   Rake_Name: "",
   Owner: "INDIAN RAILWAY",
@@ -37,6 +39,7 @@ const DEFAULT_FORM = {
 const DEFAULT_WAGONS = Array.from({ length: 27 }, (_, i) => ({
   wagon_no: String(i + 1),
   load_capacity: "10",
+  wagon_type: "BOX",
 }));
 
 const RakeMaster = () => {
@@ -171,6 +174,7 @@ const RakeMaster = () => {
         rake.wagons.map((w) => ({
           wagon_no: w.Wagon_No,
           load_capacity: String(w.Load_Capacity),
+          wagon_type: w.Wagon_Type || "BOX",
         })),
       );
     }
@@ -372,13 +376,7 @@ const RakeMaster = () => {
                         >
                           <Edit className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => handleDelete(rake.RakeId)}
-                          className="text-red-500 hover:text-red-700"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                      
                       </div>
                     </td>
                   </tr>
@@ -632,7 +630,7 @@ const RakeMaster = () => {
                 {/* Lease From */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Lease From <span className="text-red-500">*</span>
+                    Lease From Date  <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="date"
@@ -651,7 +649,7 @@ const RakeMaster = () => {
                 {/* Lease To */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Lease To <span className="text-red-500">*</span>
+                    Lease To date  <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="date"
@@ -748,6 +746,9 @@ const RakeMaster = () => {
                             Wagon No
                           </th>
                           <th className="px-4 py-2 text-left text-xs font-medium">
+                            Wagon Type
+                          </th>
+                          <th className="px-4 py-2 text-left text-xs font-medium">
                             Load Capacity
                           </th>
                         </tr>
@@ -768,6 +769,25 @@ const RakeMaster = () => {
                                 }
                                 className="w-full px-2 py-1 border-0 focus:outline-none focus:ring-1 focus:ring-blue-400 rounded text-sm"
                               />
+                            </td>
+                            <td className="px-2 py-1">
+                              <select
+                                value={wagon.wagon_type}
+                                onChange={(e) =>
+                                  handleWagonChange(
+                                    index,
+                                    "wagon_type",
+                                    e.target.value,
+                                  )
+                                }
+                                className="w-full px-2 py-1 border-0 focus:outline-none focus:ring-1 focus:ring-blue-400 rounded text-sm"
+                              >
+                                {WAGON_TYPE_OPTIONS.map((type) => (
+                                  <option key={type} value={type}>
+                                    {type}
+                                  </option>
+                                ))}
+                              </select>
                             </td>
                             <td className="px-2 py-1">
                               <input
