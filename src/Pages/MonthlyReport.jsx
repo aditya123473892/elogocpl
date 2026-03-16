@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Calendar,
   Download,
@@ -11,323 +11,97 @@ import {
   MapPin,
   Package,
 } from "lucide-react";
+import { dealerTripDetailsAPI } from "../utils/Api";
 
 const MonthlyReport = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMonth, setSelectedMonth] = useState(
-    new Date().toISOString().slice(0, 7)
+    new Date().toISOString().slice(0, 7),
   );
+  const [isLoading, setIsLoading] = useState(true);
+  const [reports, setReports] = useState([]);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [locationFilter, setLocationFilter] = useState("all");
   const itemsPerPage = 10;
 
-  // Dummy data for the monthly report
-  const dummyData = useMemo(() => [
-    {
-      sno: 1,
-      dealer: "D001",
-      for: "OEM",
-      dealerName: "Maruti Suzuki India Ltd",
-      loadNo: "LD202403001",
-      tripNo: "TR202403001",
-      regnNo: "MH01AB1234",
-      invoiceDate: "2024-03-01",
-      destinationCity: "Mumbai",
-      route: "Pune-Mumbai",
-      exclusiveGroup: "EG-A",
-      mode: "Road",
-      deliveryDateTT: "2024-03-05",
-      deliveryDateTAT: "2024-03-06",
-      tripFreight: "15000.00",
-      duicNo: "DUIC202403001",
-      grNumber: "GR202403001",
-      engineNo: "ENG123456789",
-      vinNumber: "VIN1HGBH41JXM109186",
-      salesModel: "Swift VXI",
-      productionModel: "Swift 2024",
-      invoiceNo: "INV2024030001",
-    },
-    {
-      sno: 2,
-      dealer: "D002",
-      for: "Dealer",
-      dealerName: "Hyundai Motor India Ltd",
-      loadNo: "LD202403002",
-      tripNo: "TR202403002",
-      regnNo: "MH02CD5678",
-      invoiceDate: "2024-03-02",
-      destinationCity: "Delhi",
-      route: "Chennai-Delhi",
-      exclusiveGroup: "EG-B",
-      mode: "Rail",
-      deliveryDateTT: "2024-03-08",
-      deliveryDateTAT: "2024-03-09",
-      tripFreight: "25000.00",
-      duicNo: "DUIC202403002",
-      grNumber: "GR202403002",
-      engineNo: "ENG987654321",
-      vinNumber: "VIN2KMHJT41LDM234567",
-      salesModel: "i20 Asta",
-      productionModel: "i20 2024",
-      invoiceNo: "INV2024030002",
-    },
-    {
-      sno: 3,
-      dealer: "D003",
-      for: "OEM",
-      dealerName: "Tata Motors Ltd",
-      loadNo: "LD202403003",
-      tripNo: "TR202403003",
-      regnNo: "MH03EF9012",
-      invoiceDate: "2024-03-03",
-      destinationCity: "Bangalore",
-      route: "Pune-Bangalore",
-      exclusiveGroup: "EG-A",
-      mode: "Road",
-      deliveryDateTT: "2024-03-07",
-      deliveryDateTAT: "2024-03-08",
-      tripFreight: "18000.00",
-      duicNo: "DUIC202403003",
-      grNumber: "GR202403003",
-      engineNo: "ENG456789123",
-      vinNumber: "VIN3MATC641MDN345678",
-      salesModel: "Nexon EV",
-      productionModel: "Nexon 2024",
-      invoiceNo: "INV2024030003",
-    },
-    {
-      sno: 4,
-      dealer: "D004",
-      for: "Dealer",
-      dealerName: "Mahindra & Mahindra Ltd",
-      loadNo: "LD202403004",
-      tripNo: "TR202403004",
-      regnNo: "MH04GH3456",
-      invoiceDate: "2024-03-04",
-      destinationCity: "Kolkata",
-      route: "Mumbai-Kolkata",
-      exclusiveGroup: "EG-C",
-      mode: "Road",
-      deliveryDateTT: "2024-03-10",
-      deliveryDateTAT: "2024-03-11",
-      tripFreight: "22000.00",
-      duicNo: "DUIC202403004",
-      grNumber: "GR202403004",
-      engineNo: "ENG789123456",
-      vinNumber: "VIN4MAHND41KLP456789",
-      salesModel: "Thar ROX",
-      productionModel: "Thar 2024",
-      invoiceNo: "INV2024030004",
-    },
-    {
-      sno: 5,
-      dealer: "D005",
-      for: "OEM",
-      dealerName: "Honda Cars India Ltd",
-      loadNo: "LD202403005",
-      tripNo: "TR202403005",
-      regnNo: "MH05IJ7890",
-      invoiceDate: "2024-03-05",
-      destinationCity: "Chennai",
-      route: "Delhi-Chennai",
-      exclusiveGroup: "EG-B",
-      mode: "Rail",
-      deliveryDateTT: "2024-03-12",
-      deliveryDateTAT: "2024-03-13",
-      tripFreight: "28000.00",
-      duicNo: "DUIC202403005",
-      grNumber: "GR202403005",
-      engineNo: "ENG234567890",
-      vinNumber: "VIN5HOND41MNO567890",
-      salesModel: "City ZX",
-      productionModel: "City 2024",
-      invoiceNo: "INV2024030005",
-    },
-    {
-      sno: 6,
-      dealer: "D006",
-      for: "Dealer",
-      dealerName: "Toyota Kirloskar Motor",
-      loadNo: "LD202403006",
-      tripNo: "TR202403006",
-      regnNo: "MH06KL2345",
-      invoiceDate: "2024-03-06",
-      destinationCity: "Hyderabad",
-      route: "Bangalore-Hyderabad",
-      exclusiveGroup: "EG-A",
-      mode: "Road",
-      deliveryDateTT: "2024-03-09",
-      deliveryDateTAT: "2024-03-10",
-      tripFreight: "16500.00",
-      duicNo: "DUIC202403006",
-      grNumber: "GR202403006",
-      engineNo: "ENG345678901",
-      vinNumber: "VIN6TOYT41PQR678901",
-      salesModel: "Innova Crysta",
-      productionModel: "Innova 2024",
-      invoiceNo: "INV2024030006",
-    },
-    {
-      sno: 7,
-      dealer: "D007",
-      for: "OEM",
-      dealerName: "Kia Motors India",
-      loadNo: "LD202403007",
-      tripNo: "TR202403007",
-      regnNo: "MH07MN6789",
-      invoiceDate: "2024-03-07",
-      destinationCity: "Pune",
-      route: "Mumbai-Pune",
-      exclusiveGroup: "EG-C",
-      mode: "Road",
-      deliveryDateTT: "2024-03-09",
-      deliveryDateTAT: "2024-03-10",
-      tripFreight: "12000.00",
-      duicNo: "DUIC202403007",
-      grNumber: "GR202403007",
-      engineNo: "ENG456789012",
-      vinNumber: "VIN7KIA41STU789012",
-      salesModel: "Seltos GTX",
-      productionModel: "Seltos 2024",
-      invoiceNo: "INV2024030007",
-    },
-    {
-      sno: 8,
-      dealer: "D008",
-      for: "Dealer",
-      dealerName: "MG Motor India",
-      loadNo: "LD202403008",
-      tripNo: "TR202403008",
-      regnNo: "MH08OP0123",
-      invoiceDate: "2024-03-08",
-      destinationCity: "Jaipur",
-      route: "Delhi-Jaipur",
-      exclusiveGroup: "EG-B",
-      mode: "Road",
-      deliveryDateTT: "2024-03-11",
-      deliveryDateTAT: "2024-03-12",
-      tripFreight: "13500.00",
-      duicNo: "DUIC202403008",
-      grNumber: "GR202403008",
-      engineNo: "ENG567890123",
-      vinNumber: "VIN8MGMG41VWX890123",
-      salesModel: "Hector Plus",
-      productionModel: "Hector 2024",
-      invoiceNo: "INV2024030008",
-    },
-    {
-      sno: 9,
-      dealer: "D009",
-      for: "OEM",
-      dealerName: "Skoda Auto India",
-      loadNo: "LD202403009",
-      tripNo: "TR202403009",
-      regnNo: "MH09QR4567",
-      invoiceDate: "2024-03-09",
-      destinationCity: "Ahmedabad",
-      route: "Mumbai-Ahmedabad",
-      exclusiveGroup: "EG-A",
-      mode: "Road",
-      deliveryDateTT: "2024-03-13",
-      deliveryDateTAT: "2024-03-14",
-      tripFreight: "14500.00",
-      duicNo: "DUIC202403009",
-      grNumber: "GR202403009",
-      engineNo: "ENG678901234",
-      vinNumber: "VIN9SKOD41YZA901234",
-      salesModel: "Kodiaq L&K",
-      productionModel: "Kodiaq 2024",
-      invoiceNo: "INV2024030009",
-    },
-    {
-      sno: 10,
-      dealer: "D010",
-      for: "Dealer",
-      dealerName: "Volkswagen India",
-      loadNo: "LD202403010",
-      tripNo: "TR202403010",
-      regnNo: "MH10ST8901",
-      invoiceDate: "2024-03-10",
-      destinationCity: "Lucknow",
-      route: "Delhi-Lucknow",
-      exclusiveGroup: "EG-C",
-      mode: "Road",
-      deliveryDateTT: "2024-03-14",
-      deliveryDateTAT: "2024-03-15",
-      tripFreight: "17500.00",
-      duicNo: "DUIC202403010",
-      grNumber: "GR202403010",
-      engineNo: "ENG789012345",
-      vinNumber: "VIN10VW41BCD012345",
-      salesModel: "Taigun GT",
-      productionModel: "Taigun 2024",
-      invoiceNo: "INV2024030010",
-    },
-    {
-      sno: 11,
-      dealer: "D011",
-      for: "OEM",
-      dealerName: "Nissan India",
-      loadNo: "LD202403011",
-      tripNo: "TR202403011",
-      regnNo: "MH11UV2345",
-      invoiceDate: "2024-03-11",
-      destinationCity: "Kochi",
-      route: "Bangalore-Kochi",
-      exclusiveGroup: "EG-B",
-      mode: "Road",
-      deliveryDateTT: "2024-03-16",
-      deliveryDateTAT: "2024-03-17",
-      tripFreight: "19500.00",
-      duicNo: "DUIC202403011",
-      grNumber: "GR202403011",
-      engineNo: "ENG890123456",
-      vinNumber: "VIN11NISS41EFG123456",
-      salesModel: "Magnite Turbo",
-      productionModel: "Magnite 2024",
-      invoiceNo: "INV2024030011",
-    },
-    {
-      sno: 12,
-      dealer: "D012",
-      for: "Dealer",
-      dealerName: "Jeep India",
-      loadNo: "LD202403012",
-      tripNo: "TR202403012",
-      regnNo: "MH12WX6789",
-      invoiceDate: "2024-03-12",
-      destinationCity: "Goa",
-      route: "Pune-Goa",
-      exclusiveGroup: "EG-A",
-      mode: "Road",
-      deliveryDateTT: "2024-03-15",
-      deliveryDateTAT: "2024-03-16",
-      tripFreight: "13000.00",
-      duicNo: "DUIC202403012",
-      grNumber: "GR202403012",
-      engineNo: "ENG901234567",
-      vinNumber: "VIN12JEEP41HIJ234567",
-      salesModel: "Compass Trailhawk",
-      productionModel: "Compass 2024",
-      invoiceNo: "INV2024030012",
-    },
-  ], []);
+  // Fetch and process reports
+  const fetchReports = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const response = await dealerTripDetailsAPI.getAllDealerTripDetails();
+      const data = response.data || response || [];
+      setReports(data);
+      console.log("Dealer Trip Details data loaded:", data);
+    } catch (error) {
+      console.error("Error fetching Dealer Trip Details:", error);
+      setReports([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-  // Filter data based on search term
+  // Get unique locations for filter
+  const uniqueLocations = useMemo(() => {
+    const locations = [...new Set(reports.map(item => item.LOCATION).filter(Boolean))];
+    return locations.sort();
+  }, [reports]);
+
+  // Filter data based on search term and filters
   const filteredData = useMemo(() => {
-    if (!searchTerm) return dummyData;
-    
-    return dummyData.filter(item => 
-      Object.values(item).some(value => 
-        value.toString().toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    );
-  }, [dummyData, searchTerm]);
+    let filtered = reports;
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter((item) =>
+        Object.values(item).some((value) =>
+          value?.toString().toLowerCase().includes(searchTerm.toLowerCase()),
+        ),
+      );
+    }
+
+    // Apply status filter
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((item) => {
+        if (statusFilter === "with-rake") {
+          return item.Rake_NO && item.Rake_NO.trim() !== "";
+        } else if (statusFilter === "without-rake") {
+          return !item.Rake_NO || item.Rake_NO.trim() === "";
+        }
+        return true;
+      });
+    }
+
+    // Apply location filter
+    if (locationFilter !== "all") {
+      filtered = filtered.filter((item) => item.LOCATION === locationFilter);
+    }
+
+    return filtered;
+  }, [reports, searchTerm, statusFilter, locationFilter]);
+
+  // Filter data by selected month
+  const monthlyFilteredData = useMemo(() => {
+    if (!selectedMonth) return filteredData;
+
+    return filteredData.filter((item) => {
+      if (!item.created_at) return true;
+      const itemDate = new Date(item.created_at);
+      const itemMonth = itemDate.toISOString().slice(0, 7);
+      return itemMonth === selectedMonth;
+    });
+  }, [filteredData, selectedMonth]);
 
   // Pagination
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const totalPages = Math.ceil(monthlyFilteredData.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentData = filteredData.slice(startIndex, endIndex);
+  const currentData = monthlyFilteredData.slice(startIndex, endIndex);
+
+  // Initialize data fetching
+  useEffect(() => {
+    fetchReports();
+  }, [fetchReports]);
 
   const handleExport = () => {
     alert("Export functionality would be implemented here");
@@ -347,11 +121,15 @@ const MonthlyReport = () => {
               <FileText className="w-6 h-6 text-blue-600" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Monthly Report</h1>
-              <p className="text-sm text-gray-500">Vehicle transportation monthly summary</p>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Monthly Report
+              </h1>
+              <p className="text-sm text-gray-500">
+                Vehicle transportation monthly summary
+              </p>
             </div>
           </div>
-          
+
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-gray-500" />
@@ -375,12 +153,12 @@ const MonthlyReport = () => {
 
       {/* Search and Filters */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1 relative">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search by dealer, vehicle, route, or any field..."
+              placeholder="Search by VIN, Dealer, Invoice..."
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -389,6 +167,38 @@ const MonthlyReport = () => {
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
+          
+          <div>
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Status</option>
+              <option value="with-rake">With Rake No</option>
+              <option value="without-rake">Without Rake No</option>
+            </select>
+          </div>
+          
+          <div>
+            <select
+              value={locationFilter}
+              onChange={(e) => {
+                setLocationFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Locations</option>
+              {uniqueLocations.map(location => (
+                <option key={location} value={location}>{location}</option>
+              ))}
+            </select>
+          </div>
+          
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <Filter className="w-4 h-4" />
             <span>{filteredData.length} records found</span>
@@ -406,13 +216,10 @@ const MonthlyReport = () => {
                   S.No
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Dealer
+                  ID
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  For
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Dealer Name
+                  Rake No
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Load No
@@ -421,7 +228,7 @@ const MonthlyReport = () => {
                   Trip No
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Regn No
+                  Invoice No
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Invoice Date
@@ -430,87 +237,67 @@ const MonthlyReport = () => {
                   Destination City
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Route
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Exclusive Group
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Mode
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Delivery Date TT
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Delivery Date TAT
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Trip Freight
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  DUIC No
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  GR Number
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Engine No
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   VIN Number
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Sales Model
+                  Dealer Name
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Production Model
+                  Location
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Invoice No
+                  E-Way Bill
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Created At
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {currentData.map((item, index) => (
-                <tr key={item.sno} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 text-sm text-gray-900">{startIndex + index + 1}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900">{item.dealer}</td>
-                  <td className="px-4 py-3 text-sm">
-                    <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
-                      item.for === 'OEM' 
-                        ? 'bg-blue-100 text-blue-800' 
-                        : 'bg-green-100 text-green-800'
-                    }`}>
-                      {item.for}
-                    </span>
+                <tr
+                  key={item.ID}
+                  className="hover:bg-gray-50 transition-colors"
+                >
+                  <td className="px-4 py-3 text-sm text-gray-900">
+                    {startIndex + index + 1}
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-900">{item.dealerName}</td>
-                  <td className="px-4 py-3 text-sm font-mono text-gray-900">{item.loadNo}</td>
-                  <td className="px-4 py-3 text-sm font-mono text-gray-900">{item.tripNo}</td>
-                  <td className="px-4 py-3 text-sm font-mono text-gray-900">{item.regnNo}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900">{item.invoiceDate}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900">{item.destinationCity}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900">{item.route}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900">{item.exclusiveGroup}</td>
-                  <td className="px-4 py-3 text-sm">
-                    <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
-                      item.mode === 'Road' 
-                        ? 'bg-orange-100 text-orange-800' 
-                        : 'bg-purple-100 text-purple-800'
-                    }`}>
-                      {item.mode}
-                    </span>
+                  <td className="px-4 py-3 text-sm text-gray-900">
+                    {item.ID}
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-900">{item.deliveryDateTT}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900">{item.deliveryDateTAT}</td>
-                  <td className="px-4 py-3 text-sm font-semibold text-gray-900">₹{item.tripFreight}</td>
-                  <td className="px-4 py-3 text-sm font-mono text-gray-900">{item.duicNo}</td>
-                  <td className="px-4 py-3 text-sm font-mono text-gray-900">{item.grNumber}</td>
-                  <td className="px-4 py-3 text-sm font-mono text-gray-900 text-xs">{item.engineNo}</td>
-                  <td className="px-4 py-3 text-sm font-mono text-gray-900 text-xs">{item.vinNumber}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900">{item.salesModel}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900">{item.productionModel}</td>
-                  <td className="px-4 py-3 text-sm font-mono text-gray-900">{item.invoiceNo}</td>
+                  <td className="px-4 py-3 text-sm font-mono text-gray-900">
+                    {item.Rake_NO || "-"}
+                  </td>
+                  <td className="px-4 py-3 text-sm font-mono text-gray-900">
+                    {item.Load_No || "-"}
+                  </td>
+                  <td className="px-4 py-3 text-sm font-mono text-gray-900">
+                    {item.Trip_No || "-"}
+                  </td>
+                  <td className="px-4 py-3 text-sm font-mono text-gray-900">
+                    {item.INVOICE_NO || "-"}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-900">
+                    {item.Invoice_Date ? new Date(item.Invoice_Date).toLocaleDateString() : "-"}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-900">
+                    {item.Destination_City || "-"}
+                  </td>
+                  <td className="px-4 py-3 text-sm font-mono text-gray-900 text-xs">
+                    {item.VIN_Number || "-"}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-900">
+                    {item.Dealer_Name || "-"}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-900">
+                    {item.LOCATION || "-"}
+                  </td>
+                  <td className="px-4 py-3 text-sm font-mono text-gray-900">
+                    {item.EWAY_BILL || "-"}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-900">
+                    {item.CreatedAt ? new Date(item.CreatedAt).toLocaleDateString() : "-"}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -521,8 +308,9 @@ const MonthlyReport = () => {
         {totalPages > 1 && (
           <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
             <div className="text-sm text-gray-700">
-              Showing {startIndex + 1} to {Math.min(endIndex, filteredData.length)} of{" "}
-              {filteredData.length} results
+              Showing {startIndex + 1} to{" "}
+              {Math.min(endIndex, monthlyFilteredData.length)} of{" "}
+              {monthlyFilteredData.length} results
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -532,19 +320,21 @@ const MonthlyReport = () => {
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                <button
-                  key={page}
-                  onClick={() => handlePageChange(page)}
-                  className={`px-3 py-1 rounded-lg text-sm font-medium ${
-                    currentPage === page
-                      ? "bg-blue-600 text-white"
-                      : "border border-gray-300 hover:bg-gray-50"
-                  }`}
-                >
-                  {page}
-                </button>
-              ))}
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                (page) => (
+                  <button
+                    key={page}
+                    onClick={() => handlePageChange(page)}
+                    className={`px-3 py-1 rounded-lg text-sm font-medium ${
+                      currentPage === page
+                        ? "bg-blue-600 text-white"
+                        : "border border-gray-300 hover:bg-gray-50"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ),
+              )}
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
@@ -566,47 +356,51 @@ const MonthlyReport = () => {
             </div>
             <div>
               <p className="text-sm text-gray-500">Total Shipments</p>
-              <p className="text-2xl font-bold text-gray-900">{filteredData.length}</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {monthlyFilteredData.length}
+              </p>
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
               <Package className="w-6 h-6 text-green-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Total Freight</p>
+              <p className="text-sm text-gray-500">Total Records</p>
               <p className="text-2xl font-bold text-gray-900">
-                ₹{filteredData.reduce((sum, item) => sum + parseFloat(item.tripFreight), 0).toLocaleString()}
+                {monthlyFilteredData.length}
               </p>
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
               <MapPin className="w-6 h-6 text-orange-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Unique Routes</p>
+              <p className="text-sm text-gray-500">Unique Locations</p>
               <p className="text-2xl font-bold text-gray-900">
-                {new Set(filteredData.map(item => item.route)).size}
+                {new Set(monthlyFilteredData.map((item) => item.LOCATION).filter(Boolean)).size}
               </p>
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
               <FileText className="w-6 h-6 text-purple-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Total Invoices</p>
-              <p className="text-2xl font-bold text-gray-900">{filteredData.length}</p>
+              <p className="text-sm text-gray-500">With Rake No</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {monthlyFilteredData.filter(item => item.Rake_NO && item.Rake_NO.trim() !== "").length}
+              </p>
             </div>
           </div>
         </div>

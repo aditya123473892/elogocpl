@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Search, Filter, Download, Eye, Edit, Calendar, FileText, Truck, Package, CheckCircle, XCircle, Clock, X, TrendingUp, AlertTriangle, MapPin, Users, Activity, BarChart3, PieChart } from "lucide-react";
+import { Search, Filter, Download, Eye, Edit, Truck, Package, CheckCircle, XCircle, Clock, X, AlertTriangle, MapPin, FileText } from "lucide-react";
 import { dealerTripDetailsAPI } from "../utils/Api";
 import { toast } from "react-toastify";
 
@@ -22,15 +22,33 @@ const DealerReport = () => {
 
   // Calculate statistics
   const statistics = {
-    totalRecords: dealerRecords.length,
-    todayRecords: dealerRecords.filter(record => {
+    totalCars: dealerRecords.length,
+    inTransitToLoadingYard: dealerRecords.filter(record => 
+      record.LOCATION?.toLowerCase().includes('transit to loading yard')
+    ).length,
+    atLoadingYard: dealerRecords.filter(record => 
+      record.LOCATION?.toLowerCase().includes('loading yard')
+    ).length,
+    rakeAssigned: dealerRecords.filter(record => 
+      record.Rake_NO && record.Rake_NO.trim() !== ''
+    ).length,
+    inTransitToDestinationYard: dealerRecords.filter(record => 
+      record.LOCATION?.toLowerCase().includes('transit to destination yard')
+    ).length,
+    atDestinationYard: dealerRecords.filter(record => 
+      record.LOCATION?.toLowerCase().includes('destination yard')
+    ).length,
+    inTransitToDestinationDealer: dealerRecords.filter(record => 
+      record.LOCATION?.toLowerCase().includes('transit to destination dealer')
+    ).length,
+    transitDelay: dealerRecords.filter(record => {
       if (!record.CreatedAt) return false;
-      const recordDate = new Date(record.CreatedAt);
-      return !isNaN(recordDate.getTime()) && recordDate.toISOString().split('T')[0] === new Date().toISOString().split('T')[0];
+      const createdDate = new Date(record.CreatedAt);
+      const now = new Date();
+      const daysDiff = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24));
+      return daysDiff > 7; // Consider delayed if more than 7 days
     }).length,
-    uniqueDealers: new Set(dealerRecords.map(record => record.Dealer_Name).filter(Boolean)).size,
-    uniqueCities: new Set(dealerRecords.map(record => record.Destination_City).filter(Boolean)).size,
-    pendingEwayBills: dealerRecords.filter(record => {
+    activeEwayBills: dealerRecords.filter(record => {
       if (!record.EWAY_BILL || !record.VALID_TILL) return false;
       const validTill = new Date(record.VALID_TILL);
       return !isNaN(validTill.getTime()) && validTill > new Date();
@@ -39,25 +57,7 @@ const DealerReport = () => {
       if (!record.EWAY_BILL || !record.VALID_TILL) return false;
       const validTill = new Date(record.VALID_TILL);
       return !isNaN(validTill.getTime()) && validTill < new Date();
-    }).length,
-    topDealer: dealerRecords.length > 0 ? 
-      Object.entries(
-        dealerRecords.reduce((acc, record) => {
-          if (record.Dealer_Name) {
-            acc[record.Dealer_Name] = (acc[record.Dealer_Name] || 0) + 1;
-          }
-          return acc;
-        }, {})
-      ).sort((a, b) => b[1] - a[1])[0] : null,
-    topCity: dealerRecords.length > 0 ?
-      Object.entries(
-        dealerRecords.reduce((acc, record) => {
-          if (record.Destination_City) {
-            acc[record.Destination_City] = (acc[record.Destination_City] || 0) + 1;
-          }
-          return acc;
-        }, {})
-      ).sort((a, b) => b[1] - a[1])[0] : null
+    }).length
   };
 
   // Filter records based on search and filters
@@ -198,14 +198,14 @@ const DealerReport = () => {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        {/* Total Records Card */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+        {/* Total Cars Card */}
         <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Records</p>
-              <p className="text-2xl font-bold text-gray-900">{statistics.totalRecords}</p>
-              <p className="text-xs text-gray-500 mt-1">All time shipments</p>
+              <p className="text-sm font-medium text-gray-600">Total Cars</p>
+              <p className="text-2xl font-bold text-gray-900">{statistics.totalCars}</p>
+              <p className="text-xs text-gray-500 mt-1">All vehicles</p>
             </div>
             <div className="bg-blue-100 rounded-full p-3">
               <Package className="w-6 h-6 text-blue-600" />
@@ -213,128 +213,123 @@ const DealerReport = () => {
           </div>
         </div>
 
-        {/* Today's Records Card */}
-        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
+        {/* In Transit to Loading Yard Card */}
+        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-yellow-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Today's Records</p>
-              <p className="text-2xl font-bold text-gray-900">{statistics.todayRecords}</p>
-              <p className="text-xs text-gray-500 mt-1">Added today</p>
+              <p className="text-sm font-medium text-gray-600">In Transit to Loading Yard</p>
+              <p className="text-2xl font-bold text-gray-900">{statistics.inTransitToLoadingYard}</p>
+              <p className="text-xs text-gray-500 mt-1">En route to loading</p>
             </div>
-            <div className="bg-green-100 rounded-full p-3">
-              <Calendar className="w-6 h-6 text-green-600" />
+            <div className="bg-yellow-100 rounded-full p-3">
+              <Truck className="w-6 h-6 text-yellow-600" />
             </div>
           </div>
         </div>
 
-        {/* Unique Dealers Card */}
-        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Unique Dealers</p>
-              <p className="text-2xl font-bold text-gray-900">{statistics.uniqueDealers}</p>
-              <p className="text-xs text-gray-500 mt-1">Active dealers</p>
-            </div>
-            <div className="bg-purple-100 rounded-full p-3">
-              <Users className="w-6 h-6 text-purple-600" />
-            </div>
-          </div>
-        </div>
-
-        {/* Destination Cities Card */}
+        {/* At Loading Yard Card */}
         <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-orange-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Destination Cities</p>
-              <p className="text-2xl font-bold text-gray-900">{statistics.uniqueCities}</p>
-              <p className="text-xs text-gray-500 mt-1">Service locations</p>
+              <p className="text-sm font-medium text-gray-600">At Loading Yard</p>
+              <p className="text-2xl font-bold text-gray-900">{statistics.atLoadingYard}</p>
+              <p className="text-xs text-gray-500 mt-1">At loading facility</p>
             </div>
             <div className="bg-orange-100 rounded-full p-3">
               <MapPin className="w-6 h-6 text-orange-600" />
             </div>
           </div>
         </div>
+
+        {/* Rake Assigned Card */}
+        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Rake Assigned</p>
+              <p className="text-2xl font-bold text-gray-900">{statistics.rakeAssigned}</p>
+              <p className="text-xs text-gray-500 mt-1">With rake numbers</p>
+            </div>
+            <div className="bg-purple-100 rounded-full p-3">
+              <CheckCircle className="w-6 h-6 text-purple-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* In Transit To Destination Yard Card */}
+        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-indigo-500">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">In Transit To Destination Yard</p>
+              <p className="text-2xl font-bold text-gray-900">{statistics.inTransitToDestinationYard}</p>
+              <p className="text-xs text-gray-500 mt-1">En route to destination</p>
+            </div>
+            <div className="bg-indigo-100 rounded-full p-3">
+              <Truck className="w-6 h-6 text-indigo-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* At Destination Yard Card */}
+        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-teal-500">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">At Destination Yard</p>
+              <p className="text-2xl font-bold text-gray-900">{statistics.atDestinationYard}</p>
+              <p className="text-xs text-gray-500 mt-1">At destination facility</p>
+            </div>
+            <div className="bg-teal-100 rounded-full p-3">
+              <MapPin className="w-6 h-6 text-teal-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* In Transit to Destination Dealer Card */}
+        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-cyan-500">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">In Transit to Destination Dealer</p>
+              <p className="text-2xl font-bold text-gray-900">{statistics.inTransitToDestinationDealer}</p>
+              <p className="text-xs text-gray-500 mt-1">Final delivery transit</p>
+            </div>
+            <div className="bg-cyan-100 rounded-full p-3">
+              <Truck className="w-6 h-6 text-cyan-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* Transit Delay Card */}
+        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-red-500">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Transit Delay</p>
+              <p className="text-2xl font-bold text-gray-900">{statistics.transitDelay}</p>
+              <p className="text-xs text-gray-500 mt-1">Delayed shipments</p>
+            </div>
+            <div className="bg-red-100 rounded-full p-3">
+              <AlertTriangle className="w-6 h-6 text-red-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* Eway Bill Active/Exp Card */}
+        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Eway Bill Active/Exp</p>
+              <div className="flex items-center space-x-2 mt-1">
+                <span className="text-lg font-bold text-green-600">{statistics.activeEwayBills}</span>
+                <span className="text-gray-400">/</span>
+                <span className="text-lg font-bold text-red-600">{statistics.expiredEwayBills}</span>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Active / Expired</p>
+            </div>
+            <div className="bg-green-100 rounded-full p-3">
+              <FileText className="w-6 h-6 text-green-600" />
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Intelligence Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        {/* Top Performance Card */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex items-center mb-4">
-            <TrendingUp className="w-5 h-5 text-green-600 mr-2" />
-            <h3 className="text-lg font-semibold text-gray-900">Top Performers</h3>
-          </div>
-          <div className="space-y-3">
-            <div>
-              <p className="text-sm text-gray-600">Top Dealer</p>
-              <p className="font-semibold text-gray-900">
-                {statistics.topDealer ? `${statistics.topDealer[0]} (${statistics.topDealer[1]} shipments)` : 'No data'}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Top Destination</p>
-              <p className="font-semibold text-gray-900">
-                {statistics.topCity ? `${statistics.topCity[0]} (${statistics.topCity[1]} shipments)` : 'No data'}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* E-Way Bill Status Card */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex items-center mb-4">
-            <FileText className="w-5 h-5 text-blue-600 mr-2" />
-            <h3 className="text-lg font-semibold text-gray-900">E-Way Bill Status</h3>
-          </div>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Active</span>
-              <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
-                {statistics.pendingEwayBills}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Expired</span>
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                statistics.expiredEwayBills > 0 ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
-              }`}>
-                {statistics.expiredEwayBills}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Alerts Card */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex items-center mb-4">
-            <AlertTriangle className="w-5 h-5 text-yellow-600 mr-2" />
-            <h3 className="text-lg font-semibold text-gray-900">Alerts & Notifications</h3>
-          </div>
-          <div className="space-y-2">
-            {statistics.expiredEwayBills > 0 && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                <p className="text-sm text-red-800">
-                  ⚠️ {statistics.expiredEwayBills} expired E-Way Bill(s) found
-                </p>
-              </div>
-            )}
-            {statistics.todayRecords > 0 && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                <p className="text-sm text-green-800">
-                  ✅ {statistics.todayRecords} new shipment(s) today
-                </p>
-              </div>
-            )}
-            {statistics.expiredEwayBills === 0 && statistics.todayRecords === 0 && (
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                <p className="text-sm text-gray-600">
-                  ℹ️ No new alerts
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
 
       {/* Results Summary */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
@@ -356,151 +351,7 @@ const DealerReport = () => {
         </div>
       </div>
 
-      {/* Visual Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Destination Cities Chart */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex items-center mb-4">
-            <BarChart3 className="w-5 h-5 text-blue-600 mr-2" />
-            <h3 className="text-lg font-semibold text-gray-900">Top Destination Cities</h3>
-          </div>
-          <div className="space-y-3">
-            {Object.entries(
-              dealerRecords.reduce((acc, record) => {
-                if (record.Destination_City) {
-                  acc[record.Destination_City] = (acc[record.Destination_City] || 0) + 1;
-                }
-                return acc;
-              }, {})
-            )
-              .sort((a, b) => b[1] - a[1])
-              .slice(0, 5)
-              .map(([city, count], index) => {
-                const maxCount = Math.max(
-                  ...Object.values(
-                    dealerRecords.reduce((acc, record) => {
-                      if (record.Destination_City) {
-                        acc[record.Destination_City] = (acc[record.Destination_City] || 0) + 1;
-                      }
-                      return acc;
-                    }, {})
-                  )
-                );
-                const percentage = (count / maxCount) * 100;
-                
-                return (
-                  <div key={city} className="flex items-center space-x-3">
-                    <span className="text-sm text-gray-600 w-20 truncate">{city}</span>
-                    <div className="flex-1 bg-gray-200 rounded-full h-6 relative">
-                      <div 
-                        className="bg-blue-500 h-6 rounded-full flex items-center justify-end pr-2"
-                        style={{ width: `${percentage}%` }}
-                      >
-                        <span className="text-xs text-white font-medium">{count}</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            {dealerRecords.filter(record => record.Destination_City).length === 0 && (
-              <p className="text-gray-500 text-center py-4">No destination data available</p>
-            )}
-          </div>
-        </div>
 
-        {/* Dealer Distribution Chart */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex items-center mb-4">
-            <PieChart className="w-5 h-5 text-purple-600 mr-2" />
-            <h3 className="text-lg font-semibold text-gray-900">Top Dealers by Shipments</h3>
-          </div>
-          <div className="space-y-3">
-            {Object.entries(
-              dealerRecords.reduce((acc, record) => {
-                if (record.Dealer_Name) {
-                  acc[record.Dealer_Name] = (acc[record.Dealer_Name] || 0) + 1;
-                }
-                return acc;
-              }, {})
-            )
-              .sort((a, b) => b[1] - a[1])
-              .slice(0, 5)
-              .map(([dealer, count], index) => {
-                const maxCount = Math.max(
-                  ...Object.values(
-                    dealerRecords.reduce((acc, record) => {
-                      if (record.Dealer_Name) {
-                        acc[record.Dealer_Name] = (acc[record.Dealer_Name] || 0) + 1;
-                      }
-                      return acc;
-                    }, {})
-                  )
-                );
-                const percentage = (count / maxCount) * 100;
-                
-                return (
-                  <div key={dealer} className="flex items-center space-x-3">
-                    <span className="text-sm text-gray-600 w-32 truncate">{dealer}</span>
-                    <div className="flex-1 bg-gray-200 rounded-full h-6 relative">
-                      <div 
-                        className="bg-purple-500 h-6 rounded-full flex items-center justify-end pr-2"
-                        style={{ width: `${percentage}%` }}
-                      >
-                        <span className="text-xs text-white font-medium">{count}</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            {dealerRecords.filter(record => record.Dealer_Name).length === 0 && (
-              <p className="text-gray-500 text-center py-4">No dealer data available</p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Actions Bar */}
-      <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center space-x-2">
-            <Activity className="w-5 h-5 text-gray-600" />
-            <span className="text-sm font-medium text-gray-700">Quick Actions:</span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => {
-                setSearchTerm("");
-                setStatusFilter("all");
-                setDateFilter("");
-              }}
-              className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-            >
-              Reset Filters
-            </button>
-         
-            <button
-              onClick={() => {
-                const expiredRecords = dealerRecords.filter(record => 
-                  record.EWAY_BILL && record.VALID_TILL && (() => {
-                    const validTill = new Date(record.VALID_TILL);
-                    return !isNaN(validTill.getTime()) && validTill < new Date();
-                  })()
-                );
-                setFilteredRecords(expiredRecords);
-              }}
-              className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
-            >
-              Show Expired E-Way Bills
-            </button>
-            <button
-              onClick={loadDealerRecords}
-              className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
-            >
-              Refresh Data
-            </button>
-          </div>
-        </div>
-      </div>
 
       {/* Filters and Search - Moved above table */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
@@ -562,26 +413,6 @@ const DealerReport = () => {
               Export CSV
             </button>
           </div>
-        </div>
-      </div>
-
-      {/* Results Summary */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <Filter className="w-5 h-5 text-blue-600 mr-2" />
-            <span className="text-blue-800 font-medium">
-              Showing {filteredRecords.length} of {dealerRecords.length} records
-            </span>
-          </div>
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm("")}
-              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-            >
-              Clear Search
-            </button>
-          )}
         </div>
       </div>
 

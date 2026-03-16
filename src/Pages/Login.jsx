@@ -359,7 +359,7 @@ export default function Login() {
                       required
                     >
                       <option value="" disabled>
-                        Select Location/Sideing
+                        Select Location/Siding
                       </option>
                       {locations.map((loc) => (
                         <option key={loc.LocationId} value={loc.LocationId}>

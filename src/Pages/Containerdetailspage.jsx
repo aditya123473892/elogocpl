@@ -4,6 +4,7 @@ import { transporterAPI } from "../utils/Api";
 import { useNavigate } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import ResponseModal from "../Components/Responsemodal";
+import { useEffectEvent } from "react";
 
 const ContainerDetailsPage = () => {
   const navigate = useNavigate();
@@ -17,6 +18,9 @@ const ContainerDetailsPage = () => {
   const [expandedVehicle, setExpandedVehicle] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [modalData, setModalData] = useState(null);
+
+ 
+
 
   // Create empty container with a unique client-side ID
   const createEmptyContainer = () => ({
@@ -785,7 +789,7 @@ const ContainerDetailsPage = () => {
                                         >
                                           <svg
                                             className="h-4 w-4"
-                                            fill="none"
+                                           fill="none"
                                             viewBox="0 0 24 24"
                                             stroke="currentColor"
                                           >
@@ -1015,7 +1019,7 @@ const ContainerDetailsPage = () => {
                   title={
                     existingTransporterData.length === 0
                       ? "Add transporter details first"
-                      : "Update container details"
+                      : "Update container details"  
                   }
                 >
                   {isSubmitting ? (
