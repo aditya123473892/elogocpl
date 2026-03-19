@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Search, Filter, Download, Eye, Edit, Truck, Package, CheckCircle, XCircle, Clock, X, AlertTriangle, MapPin, FileText } from "lucide-react";
 import { dealerTripDetailsAPI } from "../utils/Api";
 import { toast } from "react-toastify";
+import OEMPickupStatusSummary from "../Components/OEMPickupStatusSummary";
 
 const DealerReport = () => {
   const [dealerRecords, setDealerRecords] = useState([]);
@@ -330,6 +331,18 @@ const DealerReport = () => {
         </div>
       </div>
 
+      {/* OEM Pickup Status Tracking */}
+      <div className="mb-6">
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            🚛 Vehicle Transit Status
+          </h3>
+          <p className="text-sm text-gray-600">
+            Real-time tracking of vehicle pickup and delivery status
+          </p>
+        </div>
+        <OEMPickupStatusSummary />
+      </div>
 
       {/* Results Summary */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">

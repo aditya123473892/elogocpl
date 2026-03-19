@@ -21,6 +21,7 @@ import api from "../utils/Api"; // Assuming this is the same API utility used in
 import { transporterAPI } from "../utils/Api";
 import { generateInvoice } from "../utils/pdfGenerator";
 import RequestModal from "../Components/Requestmodal";
+import OEMPickupDashboard from "../Components/OEMPickupDashboard";
 
 // Utility functions for parsing and formatting
 const parseJSON = (data, defaultValue) => {
@@ -61,6 +62,10 @@ const StatusBadge = ({ status }) => {
     "in progress": { color: "bg-blue-100 text-blue-800", icon: "🚛" },
     completed: { color: "bg-purple-100 text-purple-800", icon: "📦" },
     rejected: { color: "bg-red-100 text-red-800", icon: "✕" },
+    // OEM Pickup specific statuses
+    "in-transit": { color: "bg-orange-100 text-orange-800", icon: "🚚" },
+    "reached plant": { color: "bg-green-100 text-green-800", icon: "🏭" },
+    "active": { color: "bg-blue-100 text-blue-800", icon: "📋" },
   };
   const config = statusConfig[status?.toLowerCase()] || statusConfig.pending;
   return (
@@ -600,6 +605,11 @@ const AdminDashboard = () => {
             value={summaryStats.totalOutstanding}
             color="text-red-600"
           />
+        </div>
+
+        {/* OEM Pickup Dashboard */}
+        <div className="mb-8">
+          <OEMPickupDashboard />
         </div>
 
         {/* Filters */}

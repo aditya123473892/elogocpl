@@ -85,6 +85,12 @@ export function AdminSidebar({
       path: "rakevisit",
       description: "Rake Visit Management",
     },
+    {
+      name: "Rake Exam",
+      icon: FileText,
+      path: "rake-exam",
+      description: "Rake Exam Management",
+    },
     // {
     //   name: "Fleet Equipment",
     //   icon: Activity, // Add this line to fix the error

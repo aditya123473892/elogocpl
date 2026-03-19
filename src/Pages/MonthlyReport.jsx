@@ -12,6 +12,7 @@ import {
   Package,
 } from "lucide-react";
 import { dealerTripDetailsAPI } from "../utils/Api";
+import OEMPickupStatusSummary from "../Components/OEMPickupStatusSummary";
 
 const MonthlyReport = () => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -204,6 +205,19 @@ const MonthlyReport = () => {
             <span>{filteredData.length} records found</span>
           </div>
         </div>
+      </div>
+
+      {/* OEM Pickup Status Tracking */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            🚛 Vehicle Transit Status Overview
+          </h3>
+          <p className="text-sm text-gray-600">
+            Monthly vehicle pickup and delivery status tracking
+          </p>
+        </div>
+        <OEMPickupStatusSummary />
       </div>
 
       {/* Data Table */}

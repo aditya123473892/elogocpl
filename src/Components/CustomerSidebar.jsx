@@ -59,7 +59,7 @@ export function CustomerSidebar({
           description: "Register Vehicle Pickup",
         },
         {
-          name: "Siding Arrival",
+          name: "Sideing Arrival",
           icon: MapPin,
           path: "arrival-plant",
           description: "Log Vehicle Arrival",
@@ -107,7 +107,7 @@ export function CustomerSidebar({
       heading: "Master Data",
       items: [
         {
-          name: "Siding Master",
+          name: "Sideing Master",
           icon: MapPin,
           path: "location-master",
           description: "Manage Locations",
@@ -148,9 +148,21 @@ export function CustomerSidebar({
           name: "Route Master",
           icon: Train,
           path: "route-master",
-          description: "Rake Management",
+          description: "Route Management",
         },
-         {
+        {
+          name: "Exam Type Management",
+          icon: FileText,
+          path: "exam-types",
+          description: "Manage Exam Types",
+        },
+           {
+          name: "Exam Management",
+          icon: FileText,
+          path: "rake-exam",
+          description: "Manage Exams",
+        },
+        {
           name: "Rake Planning",
           icon: Train,
           path: "rakeplanning",

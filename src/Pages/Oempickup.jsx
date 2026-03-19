@@ -88,7 +88,7 @@ export default function OEMPickupPage() {
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
   const [locations, setLocations] = useState([]);
-  const [Sidings, setSidings] = useState([]);
+  const [Sideings, setSideings] = useState([]);
   const [yards, setYards] = useState([]);
   const [plants, setPlants] = useState([]);
   const [drivers, setDrivers] = useState([]);
@@ -109,17 +109,17 @@ export default function OEMPickupPage() {
       setLocations(allLocations);
       
       // Separate locations by type
-      const SidingLocations = allLocations
-        .filter(loc => loc.LocationType === 'Siding' && loc.IsActive)
+      const SideingLocations = allLocations
+        .filter(loc => loc.LocationType === 'Sideing' && loc.IsActive)
         .map(loc => loc.LocationName);
       const yardLocations = allLocations
         .filter(loc => loc.LocationType === 'YARD' && loc.IsActive)
         .map(loc => loc.LocationName);
       
-      setSidings(SidingLocations);
+      setSideings(SideingLocations);
       setYards(yardLocations);
-      // Use Siding locations as plant options for OEM Pickup
-      setPlants(SidingLocations);
+      // Use Sideing locations as plant options for OEM Pickup
+      setPlants(SideingLocations);
     } catch (error) {
       console.error('Error fetching locations:', error);
       showToast('Failed to fetch locations', 'error');
@@ -326,12 +326,12 @@ export default function OEMPickupPage() {
             <SectionHeader icon={ClipboardList} title="Assignment Details" color="green" />
             <div className="grid grid-cols-4 gap-5">
               <div>
-                <FieldLabel required>Siding</FieldLabel>
+                <FieldLabel required>Sideing</FieldLabel>
                 <SelectField
                   value={form.plant}
                   onChange={set("plant")}
                   options={plants}
-                  placeholder="Select Siding"
+                  placeholder="Select Sideing"
                   hasError={!!errors.plant}
                 />
                 {errors.plant && (

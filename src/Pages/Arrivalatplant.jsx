@@ -23,8 +23,8 @@ const yardLocations = [
   "Yard Terminal 4 - Gate D",
 ];
 
-const SidingLocations = [
-  // Add Siding locations here
+const SideingLocations = [
+  // Add Sideing locations here
 ];
 
 const today = new Date().toISOString().split("T")[0];
@@ -32,7 +32,7 @@ const today = new Date().toISOString().split("T")[0];
 const defaultForm = {
   transportMode: "",
   yardLocation: "",
-  SidingLocation: "",
+  SideingLocation: "",
   arrivalDate: today,
   remarks: "",
   selectedTruck: "",
@@ -88,7 +88,7 @@ export default function ArrivalAtPlantPage() {
   const [availableTrucks, setAvailableTrucks] = useState([]);
   const [availableSelfDriven, setAvailableSelfDriven] = useState([]);
   const [locations, setLocations] = useState([]);
-  const [Sidings, setSidings] = useState([]);
+  const [Sideings, setSideings] = useState([]);
   const [yards, setYards] = useState([]);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
@@ -129,14 +129,14 @@ export default function ArrivalAtPlantPage() {
         setLocations(allLocations);
         
         // Separate locations by type
-        const SidingLocations = allLocations
-          .filter(loc => loc.LocationType === 'Siding' && loc.IsActive)
+        const SideingLocations = allLocations
+          .filter(loc => loc.LocationType === 'Sideing' && loc.IsActive)
           .map(loc => loc.LocationName);
         const yardLocations = allLocations
           .filter(loc => loc.LocationType === 'YARD' && loc.IsActive)
           .map(loc => loc.LocationName);
         
-        setSidings(SidingLocations);
+        setSideings(SideingLocations);
         setYards(yardLocations);
       } catch (error) {
         console.error('Error fetching locations:', error);
@@ -267,7 +267,7 @@ export default function ArrivalAtPlantPage() {
       {/* ── Page Header ─────────────────────────────────────────────── */}
       <div className="mb-6 flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Siding At Plant</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Sideing At Plant</h2>
           <p className="text-gray-600 mt-1">
             Log vehicle arrival details at the plant with yard and timing info
           </p>
@@ -410,18 +410,18 @@ export default function ArrivalAtPlantPage() {
             <div className="grid grid-cols-2 gap-5">
               <div>
                 <FieldLabel required>
-                  {form.transportMode === "Self-Driven" ? "Siding Location" : "Yard Location"}
+                  {form.transportMode === "Self-Driven" ? "Sideing Location" : "Yard Location"}
                 </FieldLabel>
                 <SelectField
-                  value={form.transportMode === "Self-Driven" ? form.SidingLocation : form.yardLocation}
-                  onChange={set(form.transportMode === "Self-Driven" ? "SidingLocation" : "yardLocation")}
-                  options={form.transportMode === "Self-Driven" ? Sidings : yards}
-                  placeholder={`Select ${form.transportMode === "Self-Driven" ? "Siding" : "Yard"} Location`}
-                  hasError={!!(form.transportMode === "Self-Driven" ? errors.SidingLocation : errors.yardLocation)}
+                  value={form.transportMode === "Self-Driven" ? form.SideingLocation : form.yardLocation}
+                  onChange={set(form.transportMode === "Self-Driven" ? "SideingLocation" : "yardLocation")}
+                  options={form.transportMode === "Self-Driven" ? Sideings : yards}
+                  placeholder={`Select ${form.transportMode === "Self-Driven" ? "Sideing" : "Yard"} Location`}
+                  hasError={!!(form.transportMode === "Self-Driven" ? errors.SideingLocation : errors.yardLocation)}
                 />
-                {(form.transportMode === "Self-Driven" ? errors.SidingLocation : errors.yardLocation) && (
+                {(form.transportMode === "Self-Driven" ? errors.SideingLocation : errors.yardLocation) && (
                   <p className="text-xs text-red-500 mt-1">
-                    {form.transportMode === "Self-Driven" ? "Siding" : "Yard"} location is required
+                    {form.transportMode === "Self-Driven" ? "Sideing" : "Yard"} location is required
                   </p>
                 )}
               </div>

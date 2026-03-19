@@ -3925,3 +3925,158 @@ export const rakeVisitAPI = {
   },
 };
 
+// Exam Type API
+export const examTypeAPI = {
+  // Get all exam types
+  getAllExamTypes: async () => {
+    try {
+      const response = await api.get("/exam-types");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching exam types:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get exam type by ID
+  getExamTypeById: async (examId) => {
+    try {
+      const response = await api.get(`/exam-types/${examId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching exam type:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Create new exam type
+  createExamType: async (examData) => {
+    try {
+      const response = await api.post("/exam-types", examData);
+      return response.data;
+    } catch (error) {
+      console.error("Error creating exam type:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Update exam type
+  updateExamType: async (examId, examData) => {
+    try {
+      const response = await api.put(`/exam-types/${examId}`, examData);
+      return response.data;
+    } catch (error) {
+      console.error("Error updating exam type:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Delete exam type
+  deleteExamType: async (examId) => {
+    try {
+      const response = await api.delete(`/exam-types/${examId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error deleting exam type:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Search exam types
+  searchExamTypes: async (searchTerm) => {
+    try {
+      const response = await api.get(`/exam-types/search/${encodeURIComponent(searchTerm)}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error searching exam types:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+};
+
+// Rake Exam API
+export const rakeExamAPI = {
+  // Get all exams
+  getAllExams: async (filters = {}) => {
+    try {
+      const params = new URLSearchParams();
+      Object.keys(filters).forEach(key => {
+        if (filters[key] !== undefined && filters[key] !== '') {
+          params.append(key, filters[key]);
+        }
+      });
+      const response = await api.get(`/rake-exams?${params.toString()}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching exams:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get exam by ID
+  getExamById: async (examId) => {
+    try {
+      const response = await api.get(`/rake-exams/${examId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching exam:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Create new exam
+  createExam: async (examData) => {
+    try {
+      const response = await api.post("/rake-exams", examData);
+      return response.data;
+    } catch (error) {
+      console.error("Error creating exam:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Update exam
+  updateExam: async (examId, examData) => {
+    try {
+      const response = await api.put(`/rake-exams/${examId}`, examData);
+      return response.data;
+    } catch (error) {
+      console.error("Error updating exam:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Delete exam
+  deleteExam: async (examId) => {
+    try {
+      const response = await api.delete(`/rake-exams/${examId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error deleting exam:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get exams by rake ID
+  getExamsByRakeId: async (rakeId) => {
+    try {
+      const response = await api.get(`/rake-exams/rake/${rakeId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching exams by rake ID:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get exam details only
+  getExamDetails: async (examId) => {
+    try {
+      const response = await api.get(`/rake-exams/${examId}/details`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching exam details:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+};
+

@@ -21,6 +21,7 @@ import {
   BarChart3,
   Users,
 } from "lucide-react";
+import OEMPickupStatusSummary from "../Components/OEMPickupStatusSummary";
 
 const AllReportsPage = () => {
   const [allTransactions, setAllTransactions] = useState([]);
@@ -526,6 +527,11 @@ const AllReportsPage = () => {
             </div>
           </div>
         )}
+
+        {/* OEM Pickup Status Summary */}
+        <div className="mb-8">
+          <OEMPickupStatusSummary />
+        </div>
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">

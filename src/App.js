@@ -43,7 +43,9 @@ import RakePlanning from "./Pages/Rakeplanning";
 import ArticleMaster from "./Pages/ArticleMaster";
 import RakeDeaprture from "./Pages/RakeDeaprture";
 import RakeVisit from "./Pages/RakeVisit";
-import MonthlyReport from "./Pages/MonthlyReport";  
+import MonthlyReport from "./Pages/MonthlyReport";
+import ExamTypeManagement from "./Pages/ExamTypeManagement";
+import RakeExamManagement from "./Pages/RakeExamManagement";  
 
 const DashboardLayout = ({ children }) => {
   const [collapsed, setCollapsed] = useState(false);
@@ -186,6 +188,16 @@ function App() {
               <ProtectedRoute allowedRoles={["Admin"]}>
                 <DashboardLayout>
                   <RakeVisit />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/rake-exam"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+                  <RakeExamManagement />
                 </DashboardLayout>
               </ProtectedRoute>
             }
@@ -428,6 +440,26 @@ function App() {
               <ProtectedRoute allowedRoles={["Customer"]}>
                 <DashboardLayout>
                   <RakeVisit />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/exam-types"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+                  <ExamTypeManagement />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/rake-exam"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+                  <RakeExamManagement />
                 </DashboardLayout>
               </ProtectedRoute>
             }
