@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { vinSurveyAPI, locationMasterAPI } from "../utils/Api";
+import { vinSurveyAPI, locationMasterAPI, surveyTypeAPI, damageTypeAPI } from "../utils/Api";
 import {
   ScanLine,
   MapPin,
@@ -17,24 +17,9 @@ import {
 
 const yardTerminals = []; // Will be populated from API
 
-const surveyTypes = [
-  "Pre-Dispatch Survey",
-  "Post-Arrival Survey",
-  "Damage Assessment",
-  "Quality Inspection",
-  "Insurance Survey",
-];
+const surveyTypes = []; // Will be populated from API
 
-const damageTypes = [
-  "Scratch",
-  "Dent",
-  "Broken Glass",
-  "Mechanical Damage",
-  "Paint Damage",
-  "Missing Parts",
-  "Flood Damage",
-  "Fire Damage",
-];
+const damageTypes = []; // Will be populated from API
 
 const defaultForm = {
   vinDetails: "",
@@ -90,10 +75,53 @@ export default function VINSurveyPage() {
   const [submitError, setSubmitError] = useState("");
   const [uploadedPhotos, setUploadedPhotos] = useState([]); // Store uploaded photo data
   const [yardTerminals, setYardTerminals] = useState([]); // Yard terminals from API
+  const [surveyTypes, setSurveyTypes] = useState([]); // Survey types from API
+  const [damageTypes, setDamageTypes] = useState([]); // Damage types from API
   const fileInputRef = useRef(null);
 
   const set = (field) => (val) =>
     setForm((prev) => ({ ...prev, [field]: typeof val === "string" ? val : val.target.value }));
+
+  // Fetch survey types from API
+  const fetchSurveyTypes = useCallback(async () => {
+    try {
+      const response = await surveyTypeAPI.getAllSurveyTypes();
+      const surveyTypeNames = response.data.map(type => type.SURVEY_TYPE_NAME);
+      setSurveyTypes(surveyTypeNames);
+    } catch (error) {
+      console.error('Error fetching survey types:', error);
+      // Fallback to hardcoded options if API fails
+      setSurveyTypes([
+        "Pre-Dispatch Survey",
+        "Post-Arrival Survey",
+        "Damage Assessment",
+        "Quality Inspection",
+        "Insurance Survey",
+      ]);
+    }
+  }, []);
+
+  // Fetch damage types from API
+  const fetchDamageTypes = useCallback(async () => {
+    try {
+      const response = await damageTypeAPI.getAllDamageTypes();
+      const damageTypeNames = response.data.map(type => type.DAMAGE_TYPE_NAME);
+      setDamageTypes(damageTypeNames);
+    } catch (error) {
+      console.error('Error fetching damage types:', error);
+      // Fallback to hardcoded options if API fails
+      setDamageTypes([
+        "Scratch",
+        "Dent",
+        "Broken Glass",
+        "Mechanical Damage",
+        "Paint Damage",
+        "Missing Parts",
+        "Flood Damage",
+        "Fire Damage",
+      ]);
+    }
+  }, []);
 
   // Fetch yard terminals from location API
   const fetchYardTerminals = useCallback(async () => {
@@ -119,10 +147,12 @@ export default function VINSurveyPage() {
     }
   }, []);
 
-  // Fetch yard terminals on component mount
+  // Fetch data on component mount
   useEffect(() => {
     fetchYardTerminals();
-  }, [fetchYardTerminals]);
+    fetchSurveyTypes();
+    fetchDamageTypes();
+  }, [fetchYardTerminals, fetchSurveyTypes, fetchDamageTypes]);
 
   const validate = () => {
     const errs = {};

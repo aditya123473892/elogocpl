@@ -29,7 +29,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
-  const { login, signup } = useAuth();
+  const { login, signup, setSelectedLocation } = useAuth();
 
   useEffect(() => {
     const loadLocations = async () => {
@@ -86,6 +86,9 @@ export default function Login() {
           localStorage.setItem("user", JSON.stringify(user));
           localStorage.setItem("token", token);
           localStorage.setItem("selectedLocation", location);
+          
+          // Set selected location in context
+          setSelectedLocation(location);
 
           toast.success(`Welcome back, ${user.name || user.email}!`);
 
@@ -359,7 +362,7 @@ export default function Login() {
                       required
                     >
                       <option value="" disabled>
-                        Select Location/Sideing
+                        Select Location/Siding
                       </option>
                       {locations.map((loc) => (
                         <option key={loc.LocationId} value={loc.LocationId}>
@@ -454,20 +457,7 @@ export default function Login() {
               </div>
             </form>
 
-            <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
-                {isLogin
-                  ? "Don't have an account?"
-                  : "Already have an account?"}{" "}
-                <button
-                  type="button"
-                  onClick={toggleAuthMode}
-                  className="font-medium text-blue-600 hover:text-blue-500"
-                >
-                  {isLogin ? "Sign Up" : "Sign In"}
-                </button>
-              </p>
-            </div>
+         
           </div>
         </div>
 

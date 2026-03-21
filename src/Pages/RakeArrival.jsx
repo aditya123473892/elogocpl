@@ -58,7 +58,7 @@ const inputCls = (disabled) =>
     disabled ? "bg-gray-100 cursor-not-allowed text-gray-500 border-gray-200" : "bg-white border-gray-300"
   }`;
 
-export default function RakeDeparturePage() {
+export default function RakeArrivalPage() {
   const { user, selectedLocation } = useAuth(); // Get logged-in user info and selected location
   const [isEditing, setIsEditing] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -67,6 +67,7 @@ export default function RakeDeparturePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
   const [locations, setLocations] = useState([]);
+  const [filterInfo, setFilterInfo] = useState({ total: 0, filtered: 0, hidden: 0 });
   const [form, setForm] = useState({
     rakeName: "TWIL02",
     trainNumber: "",
@@ -75,25 +76,75 @@ export default function RakeDeparturePage() {
     rrNo: "",
     rrDate: "",
     rrAmount: "",
-    // Only departure-related fields
-    placement_dep: initTime(),
-    loadingStart: initTime(),
-    loadingEnd: initTime(),
-    removal: initTime(),
-    powerDemand: initTime(),
-    powerArrival: initTime(),
-    departureDate: initTime(),
+    // Only arrival-related fields
+    arrivalDate: initTime(),
+    placement_arr: initTime(),
+    unloadingStart: initTime(),
+    unloadingEnd: initTime(),
+    stablingStart: initTime(),
+    stablingEnd: initTime(),
+    released: initTime(),
+    deliveryDate: initTime(), // Added delivery date field
   });
 
-  // Fetch planned rakes from rake planning
+  // Fetch planned rakes from rake planning and filter out completed arrivals
   const fetchPlannedRakes = async () => {
     try {
       setLoading(true);
-      const data = await rakePlanningAPI.getAllRakePlans();
-      if (data.success) {
-        setPlannedRakes(data.data);
+      const [plansData, visitsData] = await Promise.all([
+        rakePlanningAPI.getAllRakePlans(),
+        rakeVisitAPI.getAllRakeVisits()
+      ]);
+      
+      if (plansData.success) {
+        const allPlans = plansData.data || [];
+        let filteredPlans = allPlans;
+        
+        // Filter out plans that already have arrival records
+        if (visitsData.success && visitsData.data && visitsData.data.length > 0) {
+          // Get all identifiers that have arrival records
+          const arrivedTrainNos = new Set(
+            visitsData.data
+              .filter(visit => visit.ARRVAL_DATE) // Any visit with arrival date
+              .map(visit => (visit.IB_TRAIN_NO || visit.OB_TRAIN_NO)?.trim())
+              .filter(trainNo => trainNo) // Remove null/undefined
+          );
+          
+          const arrivedTripNos = new Set(
+            visitsData.data
+              .filter(visit => visit.ARRVAL_DATE) // Any visit with arrival date
+              .map(visit => visit.TRIP_NO?.trim())
+              .filter(tripNo => tripNo) // Remove null/undefined
+          );
+          
+          // Filter out plans that have any arrival record using multiple criteria
+          filteredPlans = allPlans.filter(plan => {
+            const trainNoMatch = plan.Train_No && arrivedTrainNos.has(plan.Train_No.trim());
+            const tripNoMatch = plan.Trip_No && arrivedTripNos.has(plan.Trip_No.trim());
+            
+            // Filter if either train number or trip number matches an arrived record
+            const shouldFilter = trainNoMatch || tripNoMatch;
+            
+            return !shouldFilter;
+          });
+
+          // Set filter info for display
+          setFilterInfo({
+            total: allPlans.length,
+            filtered: filteredPlans.length,
+            hidden: allPlans.length - filteredPlans.length
+          });
+        } else {
+          setFilterInfo({
+            total: allPlans.length,
+            filtered: allPlans.length,
+            hidden: 0
+          });
+        }
+        
+        setPlannedRakes(filteredPlans);
       } else {
-        console.error("Failed to fetch planned rakes:", data.message);
+        console.error("Failed to fetch planned rakes:", plansData.message);
       }
     } catch (error) {
       console.error("Error fetching planned rakes:", error);
@@ -129,12 +180,10 @@ export default function RakeDeparturePage() {
       plan.Trip_No?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Convert form data to API format - Merge with selected plan data
+  // Convert form data to API format - Map to RAKE_VISIT table structure
   const formatFormForAPI = () => {
-    // Start with the selected plan data (reference data from rake creation + arrival data)
+    // Start with selected plan data (reference data from rake planning)
     const baseData = selectedPlan ? {
-      ...selectedPlan,
-      // Keep original planning and arrival data
       PlanId: selectedPlan.PlanId,
       Rake_Name: selectedPlan.Rake_Name || form.rakeName,
       Base_Depot: selectedPlan.Base_Depot,
@@ -150,105 +199,111 @@ export default function RakeDeparturePage() {
       Route: selectedPlan.Route,
       Train_No: selectedPlan.Train_No || form.trainNumber,
       Plan_Date: selectedPlan.Plan_Date,
-      
-      // Preserve existing arrival data if it exists
-      ArrivalDate: selectedPlan.ArrivalDate,
-      ArrivalHour: selectedPlan.ArrivalHour,
-      ArrivalMinute: selectedPlan.ArrivalMinute,
-      PlacementArrDate: selectedPlan.PlacementArrDate,
-      PlacementArrHour: selectedPlan.PlacementArrHour,
-      PlacementArrMinute: selectedPlan.PlacementArrMinute,
-      UnloadingStartDate: selectedPlan.UnloadingStartDate,
-      UnloadingStartHour: selectedPlan.UnloadingStartHour,
-      UnloadingStartMinute: selectedPlan.UnloadingStartMinute,
-      UnloadingEndDate: selectedPlan.UnloadingEndDate,
-      UnloadingEndHour: selectedPlan.UnloadingEndHour,
-      UnloadingEndMinute: selectedPlan.UnloadingEndMinute,
-      StablingStartDate: selectedPlan.StablingStartDate,
-      StablingStartHour: selectedPlan.StablingStartHour,
-      StablingStartMinute: selectedPlan.StablingStartMinute,
-      StablingEndDate: selectedPlan.StablingEndDate,
-      StablingEndHour: selectedPlan.StablingEndHour,
-      StablingEndMinute: selectedPlan.StablingEndMinute,
-      ReleasedDate: selectedPlan.ReleasedDate,
-      ReleasedHour: selectedPlan.ReleasedHour,
-      ReleasedMinute: selectedPlan.ReleasedMinute,
     } : {};
 
-    // Add departure timing data and current form data
+    // Map to RAKE_VISIT table structure
     return {
-      ...baseData,
+      // Train and identification fields
+      IB_TRAIN_NO: selectedPlan?.IB_Train_No || form.trainNumber || null,
+      OB_TRAIN_NO: selectedPlan?.Train_No || form.trainNumber || null,
+      TRIP_NO: form.tripNo || selectedPlan?.Trip_No || null,
+      RR_NO: form.rrNo || null,
+      RR_DATE: form.rrDate ? new Date(form.rrDate).toISOString() : null,
+      RR_AMOUNT: form.rrAmount ? parseFloat(form.rrAmount) : null,
       
-      // Current form data that might override or add to plan data
-      RakeName: form.rakeName,
-      TrainNumber: form.trainNumber,
-      TripNo: form.tripNo,
-      LineTrack: form.lineTrack,
-      RRNo: form.rrNo || null,
-      RRDate: form.rrDate || null,
-      RRAmount: form.rrAmount ? parseFloat(form.rrAmount) : null,
+      // Terminal and route information
+      TERMINAL_ID: selectedLocation || null,
+      IB_LOAD_TERMINAL: selectedPlan?.Route || null,
+      OB_DISCHARGE_TERMINAL: selectedPlan?.Route || null,
+      IB_ROUTE_ID: selectedPlan?.Route_Id || null,
+      OB_ROUTE_ID: selectedPlan?.Route_Id || null,
+      SUB_ROUTE_ID: selectedPlan?.Sub_Route_Id || null,
+      TERMINAL_OPERATOR_ID: 1, // Default operator ID
+      RAILWAY_LINE_ID: selectedPlan?.Railway_Line || "RL001",
       
-      // Departure timings - this is the new data being added
-      PlacementDepDate: form.placement_dep.date || null,
-      PlacementDepHour: form.placement_dep.date ? parseInt(form.placement_dep.hh) : null,
-      PlacementDepMinute: form.placement_dep.date ? parseInt(form.placement_dep.mm) : null,
+      // Rake information
+      RAKE_ID: selectedPlan?.Rake_Id || null,
+      DEST_VISIT_ID: null,
+      NEXT_PORT: selectedPlan?.Next_Port || null,
       
-      LoadingStartDate: form.loadingStart.date || null,
-      LoadingStartHour: form.loadingStart.date ? parseInt(form.loadingStart.hh) : null,
-      LoadingStartMinute: form.loadingStart.date ? parseInt(form.loadingStart.mm) : null,
+      // Mail status flags
+      DISPATCH_MAIL_STATUS: "N",
+      ARRIVAL_MAIL_STATUS: "N",
+      REROUTE_STATUS: "N",
       
-      LoadingEndDate: form.loadingEnd.date || null,
-      LoadingEndHour: form.loadingEnd.date ? parseInt(form.loadingEnd.hh) : null,
-      LoadingEndMinute: form.loadingEnd.date ? parseInt(form.loadingEnd.mm) : null,
+      // Configuration flags
+      DOUBLE_STACK: selectedPlan?.Double_Stack === "Y" ? "Y" : "N",
+      POOLING: selectedPlan?.Pooling === "Y" ? "Y" : "N",
+      HAULAGE_PAID_BY: selectedPlan?.Haulage_Paid_By === "Customer" ? "C" : "R",
+      PLANE_TYPE: "N", // Default for rail operations
       
-      RemovalDate: form.removal.date || null,
-      RemovalHour: form.removal.date ? parseInt(form.removal.hh) : null,
-      RemovalMinute: form.removal.date ? parseInt(form.removal.mm) : null,
+      // Distance and billing
+      BILLABLE_DISTANCE: selectedPlan?.Distance || 0,
       
-      PowerDemandDate: form.powerDemand.date || null,
-      PowerDemandHour: form.powerDemand.date ? parseInt(form.powerDemand.hh) : null,
-      PowerDemandMinute: form.powerDemand.date ? parseInt(form.powerDemand.mm) : null,
+      // Arrival timing fields (A_ prefix for arrival operations)
+      ARRVAL_DATE: form.arrivalDate.date ? 
+        new Date(`${form.arrivalDate.date}T${form.arrivalDate.hh}:${form.arrivalDate.mm}:00`).toISOString() : null,
+      A_PLACEMENT_DATE: form.placement_arr.date ? 
+        new Date(`${form.placement_arr.date}T${form.placement_arr.hh}:${form.placement_arr.mm}:00`).toISOString() : null,
+      UNLOAD_START_DATE: form.unloadingStart.date ? 
+        new Date(`${form.unloadingStart.date}T${form.unloadingStart.hh}:${form.unloadingStart.mm}:00`).toISOString() : null,
+      UNLOAD_COMPLETION_DATE: form.unloadingEnd.date ? 
+        new Date(`${form.unloadingEnd.date}T${form.unloadingEnd.hh}:${form.unloadingEnd.mm}:00`).toISOString() : null,
+      A_STABLING_START_DATE: form.stablingStart.date ? 
+        new Date(`${form.stablingStart.date}T${form.stablingStart.hh}:${form.stablingStart.mm}:00`).toISOString() : null,
+      A_STABLING_END_DATE: form.stablingEnd.date ? 
+        new Date(`${form.stablingEnd.date}T${form.stablingEnd.hh}:${form.stablingEnd.mm}:00`).toISOString() : null,
+      A_REMOVAL_DATE: form.released.date ? 
+        new Date(`${form.released.date}T${form.released.hh}:${form.released.mm}:00`).toISOString() : null,
       
-      PowerArrivalDate: form.powerArrival.date || null,
-      PowerArrivalHour: form.powerArrival.date ? parseInt(form.powerArrival.hh) : null,
-      PowerArrivalMinute: form.powerArrival.date ? parseInt(form.powerArrival.mm) : null,
+      // Departure timing fields (D_ prefix for departure operations - null for arrival)
+      D_PLACEMENT_DATE: null,
+      LOAD_START_DATE: null,
+      LOAD_COMPLETION_DATE: null,
+      D_STABLING_START_DATE: null,
+      D_STABLING_END_DATE: null,
+      D_REMOVAL_DATE: null,
+      DEPARTURE_DATE: null,
       
-      // Departure timing (required)
-      DepartureDate: form.departureDate.date,
-      DepartureHour: parseInt(form.departureDate.hh),
-      DepartureMinute: parseInt(form.departureDate.mm),
+      // Station and siding dates
+      DEPARTURE_SIDDING: null,
+      ARRIVAL_STATION: form.arrivalDate.date ? 
+        new Date(`${form.arrivalDate.date}T${form.arrivalDate.hh}:${form.arrivalDate.mm}:00`).toISOString() : null,
       
-      // Status and user info
-      Status: "Departed", // Mark as departed
-      DepartureStatus: "Completed",
+      // Examination and remarks
+      EXAM_NO: 1, // Default exam number
+      REMARKS: `Rake arrival recorded - ${baseData.Rake_Name || form.rakeName}`,
       
-      // User info - use logged-in user information
-      UpdatedBy: user ? `${user.name} (ID: ${user.id})` : "Unknown User",
+      // User and system information
+      CREATED_BY: user ? `${user.name} (ID: ${user.id})` : "Unknown User",
+      DEVICE_ID: selectedPlan?.Device_ID || "WEB_APP",
       
-      // Location info
-      LocationId: selectedLocation,
-      
-      // Timestamps
-      DepartureTimestamp: new Date().toISOString(),
+      // Additional planning data for reference (not stored in RAKE_VISIT but useful for tracking)
+      ...baseData
     };
   };
 
   // Validate required fields
   const validateForm = () => {
+    // Check if a plan is selected
+    if (!selectedPlan) {
+      return "Please select a planned rake first";
+    }
+
+    // Check required form fields
     const required = ['rakeName', 'trainNumber', 'tripNo'];
-    const requiredTimes = ['departureDate'];
-    
     for (const field of required) {
-      if (!form[field] || form[field].trim() === '') {
+      if (!form[field] || (typeof form[field] === 'string' && form[field].trim() === '')) {
         return `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required`;
       }
     }
     
+    // Check required timing fields
+    const requiredTimes = ['arrivalDate', 'released'];
     for (const field of requiredTimes) {
       if (!form[field].date) {
         return `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} date is required`;
       }
-      // Also validate that hour and minute are selected
       if (!form[field].hh || !form[field].mm) {
         return `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} time is required`;
       }
@@ -264,18 +319,14 @@ export default function RakeDeparturePage() {
       return;
     }
 
-    // Check if a plan is selected
-    if (!selectedPlan) {
-      alert("Please select a planned rake first");
-      return;
-    }
-
     try {
       setLoading(true);
       const apiData = formatFormForAPI();
       
-      // Save to the same table using proper API
-      const response = await rakeVisitAPI.updateRakeVisit(selectedPlan.PlanId, apiData);
+      console.log('Saving rake visit data:', apiData);
+      
+      // Save to RAKE_VISIT table using the API
+      const response = await rakeVisitAPI.createRakeVisit(apiData);
       
       if (response.success) {
         setSaved(true);
@@ -283,13 +334,36 @@ export default function RakeDeparturePage() {
         setTimeout(() => setSaved(false), 3000);
         
         // Show success message
-        toast.success("Rake departure data saved successfully!");
+        toast.success("Rake arrival data saved successfully to RAKE_VISIT table!");
+        
+        // Optionally refresh the planned rakes to get updated data
+        fetchPlannedRakes();
+        
+        // Reset form after successful save
+        setForm({
+          rakeName: "TWIL02",
+          trainNumber: "",
+          tripNo: "",
+          lineTrack: "Line-1",
+          rrNo: "",
+          rrDate: "",
+          rrAmount: "",
+          arrivalDate: initTime(),
+          placement_arr: initTime(),
+          unloadingStart: initTime(),
+          unloadingEnd: initTime(),
+          stablingStart: initTime(),
+          stablingEnd: initTime(),
+          released: initTime(),
+          deliveryDate: initTime(),
+        });
+        setSelectedPlan(null);
       } else {
-        alert(`Error: ${response.message || 'Failed to save rake departure'}`);
+        alert(`Error: ${response.message || 'Failed to save rake arrival'}`);
       }
     } catch (error) {
-      console.error('Error saving rake departure:', error);
-      alert(`Error: ${error.message || 'Failed to save rake departure'}`);
+      console.error('Error saving rake arrival:', error);
+      alert(`Error: ${error.message || 'Failed to save rake arrival'}`);
     } finally {
       setLoading(false);
     }
@@ -301,12 +375,12 @@ export default function RakeDeparturePage() {
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-orange-600 p-2 rounded-lg">
+            <div className="bg-green-600 p-2 rounded-lg">
               <Train className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Rake Departure Management</h1>
-              <p className="text-xs text-gray-500">Manage rake departure operations and timings</p>
+              <h1 className="text-xl font-bold text-gray-900">Rake Arrival Management</h1>
+              <p className="text-xs text-gray-500">Manage rake arrival operations and timings</p>
               {selectedLocation && (
                 <div className="mt-1 flex items-center gap-1 text-xs">
                   <MapPin className="h-3 w-3 text-blue-600" />
@@ -341,70 +415,101 @@ export default function RakeDeparturePage() {
           </div>
           <div className="p-6">
             {/* Planned Rakes Selection Section */}
-            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-blue-900 flex items-center gap-2">
-                  <Train className="w-4 h-4" /> Select Planned Rake
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                  <Train className="w-5 h-5 text-green-600" /> Available Rakes
                 </h3>
-                <span className="text-xs text-blue-700 font-medium">From Rake Planning</span>
+                <span className="text-sm text-gray-600">Select a rake to record arrival</span>
               </div>
               
               {/* Search Bar */}
-              <div className="mb-3">
+              <div className="mb-4">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="text"
-                    placeholder="Search planned rakes..."
+                    placeholder="Search by rake name, route, train or trip..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-base"
                   />
                 </div>
+                
+                {/* Filter Info Display */}
+                {filterInfo.hidden > 0 && (
+                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center gap-2 text-sm">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <span className="font-medium text-blue-800">
+                        Filtering Active: {filterInfo.hidden} of {filterInfo.total} rakes hidden (already arrived)
+                      </span>
+                    </div>
+                    <div className="text-xs text-blue-600 mt-1">
+                      Rakes with completed arrivals are automatically hidden from this list and shown in the Departure page.
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Planned Rakes List */}
-              <div className="max-h-48 overflow-y-auto">
+              <div className="max-h-96 overflow-y-auto border border-gray-200 rounded-lg">
                 {loading ? (
-                  <div className="text-center py-4">
-                    <div className="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-                    <p className="mt-1 text-xs text-gray-600">Loading planned rakes...</p>
+                  <div className="text-center py-8">
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                    <p className="mt-3 text-sm text-gray-600">Loading available rakes...</p>
                   </div>
                 ) : filteredPlans.length === 0 ? (
-                  <div className="text-center py-4">
-                    <Train className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-                    <p className="text-xs text-gray-600">
-                      {searchTerm ? "No planned rakes found" : "No planned rakes available"}
+                  <div className="text-center py-8">
+                    <Train className="mx-auto h-12 w-12 text-gray-400 mb-3" />
+                    <p className="text-sm text-gray-600">
+                      {searchTerm ? "No rakes found matching your search" : "No rakes available"}
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-1">
+                  <div className="divide-y divide-gray-200">
                     {filteredPlans.map((plan) => (
                       <div
                         key={plan.PlanId}
                         onClick={() => handlePlanSelection(plan)}
-                        className={`p-2 border rounded cursor-pointer transition-colors text-xs ${
+                        className={`p-4 cursor-pointer transition-all duration-200 hover:bg-gray-50 ${
                           selectedPlan?.PlanId === plan.PlanId
-                            ? "border-blue-500 bg-blue-100"
-                            : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                            ? "bg-green-50 border-l-4 border-l-green-500"
+                            : "hover:border-l-4 hover:border-l-gray-300"
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Train className="w-3 h-3 text-gray-400" />
+                          <div className="flex items-center gap-4">
+                            <Train className={`w-6 h-6 ${
+                              selectedPlan?.PlanId === plan.PlanId ? "text-green-600" : "text-gray-400"
+                            }`} />
                             <div>
-                              <div className="font-medium text-gray-900">{plan.Rake_Name}</div>
-                              <div className="text-gray-500">
-                                {plan.Route} | {plan.Train_No} | {plan.Trip_No}
+                              <div className={`font-semibold text-lg ${
+                                selectedPlan?.PlanId === plan.PlanId ? "text-green-700" : "text-gray-900"
+                              }`}>
+                                {plan.Rake_Name}
+                              </div>
+                              <div className="text-sm text-gray-600 mt-1">
+                                {plan.Route} • Train {plan.Train_No} • Trip {plan.Trip_No}
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1">
+                                Plan: {plan.Plan_Type} • {plan.Base_Depot}
                               </div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <span className="px-1 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                          <div className="flex items-center gap-2">
+                            <span className={`px-3 py-1 text-sm font-medium rounded-full ${
+                              selectedPlan?.PlanId === plan.PlanId
+                                ? "bg-green-100 text-green-800"
+                                : "bg-blue-100 text-blue-800"
+                            }`}>
                               {plan.Plan_Type}
                             </span>
                             {selectedPlan?.PlanId === plan.PlanId && (
-                              <Check className="w-3 h-3 text-blue-600" />
+                              <div className="flex items-center gap-1 text-green-600">
+                                <Check className="w-5 h-5" />
+                                <span className="text-sm font-medium">Selected</span>
+                              </div>
                             )}
                           </div>
                         </div>
@@ -413,9 +518,18 @@ export default function RakeDeparturePage() {
                   </div>
                 )}
               </div>
+              
               {selectedPlan && (
-                <div className="mt-3 p-2 bg-blue-100 border border-blue-300 rounded text-xs">
-                  <div className="font-medium text-blue-900">Selected: {selectedPlan.Rake_Name} | {selectedPlan.Train_No} | {selectedPlan.Trip_No}</div>
+                <div className="mt-4 p-4 bg-green-100 border border-green-300 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Check className="w-5 h-5 text-green-600" />
+                    <div>
+                      <div className="font-semibold text-green-900">Selected Rake</div>
+                      <div className="text-green-700">
+                        {selectedPlan.Rake_Name} • Train {selectedPlan.Train_No} • Trip {selectedPlan.Trip_No}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -491,23 +605,24 @@ export default function RakeDeparturePage() {
           </div>
         </div>
 
-        {/* Departure Timings Card */}
+        {/* Arrival Timings Card */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="bg-green-700 px-6 py-3 flex items-center justify-between">
+          <div className="bg-green-600 px-6 py-3 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-white uppercase tracking-wide flex items-center gap-2">
-              <Calendar className="w-4 h-4" /> Departure Timings
+              <Clock className="w-4 h-4" /> Arrival Timings
             </h2>
-            <span className="bg-green-600 text-white text-xs px-2 py-0.5 rounded-full font-medium">Outbound Operations</span>
+            <span className="bg-green-500 text-white text-xs px-2 py-0.5 rounded-full font-medium">Inbound Operations</span>
           </div>
           <div className="divide-y divide-gray-50">
             {[
-              { label: "Placement", key: "placement_dep" },
-              { label: "Loading Start", key: "loadingStart" },
-              { label: "Loading End", key: "loadingEnd" },
-              { label: "Removal", key: "removal" },
-              { label: "Power Demand", key: "powerDemand" },
-              { label: "Power Arrival", key: "powerArrival" },
-              { label: "Departure Date", key: "departureDate", required: true },
+              { label: "Arrival Date", key: "arrivalDate", required: true },
+              { label: "Placement", key: "placement_arr" },
+              { label: "Unloading Start", key: "unloadingStart" },
+              { label: "Unloading End", key: "unloadingEnd" },
+              { label: "Stabling Start", key: "stablingStart" },
+              { label: "Stabling End", key: "stablingEnd" },
+              { label: "Released", key: "released", required: true },
+              { label: "Delivery Date", key: "deliveryDate" },
             ].map(({ label, key, required }, idx) => (
               <div key={key} className={`flex items-center gap-4 px-5 py-3 ${idx % 2 === 0 ? "bg-white" : "bg-gray-50"}`}>
                 <label className="text-sm font-medium text-gray-700 w-36 shrink-0 flex items-center gap-1">

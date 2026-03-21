@@ -15,6 +15,7 @@ import {
   Check,
 } from "lucide-react";
 import { arrivalAtPlantAPI, locationMasterAPI } from "../utils/Api";
+import { useAuth } from "../contexts/AuthContext";
 
 const yardLocations = [
   "Yard Terminal 1 - Gate A",
@@ -81,6 +82,7 @@ const SelectField = ({ value, onChange, options, placeholder, hasError }) => (
 );
 
 export default function ArrivalAtPlantPage() {
+  const { selectedLocation } = useAuth();
   const [form, setForm] = useState(defaultForm);
   const [saved, setSaved] = useState(false);
   const [errors, setErrors] = useState({});
@@ -106,11 +108,14 @@ export default function ArrivalAtPlantPage() {
         const response = await arrivalAtPlantAPI.getOEMPickupVehicles();
         const allVehicles = response.data || [];
         
+        // Get all vehicles without location filtering
+        const filteredVehicles = allVehicles;
+        
         // Separate vehicles by transportation type
-        const trucks = allVehicles.filter(vehicle => 
+        const trucks = filteredVehicles.filter(vehicle => 
           vehicle.transportationType === 'TRUCK'
         );
-        const selfDriven = allVehicles.filter(vehicle => 
+        const selfDriven = filteredVehicles.filter(vehicle => 
           vehicle.transportationType === 'SELF_DRIVEN'
         );
         
@@ -189,9 +194,27 @@ export default function ArrivalAtPlantPage() {
         setVinData([]);
       }
       
-      // Auto-fill transport mode to Truck when vehicle details are loaded
-      if (vehicleDetails && !form.transportMode) {
-        setForm((prev) => ({ ...prev, transportMode: "Truck" }));
+      // Auto-fill transport mode and siding location when vehicle details are loaded
+      if (vehicleDetails) {
+        if (!form.transportMode) {
+          setForm((prev) => ({ ...prev, transportMode: "Truck" }));
+        }
+        
+        // Auto-fill siding location for both self-driven vehicles and trucks
+        if (vehicleDetails.sideing || vehicleDetails.sidingLocation) {
+          setForm((prev) => ({ 
+            ...prev, 
+            SideingLocation: vehicleDetails.sideing || vehicleDetails.sidingLocation 
+          }));
+        }
+        
+        // Auto-fill yard location for trucks
+        if (vehicleDetails.yard || vehicleDetails.yardLocation) {
+          setForm((prev) => ({ 
+            ...prev, 
+            yardLocation: vehicleDetails.yard || vehicleDetails.yardLocation 
+          }));
+        }
       }
     } catch (error) {
       console.error("Error fetching vehicle details:", error);
@@ -267,7 +290,7 @@ export default function ArrivalAtPlantPage() {
       {/* ── Page Header ─────────────────────────────────────────────── */}
       <div className="mb-6 flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Sideing At Plant</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Siding At Plant</h2>
           <p className="text-gray-600 mt-1">
             Log vehicle arrival details at the plant with yard and timing info
           </p>
@@ -410,18 +433,29 @@ export default function ArrivalAtPlantPage() {
             <div className="grid grid-cols-2 gap-5">
               <div>
                 <FieldLabel required>
-                  {form.transportMode === "Self-Driven" ? "Sideing Location" : "Yard Location"}
+                  Siding Location
                 </FieldLabel>
-                <SelectField
-                  value={form.transportMode === "Self-Driven" ? form.SideingLocation : form.yardLocation}
-                  onChange={set(form.transportMode === "Self-Driven" ? "SideingLocation" : "yardLocation")}
-                  options={form.transportMode === "Self-Driven" ? Sideings : yards}
-                  placeholder={`Select ${form.transportMode === "Self-Driven" ? "Sideing" : "Yard"} Location`}
-                  hasError={!!(form.transportMode === "Self-Driven" ? errors.SideingLocation : errors.yardLocation)}
-                />
-                {(form.transportMode === "Self-Driven" ? errors.SideingLocation : errors.yardLocation) && (
+                {form.vehicleDetails && (form.vehicleDetails.sideing || form.vehicleDetails.sidingLocation) ? (
+                  <div className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-100 text-sm text-gray-700">
+                    {form.vehicleDetails.sideing || form.vehicleDetails.sidingLocation}
+                  </div>
+                ) : (
+                  <SelectField
+                    value={form.SideingLocation}
+                    onChange={set("SideingLocation")}
+                    options={Sideings}
+                    placeholder="Select Siding Location"
+                    hasError={!!errors.SideingLocation}
+                  />
+                )}
+                {errors.SideingLocation && (
                   <p className="text-xs text-red-500 mt-1">
-                    {form.transportMode === "Self-Driven" ? "Sideing" : "Yard"} location is required
+                    Siding location is required
+                  </p>
+                )}
+                {form.vehicleDetails && (form.vehicleDetails.sideing || form.vehicleDetails.sidingLocation) && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Siding location auto-populated from vehicle details
                   </p>
                 )}
               </div>

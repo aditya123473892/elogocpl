@@ -12,8 +12,10 @@ import {
   AlertCircle,
   X,
   Check,
+  QrCode,
 } from "lucide-react";
 import { oemPickupAPI, locationMasterAPI, driverMasterAPI } from "../utils/Api";
+import QRCodeLib from "qrcode";
 
 const transporters = [
   "Transporter A Ltd.",
@@ -94,6 +96,7 @@ export default function OEMPickupPage() {
   const [drivers, setDrivers] = useState([]);
   const [allDriversData, setAllDriversData] = useState([]);
   const [driverDetails, setDriverDetails] = useState(null);
+  const [qrCodeUrl, setQrCodeUrl] = useState("");
   const debounceTimerRef = useRef(null);
 
   // Toast notification function - moved before fetchLocations
@@ -149,10 +152,40 @@ export default function OEMPickupPage() {
     
     if (selectedDriver) {
       setDriverDetails(selectedDriver);
+      generateDriverQRCode(selectedDriver);
     } else {
       setDriverDetails(null);
+      setQrCodeUrl("");
     }
   }, [allDriversData]);
+
+  // Generate QR code for driver information
+  const generateDriverQRCode = async (driver) => {
+    try {
+      const driverInfo = {
+        driver_id: driver.driver_id,
+        driver_name: driver.driver_name,
+        driver_contact: driver.driver_contact || 'N/A',
+        license_number: driver.license_number || 'N/A',
+        transporter: form.vendorTransporter || 'N/A',
+        truck_number: form.truckNumber || 'N/A'
+      };
+      
+      const qrData = JSON.stringify(driverInfo);
+      const qrUrl = await QRCodeLib.toDataURL(qrData, {
+        width: 200,
+        margin: 2,
+        color: {
+          dark: '#1f2937',
+          light: '#ffffff'
+        }
+      });
+      
+      setQrCodeUrl(qrUrl);
+    } catch (error) {
+      console.error('Error generating QR code:', error);
+    }
+  };
 
   // Fetch locations and drivers on component mount
   useEffect(() => {
@@ -574,6 +607,58 @@ export default function OEMPickupPage() {
           </div>
 
         </form>
+      </div>
+
+      {/* QR Code Sidebar */}
+      <div className="w-80 ml-6">
+        {qrCodeUrl && driverDetails && (
+          <div className="bg-white rounded-lg shadow p-6 sticky top-6">
+            <div className="flex items-center gap-2 mb-4">
+              <QrCode className="h-5 w-5 text-green-600" />
+              <h3 className="text-lg font-semibold text-gray-800">Driver QR Code</h3>
+            </div>
+            
+            <div className="flex flex-col items-center">
+              <img 
+                src={qrCodeUrl} 
+                alt="Driver QR Code" 
+                className="w-48 h-48 border-2 border-gray-200 rounded-lg mb-4"
+              />
+              
+              <div className="w-full space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Driver ID:</span>
+                  <span className="font-medium">{driverDetails.driver_id}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Name:</span>
+                  <span className="font-medium">{driverDetails.driver_name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Contact:</span>
+                  <span className="font-medium">{driverDetails.driver_contact || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">License:</span>
+                  <span className="font-medium">{driverDetails.license_number || 'N/A'}</span>
+                </div>
+              </div>
+              
+              <div className="mt-4 text-xs text-gray-500 text-center">
+                Scan for driver information
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {!qrCodeUrl && (
+          <div className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-8 text-center">
+            <QrCode className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+            <p className="text-sm text-gray-500">
+              Select a driver to generate QR code
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Toast Notification */}

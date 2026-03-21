@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Search, Filter, Download, Eye, Edit, Truck, Package, CheckCircle, XCircle, Clock, X, AlertTriangle, MapPin, FileText } from "lucide-react";
-import { dealerTripDetailsAPI } from "../utils/Api";
+import { dealerTripDetailsAPI, oemPickupAPI, arrivalAtPlantAPI } from "../utils/Api";
 import { toast } from "react-toastify";
-import OEMPickupStatusSummary from "../Components/OEMPickupStatusSummary";
 
 const DealerReport = () => {
   const [dealerRecords, setDealerRecords] = useState([]);
+  const [oemPickupRecords, setOemPickupRecords] = useState([]);
+  const [arrivalRecords, setArrivalRecords] = useState([]);
   const [filteredRecords, setFilteredRecords] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -21,43 +22,25 @@ const DealerReport = () => {
     loadDealerRecords();
   }, []);
 
-  // Calculate statistics
+  // Calculate statistics - Using data from all sources
   const statistics = {
-    totalCars: dealerRecords.length,
-    inTransitToLoadingYard: dealerRecords.filter(record => 
-      record.LOCATION?.toLowerCase().includes('transit to loading yard')
-    ).length,
-    atLoadingYard: dealerRecords.filter(record => 
-      record.LOCATION?.toLowerCase().includes('loading yard')
-    ).length,
-    rakeAssigned: dealerRecords.filter(record => 
-      record.Rake_NO && record.Rake_NO.trim() !== ''
-    ).length,
-    inTransitToDestinationYard: dealerRecords.filter(record => 
-      record.LOCATION?.toLowerCase().includes('transit to destination yard')
-    ).length,
-    atDestinationYard: dealerRecords.filter(record => 
-      record.LOCATION?.toLowerCase().includes('destination yard')
-    ).length,
-    inTransitToDestinationDealer: dealerRecords.filter(record => 
-      record.LOCATION?.toLowerCase().includes('transit to destination dealer')
-    ).length,
-    transitDelay: dealerRecords.filter(record => {
-      if (!record.CreatedAt) return false;
-      const createdDate = new Date(record.CreatedAt);
+    totalVinsCars: dealerRecords.length, // Total from dealer records
+    oemPickups: oemPickupRecords.length, // Total from OEM pickup records
+    inTransit: oemPickupRecords.filter(record => 
+      record.Status === 'IN-TRANSIT' || 
+      record.Status?.toLowerCase().includes('transit')
+    ).length + arrivalRecords.filter(record =>
+      record.status === 'in-transit' ||
+      record.status?.toLowerCase().includes('transit')
+    ).length, // From both OEM and Arrival records
+    arrivalAtPlant: arrivalRecords.length, // Show total arrivals like OEM pickups shows total
+    ewayBillExpiryDelay: dealerRecords.filter(record => {
+      if (!record.EWAY_BILL || !record.VALID_TILL) return false;
+      const validTill = new Date(record.VALID_TILL);
+      if (isNaN(validTill.getTime())) return false;
       const now = new Date();
-      const daysDiff = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24));
-      return daysDiff > 7; // Consider delayed if more than 7 days
-    }).length,
-    activeEwayBills: dealerRecords.filter(record => {
-      if (!record.EWAY_BILL || !record.VALID_TILL) return false;
-      const validTill = new Date(record.VALID_TILL);
-      return !isNaN(validTill.getTime()) && validTill > new Date();
-    }).length,
-    expiredEwayBills: dealerRecords.filter(record => {
-      if (!record.EWAY_BILL || !record.VALID_TILL) return false;
-      const validTill = new Date(record.VALID_TILL);
-      return !isNaN(validTill.getTime()) && validTill < new Date();
+      const daysUntilExpiry = Math.floor((validTill - now) / (1000 * 60 * 60 * 24));
+      return daysUntilExpiry < 0; // Expired
     }).length
   };
 
@@ -90,12 +73,23 @@ const DealerReport = () => {
   const loadDealerRecords = async () => {
     try {
       setLoading(true);
-      const data = await dealerTripDetailsAPI.getAllDealerTripDetails();
-      setDealerRecords(data.data || data || []);
-      setFilteredRecords(data.data || data || []);
+      
+      // Load all three data sources
+      const [dealerData, oemData, arrivalData] = await Promise.all([
+        dealerTripDetailsAPI.getAllDealerTripDetails(),
+        oemPickupAPI.getAllOEMPickups(),
+        arrivalAtPlantAPI.getAllArrivals()
+      ]);
+      
+      setDealerRecords(dealerData.data || dealerData || []);
+      setOemPickupRecords(oemData.data || oemData || []);
+      setArrivalRecords(arrivalData.data || arrivalData || []);
+      
+      // Set filtered records from dealer data for the table
+      setFilteredRecords(dealerData.data || dealerData || []);
     } catch (error) {
-      console.error("Error loading Dealer Trip Details records:", error);
-      toast.error("Failed to load Dealer Trip Details records");
+      console.error("Error loading records:", error);
+      toast.error("Failed to load records");
     } finally {
       setLoading(false);
     }
@@ -198,14 +192,14 @@ const DealerReport = () => {
         </p>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-        {/* Total Cars Card */}
+      {/* Statistics Cards - Only 4 Key Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        {/* Total VINs/Cars Card */}
         <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Cars</p>
-              <p className="text-2xl font-bold text-gray-900">{statistics.totalCars}</p>
+              <p className="text-sm font-medium text-gray-600">Total VINs/Cars</p>
+              <p className="text-2xl font-bold text-gray-900">{statistics.totalVinsCars}</p>
               <p className="text-xs text-gray-500 mt-1">All vehicles</p>
             </div>
             <div className="bg-blue-100 rounded-full p-3">
@@ -214,134 +208,61 @@ const DealerReport = () => {
           </div>
         </div>
 
-        {/* In Transit to Loading Yard Card */}
-        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-yellow-500">
+        {/* OEM Pickups Card */}
+        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">In Transit to Loading Yard</p>
-              <p className="text-2xl font-bold text-gray-900">{statistics.inTransitToLoadingYard}</p>
-              <p className="text-xs text-gray-500 mt-1">En route to loading</p>
+              <p className="text-sm font-medium text-gray-600">OEM Pickups</p>
+              <p className="text-2xl font-bold text-gray-900">{statistics.oemPickups}</p>
+              <p className="text-xs text-gray-500 mt-1">Vehicles picked up</p>
             </div>
-            <div className="bg-yellow-100 rounded-full p-3">
-              <Truck className="w-6 h-6 text-yellow-600" />
+            <div className="bg-green-100 rounded-full p-3">
+              <Truck className="w-6 h-6 text-green-600" />
             </div>
           </div>
         </div>
 
-        {/* At Loading Yard Card */}
+        {/* In Transit Card */}
         <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-orange-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">At Loading Yard</p>
-              <p className="text-2xl font-bold text-gray-900">{statistics.atLoadingYard}</p>
-              <p className="text-xs text-gray-500 mt-1">At loading facility</p>
+              <p className="text-sm font-medium text-gray-600">In Transit</p>
+              <p className="text-2xl font-bold text-gray-900">{statistics.inTransit}</p>
+              <p className="text-xs text-gray-500 mt-1">Currently in transit</p>
             </div>
             <div className="bg-orange-100 rounded-full p-3">
-              <MapPin className="w-6 h-6 text-orange-600" />
+              <Truck className="w-6 h-6 text-orange-600" />
             </div>
           </div>
         </div>
 
-        {/* Rake Assigned Card */}
+        {/* Arrival at Plant Card */}
         <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Rake Assigned</p>
-              <p className="text-2xl font-bold text-gray-900">{statistics.rakeAssigned}</p>
-              <p className="text-xs text-gray-500 mt-1">With rake numbers</p>
+              <p className="text-sm font-medium text-gray-600">Arrival at Plant</p>
+              <p className="text-2xl font-bold text-gray-900">{statistics.arrivalAtPlant}</p>
+              <p className="text-xs text-gray-500 mt-1">Reached destination</p>
             </div>
             <div className="bg-purple-100 rounded-full p-3">
-              <CheckCircle className="w-6 h-6 text-purple-600" />
+              <MapPin className="w-6 h-6 text-purple-600" />
             </div>
           </div>
         </div>
 
-        {/* In Transit To Destination Yard Card */}
-        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-indigo-500">
+        {/* E-way Bill Expiry Delay Card */}
+        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-red-500 lg:col-span-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">In Transit To Destination Yard</p>
-              <p className="text-2xl font-bold text-gray-900">{statistics.inTransitToDestinationYard}</p>
-              <p className="text-xs text-gray-500 mt-1">En route to destination</p>
-            </div>
-            <div className="bg-indigo-100 rounded-full p-3">
-              <Truck className="w-6 h-6 text-indigo-600" />
-            </div>
-          </div>
-        </div>
-
-        {/* At Destination Yard Card */}
-        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-teal-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">At Destination Yard</p>
-              <p className="text-2xl font-bold text-gray-900">{statistics.atDestinationYard}</p>
-              <p className="text-xs text-gray-500 mt-1">At destination facility</p>
-            </div>
-            <div className="bg-teal-100 rounded-full p-3">
-              <MapPin className="w-6 h-6 text-teal-600" />
-            </div>
-          </div>
-        </div>
-
-        {/* In Transit to Destination Dealer Card */}
-        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-cyan-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">In Transit to Destination Dealer</p>
-              <p className="text-2xl font-bold text-gray-900">{statistics.inTransitToDestinationDealer}</p>
-              <p className="text-xs text-gray-500 mt-1">Final delivery transit</p>
-            </div>
-            <div className="bg-cyan-100 rounded-full p-3">
-              <Truck className="w-6 h-6 text-cyan-600" />
-            </div>
-          </div>
-        </div>
-
-        {/* Transit Delay Card */}
-        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-red-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Transit Delay</p>
-              <p className="text-2xl font-bold text-gray-900">{statistics.transitDelay}</p>
-              <p className="text-xs text-gray-500 mt-1">Delayed shipments</p>
+              <p className="text-sm font-medium text-gray-600">E-way Bill Expiry Delay</p>
+              <p className="text-2xl font-bold text-red-600">{statistics.ewayBillExpiryDelay}</p>
+              <p className="text-xs text-gray-500 mt-1">Expired e-way bills</p>
             </div>
             <div className="bg-red-100 rounded-full p-3">
               <AlertTriangle className="w-6 h-6 text-red-600" />
             </div>
           </div>
         </div>
-
-        {/* Eway Bill Active/Exp Card */}
-        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Eway Bill Active/Exp</p>
-              <div className="flex items-center space-x-2 mt-1">
-                <span className="text-lg font-bold text-green-600">{statistics.activeEwayBills}</span>
-                <span className="text-gray-400">/</span>
-                <span className="text-lg font-bold text-red-600">{statistics.expiredEwayBills}</span>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">Active / Expired</p>
-            </div>
-            <div className="bg-green-100 rounded-full p-3">
-              <FileText className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* OEM Pickup Status Tracking */}
-      <div className="mb-6">
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            🚛 Vehicle Transit Status
-          </h3>
-          <p className="text-sm text-gray-600">
-            Real-time tracking of vehicle pickup and delivery status
-          </p>
-        </div>
-        <OEMPickupStatusSummary />
       </div>
 
       {/* Results Summary */}

@@ -3663,25 +3663,15 @@ export const routeMasterAPI = {
 
 
   // Search routes
-
   searchRoutes: async (searchTerm) => {
-
     try {
-
       const response = await api.get(`/route-master/routes/search?term=${searchTerm}`);
-
       return response.data;
-
     } catch (error) {
-
       console.error("Error searching routes:", error);
-
       throw error.response?.data || error.message;
-
     }
-
   },
-
 
 
   // Toggle route status
@@ -3759,6 +3749,86 @@ export const rakePlanningAPI = {
       return response.data;
     } catch (error) {
       console.error("Error deleting rake plan:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+};
+
+// Rake Visit API - For arrival/departure operations
+export const rakeVisitAPI = {
+  // Get all rake visits
+  getAllRakeVisits: async () => {
+    try {
+      const response = await api.get("/rake-visit");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching rake visits:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get rake visit by ID
+  getRakeVisitById: async (id) => {
+    try {
+      const response = await api.get(`/rake-visit/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching rake visit:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Create new rake visit (from arrival)
+  createRakeVisit: async (rakeVisitData) => {
+    try {
+      const response = await api.post("/rake-visit", rakeVisitData);
+      return response.data;
+    } catch (error) {
+      console.error("Error creating rake visit:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Update rake visit (from departure)
+  updateRakeVisit: async (id, rakeVisitData) => {
+    try {
+      const response = await api.put(`/rake-visit/${id}`, rakeVisitData);
+      return response.data;
+    } catch (error) {
+      console.error("Error updating rake visit:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Delete rake visit
+  deleteRakeVisit: async (id) => {
+    try {
+      const response = await api.delete(`/rake-visit/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error deleting rake visit:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get rake visits by rake ID
+  getRakeVisitsByRakeId: async (rakeId) => {
+    try {
+      const response = await api.get(`/rake-visit/rake/${rakeId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching rake visits by rake ID:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get rake visits by terminal ID
+  getRakeVisitsByTerminalId: async (terminalId) => {
+    try {
+      const response = await api.get(`/rake-visit/terminal/${terminalId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching rake visits by terminal ID:", error);
       throw error.response?.data || error.message;
     }
   },
@@ -3845,81 +3915,81 @@ export const rakeDepartureAPI = {
   },
 };
 
-// Rake Visit API
-export const rakeVisitAPI = {
-  // Get all rake visits
-  getAllRakeVisits: async () => {
+// Terminal Master API
+export const terminalMasterAPI = {
+  // Get all terminals
+  getAllTerminals: async () => {
     try {
-      const response = await api.get("/rake-visit");
+      const response = await api.get("/terminal-master");
       return response.data;
     } catch (error) {
-      console.error("Error fetching rake visits:", error);
+      console.error("Error fetching terminals:", error);
       throw error.response?.data || error.message;
     }
   },
 
-  // Get rake visit by ID
-  getRakeVisitById: async (id) => {
+  // Get terminal by ID
+  getTerminalById: async (id) => {
     try {
-      const response = await api.get(`/rake-visit/${id}`);
+      const response = await api.get(`/terminal-master/${id}`);
       return response.data;
     } catch (error) {
-      console.error("Error fetching rake visit:", error);
+      console.error("Error fetching terminal:", error);
       throw error.response?.data || error.message;
     }
   },
 
-  // Create new rake visit
-  createRakeVisit: async (rakeVisitData) => {
+  // Get terminal by code
+  getTerminalByCode: async (code) => {
     try {
-      const response = await api.post("/rake-visit", rakeVisitData);
+      const response = await api.get(`/terminal-master/code/${code}`);
       return response.data;
     } catch (error) {
-      console.error("Error creating rake visit:", error);
+      console.error("Error fetching terminal by code:", error);
       throw error.response?.data || error.message;
     }
   },
 
-  // Update rake visit
-  updateRakeVisit: async (id, rakeVisitData) => {
+  // Get terminal codes only (for dropdowns)
+  getTerminalCodes: async () => {
     try {
-      const response = await api.put(`/rake-visit/${id}`, rakeVisitData);
+      const response = await api.get("/terminal-master/codes/list");
       return response.data;
     } catch (error) {
-      console.error("Error updating rake visit:", error);
+      console.error("Error fetching terminal codes:", error);
       throw error.response?.data || error.message;
     }
   },
 
-  // Delete rake visit
-  deleteRakeVisit: async (id) => {
+  // Create new terminal
+  createTerminal: async (terminalData) => {
     try {
-      const response = await api.delete(`/rake-visit/${id}`);
+      const response = await api.post("/terminal-master", terminalData);
       return response.data;
     } catch (error) {
-      console.error("Error deleting rake visit:", error);
+      console.error("Error creating terminal:", error);
       throw error.response?.data || error.message;
     }
   },
 
-  // Get rake visits by rake ID
-  getRakeVisitsByRakeId: async (rakeId) => {
+  // Update terminal
+  updateTerminal: async (id, terminalData) => {
     try {
-      const response = await api.get(`/rake-visit/rake/${rakeId}`);
+      const response = await api.put(`/terminal-master/${id}`, terminalData);
       return response.data;
     } catch (error) {
-      console.error("Error fetching rake visits by rake ID:", error);
+      console.error("Error updating terminal:", error);
       throw error.response?.data || error.message;
     }
   },
 
-  // Get rake visits by terminal ID
-  getRakeVisitsByTerminalId: async (terminalId) => {
+  // Delete terminal
+  deleteTerminal: async (id) => {
     try {
-      const response = await api.get(`/rake-visit/terminal/${terminalId}`);
+      const response = await api.delete(`/terminal-master/${id}`);
       return response.data;
     } catch (error) {
-      console.error("Error fetching rake visits by terminal ID:", error);
+      console.error("Error deleting terminal:", error);
       throw error.response?.data || error.message;
     }
   },
@@ -4080,3 +4150,96 @@ export const rakeExamAPI = {
   },
 };
 
+// Survey Type API
+export const surveyTypeAPI = {
+  // Get all survey types
+  getAllSurveyTypes: async () => {
+    try {
+      const response = await api.get("/survey-types");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching survey types:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get survey type by ID
+  getSurveyTypeById: async (surveyTypeId) => {
+    try {
+      const response = await api.get(`/survey-types/${surveyTypeId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching survey type by ID:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get survey types by status
+  getSurveyTypesByStatus: async (status) => {
+    try {
+      const response = await api.get(`/survey-types/status/${status}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching survey types by status:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get survey type count by status
+  getSurveyTypeCountByStatus: async () => {
+    try {
+      const response = await api.get("/survey-types/count/status");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching survey type count by status:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+};
+
+// Damage Type API
+export const damageTypeAPI = {
+  // Get all damage types
+  getAllDamageTypes: async () => {
+    try {
+      const response = await api.get("/damage-types");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching damage types:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get damage type by ID
+  getDamageTypeById: async (damageTypeId) => {
+    try {
+      const response = await api.get(`/damage-types/${damageTypeId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching damage type by ID:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get damage types by status
+  getDamageTypesByStatus: async (status) => {
+    try {
+      const response = await api.get(`/damage-types/status/${status}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching damage types by status:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get damage type count by status
+  getDamageTypeCountByStatus: async () => {
+    try {
+      const response = await api.get("/damage-types/count/status");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching damage type count by status:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+};

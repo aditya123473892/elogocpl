@@ -21,7 +21,9 @@ import api from "../utils/Api"; // Assuming this is the same API utility used in
 import { transporterAPI } from "../utils/Api";
 import { generateInvoice } from "../utils/pdfGenerator";
 import RequestModal from "../Components/Requestmodal";
-import OEMPickupDashboard from "../Components/OEMPickupDashboard";
+import { vinSurveyAPI } from "../utils/Api";
+import { arrivalAtPlantAPI } from "../utils/Api";
+import { oemPickupAPI } from "../utils/Api";
 
 // Utility functions for parsing and formatting
 const parseJSON = (data, defaultValue) => {
@@ -98,6 +100,49 @@ const AdminDashboard = () => {
   const [adminComment, setAdminComment] = useState("");
   const [updating, setUpdating] = useState(false);
   const [exportType, setExportType] = useState("detailed");
+  
+  // New state for dashboard cards
+  const [totalVins, setTotalVins] = useState(0);
+  const [oemPickupStats, setOemPickupStats] = useState({ total: 0, inTransit: 0, reachedPlant: 0 });
+  const [arrivalStats, setArrivalStats] = useState({ total: 0, pending: 0, completed: 0 });
+  const [ewayBillDelays, setEwayBillDelays] = useState(0);
+
+  // Fetch dashboard metrics
+  const fetchDashboardMetrics = useCallback(async () => {
+    try {
+      // Fetch Total VINs/Cars
+      const vinResponse = await vinSurveyAPI.getSurveyStats();
+      if (vinResponse.success) {
+        setTotalVins(vinResponse.data?.totalVins || 0);
+      }
+
+      // Fetch OEM Pickup stats using existing API
+      const oemResponse = await oemPickupAPI.getAllOEMPickups();
+      if (oemResponse.success) {
+        const data = oemResponse.data || [];
+        const total = data.length;
+        const inTransit = data.filter(item => item.Status === 'IN-TRANSIT').length;
+        const reachedPlant = data.filter(item => item.Status === 'REACHED PLANT').length;
+        setOemPickupStats({ total, inTransit, reachedPlant });
+      }
+
+      // Fetch Arrival at Plant stats
+      const arrivalResponse = await arrivalAtPlantAPI.getAllArrivals();
+      if (arrivalResponse.success) {
+        const arrivals = arrivalResponse.data || [];
+        const total = arrivals.length;
+        const completed = arrivals.filter(a => a.status === 'completed').length;
+        const pending = total - completed;
+        setArrivalStats({ total, completed, pending });
+      }
+
+      // For E-way bill expiry delays - this would need to be calculated based on your e-way bill data
+      // For now, setting a placeholder value
+      setEwayBillDelays(0);
+    } catch (error) {
+      console.error("Error fetching dashboard metrics:", error);
+    }
+  }, []);
 
   // Cache for transporter details to avoid redundant API calls
   const transporterCache = useMemo(() => new Map(), []);
@@ -523,7 +568,8 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     fetchReports();
-  }, [fetchReports]);
+    fetchDashboardMetrics();
+  }, [fetchReports, fetchDashboardMetrics]);
 
   useEffect(() => {
     filterReports();
@@ -576,40 +622,32 @@ const AdminDashboard = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+        {/* Summary Cards - Only 4 Key Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <SummaryCard
-            title="Total Revenue"
-            value={summaryStats.totalRevenue}
-            color="text-green-600"
-          />
-          <SummaryCard
-            title="Total Costs"
-            value={summaryStats.totalCosts}
-            color="text-orange-600"
-          />
-          <SummaryCard
-            title="Net Profit"
-            value={summaryStats.totalProfit}
-            color={
-              summaryStats.totalProfit >= 0 ? "text-green-600" : "text-red-600"
-            }
-          />
-          <SummaryCard
-            title="Total Paid"
-            value={summaryStats.totalPaid}
+            title="Total VINs/Cars"
+            value={totalVins}
             color="text-blue-600"
+            currency={false}
           />
           <SummaryCard
-            title="Outstanding"
-            value={summaryStats.totalOutstanding}
-            color="text-red-600"
+            title="OEM Pickups"
+            value={oemPickupStats.total}
+            color="text-green-600"
+            currency={false}
           />
-        </div>
-
-        {/* OEM Pickup Dashboard */}
-        <div className="mb-8">
-          <OEMPickupDashboard />
+          <SummaryCard
+            title="In Transit"
+            value={oemPickupStats.inTransit}
+            color="text-orange-600"
+            currency={false}
+          />
+          <SummaryCard
+            title="Arrival at Plant"
+            value={arrivalStats.completed}
+            color="text-purple-600"
+            currency={false}
+          />
         </div>
 
         {/* Filters */}

@@ -2,15 +2,8 @@ import React, { useState, useEffect } from "react";
 
 import { Search, Plus, Edit, Trash2, Train, X, Check } from "lucide-react";
 
-import { rakePlanningAPI, rakeMasterAPI, routeMasterAPI } from "../utils/Api";
+import { rakePlanningAPI, rakeMasterAPI, routeMasterAPI, terminalMasterAPI, rakeVisitAPI } from "../utils/Api";
 
-const TERMINAL_OPTIONS = [
-
-  "CCH", "ICOD", "PLHW", "PLPC", "CE", "FN", "DETR",
-
-  "GDGH", "HYDE", "NDV", "SVMS", "DLIB", "BRC", "BCT", "NDLS", "MAS",
-
-];
 
 
 
@@ -53,6 +46,7 @@ const RakePlanning = () => {
   const [rakePlans, setRakePlans] = useState([]);
   const [availableRakes, setAvailableRakes] = useState([]);
   const [availableRoutes, setAvailableRoutes] = useState([]);
+  const [availableTerminals, setAvailableTerminals] = useState([]);
 
   const [filteredPlans, setFilteredPlans] = useState([]);
 
@@ -76,11 +70,50 @@ const RakePlanning = () => {
   const fetchRakePlans = async () => {
     try {
       setLoading(true);
-      const data = await rakePlanningAPI.getAllRakePlans();
-      if (data.success) {
-        setRakePlans(data.data);
+      const [plansData, visitsData] = await Promise.all([
+        rakePlanningAPI.getAllRakePlans(),
+        rakeVisitAPI.getAllRakeVisits()
+      ]);
+      
+      if (plansData.success) {
+        const allPlans = plansData.data || [];
+        let filteredPlans = allPlans;
+        
+        // Only show plans that have arrival records
+        if (visitsData.success && visitsData.data && visitsData.data.length > 0) {
+          // Get all identifiers that have arrival records
+          const arrivedTrainNos = new Set(
+            visitsData.data
+              .filter(visit => visit.ARRVAL_DATE) // Any visit with arrival date
+              .map(visit => (visit.IB_TRAIN_NO || visit.OB_TRAIN_NO)?.trim())
+              .filter(trainNo => trainNo) // Remove null/undefined
+          );
+          
+          const arrivedTripNos = new Set(
+            visitsData.data
+              .filter(visit => visit.ARRVAL_DATE) // Any visit with arrival date
+              .map(visit => visit.TRIP_NO?.trim())
+              .filter(tripNo => tripNo) // Remove null/undefined
+          );
+          
+          // Filter to only show plans that have arrival records
+          filteredPlans = allPlans.filter(plan => {
+            const trainNoMatch = plan.Train_No && arrivedTrainNos.has(plan.Train_No.trim());
+            const tripNoMatch = plan.Trip_No && arrivedTripNos.has(plan.Trip_No.trim());
+            
+            // Show only if either train number or trip number matches an arrived record
+            const shouldShow = trainNoMatch || tripNoMatch;
+            
+            return shouldShow;
+          });
+        } else {
+          // If no arrival records exist, show nothing
+          filteredPlans = [];
+        }
+        
+        setRakePlans(filteredPlans);
       } else {
-        setMessage({ type: "error", text: data.message || "Failed to fetch rake plans" });
+        setMessage({ type: "error", text: plansData.message || "Failed to fetch rake plans" });
       }
     } catch (error) {
       console.error("Error fetching rake plans:", error);
@@ -112,10 +145,22 @@ const RakePlanning = () => {
     }
   };
 
+  const fetchAvailableTerminals = async () => {
+    try {
+      const data = await terminalMasterAPI.getTerminalCodes();
+      if (data.success) {
+        setAvailableTerminals(data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching terminals:", error);
+    }
+  };
+
   useEffect(() => {
     fetchRakePlans();
     fetchAvailableRakes();
     fetchAvailableRoutes();
+    fetchAvailableTerminals();
   }, []);
 
   useEffect(() => {
@@ -356,7 +401,7 @@ const RakePlanning = () => {
 
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Rake Planning Management</h1>
 
-        <p className="text-gray-600">Manage rake plans, routes, and train scheduling</p>
+        <p className="text-gray-600">Manage rake plans for rakes that have completed arrival operations</p>
 
       </div>
 
@@ -486,7 +531,7 @@ const RakePlanning = () => {
 
               <p className="text-gray-600">
 
-                {searchTerm ? "No rake plans found matching your search" : "No rake plans found"}
+                {searchTerm ? "No arrived rake plans found matching your search" : "No rake plans with completed arrivals found"}
 
               </p>
 
@@ -717,8 +762,8 @@ const RakePlanning = () => {
                       onChange={handleInputChange}
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.Base_Depot ? "border-red-300" : "border-gray-300"}`}
                     >
-                      {TERMINAL_OPTIONS.map((t) => (
-                        <option key={t} value={t}>{t}</option>
+                      {availableTerminals.map((terminal) => (
+                        <option key={terminal.TerminalCode} value={terminal.TerminalCode}>{terminal.TerminalCode}</option>
                       ))}
                     </select>
                   )}

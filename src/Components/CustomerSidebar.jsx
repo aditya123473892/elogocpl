@@ -49,17 +49,16 @@ export function CustomerSidebar({
       ],
     },
     {
-      heading: "Operations",
+      heading: "Road Operations",
       items: [
-      
         {
           name: "OEM Pickup",
-          icon: Truck,
+          icon: Package,
           path: "oem-pickup",
           description: "Register Vehicle Pickup",
         },
         {
-          name: "Sideing Arrival",
+          name: "Vehicle Arrival",
           icon: MapPin,
           path: "arrival-plant",
           description: "Log Vehicle Arrival",
@@ -72,13 +71,58 @@ export function CustomerSidebar({
         },
         {
           name: "Loading Stage",
-          icon: Warehouse,
+          icon: Package,
           path: "loading-stage",
-          description: "Yard In/Out Operations",
+          description: "Vehicle Loading Operations",
         },
       ],
     },
-  
+    {
+      heading: "Rake Operations",
+      items: [
+        {
+          name: "Rake Arrival",
+          icon: Train,
+          path: "rake-arrival",
+          description: "Log Rake Arrival Timings",
+        },
+        {
+          name: "Rake Departure",
+          icon: Calendar,
+          path: "rake-departure",
+          description: "Manage Rake Departure Operations",
+        },
+        {
+          name: "Rake Planning",
+          icon: Train,
+          path: "rakeplanning",
+          description: "Plan Rake Operations",
+        },
+        {
+          name: "Rake Master",
+          icon: Train,
+          path: "rakemaster",
+          description: "Rake Management",
+        },
+        {
+          name: "Route Master",
+          icon: Train,
+          path: "route-master",
+          description: "Route Management",
+        },
+      ],
+    },
+    {
+      heading: "Reports",
+      items: [
+        {
+          name: "Transport Reports",
+          icon: FileText,
+          path: "customer-reports",
+          description: "View Transport Reports",
+        },
+      ],
+    },
     {
       heading: "Documents",
       items: [
@@ -107,7 +151,7 @@ export function CustomerSidebar({
       heading: "Master Data",
       items: [
         {
-          name: "Sideing Master",
+          name: "Siding Master",
           icon: MapPin,
           path: "location-master",
           description: "Manage Locations",
@@ -137,48 +181,22 @@ export function CustomerSidebar({
           description: "Analytics & History",
         },
         {
-          name: "Rake Master",
-          icon: Train,
-          path: "rakemaster",
-          description: "Rake Management",
-        },
-  
-
-        {
-          name: "Route Master",
-          icon: Train,
-          path: "route-master",
-          description: "Route Management",
-        },
-        {
           name: "Exam Type Management",
           icon: FileText,
           path: "exam-types",
           description: "Manage Exam Types",
         },
-           {
+        {
           name: "Exam Management",
           icon: FileText,
           path: "rake-exam",
           description: "Manage Exams",
         },
         {
-          name: "Rake Planning",
-          icon: Train,
-          path: "rakeplanning",
-          description: "Rake Management",
-        },
-             {
-          name: "Rake Deaprture",
-          icon: Train,
-          path: "rake-deaprture",
-          description: "Rake Management",
-        },
-             {
           name: "Article Master",
           icon: Train,
           path: "article-master",
-          description: "Rake Management",
+          description: "Article Management",
         },
       ],
 

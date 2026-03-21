@@ -11,6 +11,7 @@ const VendorController = () => {
     vendor_name: "",
     terminal_id: "",
     vendor_code: "",
+    vendor_type: "",
     address: "",
     city: "",
     pin_code: "",
@@ -72,6 +73,7 @@ const VendorController = () => {
       vendor_name: "",
       terminal_id: "",
       vendor_code: "",
+      vendor_type: "",
       address: "",
       city: "",
       pin_code: "",
@@ -170,6 +172,7 @@ const VendorController = () => {
         vendor_name: vendorData.VENDOR_NAME || "",
         terminal_id: vendorData.TERMINAL_ID || "",
         vendor_code: vendorData.VENDOR_CODE || "",
+        vendor_type: vendorData.VENDOR_TYPE || "",
         address: vendorData.ADDRESS || "",
         city: vendorData.CITY || "",
         pin_code: vendorData.PIN_CODE || "",
@@ -244,6 +247,7 @@ const VendorController = () => {
             <tr>
               <th className="px-4 py-2 border">ID</th>
               <th className="px-4 py-2 border">Name</th>
+              <th className="px-4 py-2 border">Vendor Type</th>
               <th className="px-4 py-2 border">Code</th>
               <th className="px-4 py-2 border">Email</th>
               <th className="px-4 py-2 border">Documents</th>
@@ -263,6 +267,7 @@ const VendorController = () => {
                 <tr key={vendor.VENDOR_ID}>
                   <td className="px-4 py-2 border">{vendor.VENDOR_ID}</td>
                   <td className="px-4 py-2 border">{vendor.VENDOR_NAME}</td>
+                  <td className="px-4 py-2 border">{vendor.VENDOR_TYPE || '-'}</td>
                   <td className="px-4 py-2 border">{vendor.VENDOR_CODE}</td>
                   <td className="px-4 py-2 border">{vendor.EMAIL_ID1}</td>
                   <td className="px-4 py-2 border">
@@ -323,6 +328,21 @@ const VendorController = () => {
                     className="w-full border rounded px-2 py-1"
                     required
                   />
+                </div>
+                <div>
+                  <label className="block mb-1">Vendor Type</label>
+                  <select
+                    name="vendor_type"
+                    value={formData.vendor_type}
+                    onChange={handleInputChange}
+                    className="w-full border rounded px-2 py-1"
+                  >
+                    <option value="">Select Vendor Type</option>
+                    <option value="Transporter">Transporter</option>
+                    <option value="Handling Agent">Handling Agent</option>
+                    <option value="Broker">Broker</option>
+                    <option value="Surveyor">Surveyor</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block mb-1">Vendor Code</label>

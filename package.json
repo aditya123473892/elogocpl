@@ -13,6 +13,7 @@
     "jspdf-autotable": "^3.8.4",
     "jwt-decode": "^4.0.0",
     "lucide-react": "^0.510.0",
+    "qrcode": "^1.5.4",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-papaparse": "^4.4.0",

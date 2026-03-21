@@ -107,7 +107,13 @@ const DealerTripDetailsManagement = () => {
     } catch (error) {
       console.error("Error creating Dealer Trip Details:", error);
 
-      if (error.duplicateVINs && error.duplicateVINs.length > 0) {
+      if (error.duplicateFields && error.duplicateFields.length > 0) {
+        const fieldNames = error.duplicateFields.map(f => f.field.replace(/_/g, ' ')).join(", ");
+        setMessage({
+          type: "error",
+          text: `Duplicate entry found based on: ${fieldNames}`,
+        });
+      } else if (error.duplicateVINs && error.duplicateVINs.length > 0) {
         setDuplicateVINs(error.duplicateVINs);
         setMessage({
           type: "error",
@@ -429,7 +435,15 @@ const DealerTripDetailsManagement = () => {
     } catch (error) {
       console.error("Bulk submit error:", error);
 
-      if (error.duplicateVINs && error.duplicateVINs.length > 0) {
+      if (error.duplicates && error.duplicates.length > 0) {
+        const duplicateMessages = error.duplicateMessages || error.duplicates.map(dup => 
+          `Record ${dup.index}: Duplicate entry`
+        );
+        setMessage({
+          type: "error",
+          text: `Duplicate entries found: ${duplicateMessages.join("; ")}`,
+        });
+      } else if (error.duplicateVINs && error.duplicateVINs.length > 0) {
         setDuplicateVINs(error.duplicateVINs);
         setMessage({
           type: "error",

@@ -24,7 +24,7 @@ const LocationMaster = () => {
   const [message, setMessage] = useState({ type: "", text: "" });
 
   const locationTypes = [
-    "Sideing",
+    "Siding",
     "YARD",
     "DEALER"
   ];

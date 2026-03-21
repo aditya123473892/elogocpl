@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -28,6 +28,7 @@ import ASNManagement from "./Pages/ASNupload";
 import ASNReport from "./Pages/ASNReport";
 import OEMPickupPage from "./Pages/Oempickup";
 import ArrivalAtPlantPage from "./Pages/Arrivalatplant";
+import RakeArrivalPage from "./Pages/RakeArrival";
 import VINSurveyPage from "./Components/Vinsurvey";
 import LoadingStagePage from "./Components/Loadingstage";
 import LocationMaster from "./Pages/LocationMaster";
@@ -45,12 +46,40 @@ import RakeDeaprture from "./Pages/RakeDeaprture";
 import RakeVisit from "./Pages/RakeVisit";
 import MonthlyReport from "./Pages/MonthlyReport";
 import ExamTypeManagement from "./Pages/ExamTypeManagement";
-import RakeExamManagement from "./Pages/RakeExamManagement";  
+import RakeExamManagement from "./Pages/RakeExamManagement";
+import RakeDeparture from "./Pages/RakeDeparture";
+import Header from "./Components/dashboard/Header";
+import { locationAPI } from "./utils/Api";  
 
 const DashboardLayout = ({ children }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [activePage, setActivePage] = useState("dashboard");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  // Header states
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [locations, setLocations] = useState([]);
+  
+  const { user, logout, selectedLocation } = useAuth();
+  
+  // Debug logging
+  console.log('DashboardLayout - selectedLocation from AuthContext:', selectedLocation);
+
+  // Load locations
+  useEffect(() => {
+    const loadLocations = async () => {
+      try {
+        const data = await locationAPI.getAllLocations();
+        console.log('DashboardLayout - Locations API response:', data);
+        console.log('DashboardLayout - Locations data array:', data.data);
+        console.log('DashboardLayout - First location structure:', data.data?.[0]);
+        setLocations(data.data || []);
+      } catch (error) {
+        console.error("Failed to load locations:", error);
+      }
+    };
+    loadLocations();
+  }, []);
 
   const toggleSidebar = () => {
     setCollapsed(!collapsed);
@@ -59,6 +88,12 @@ const DashboardLayout = ({ children }) => {
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
   };
+  
+  const toggleUserMenu = () => {
+    setShowUserMenu(!showUserMenu);
+  };
+  
+  const handleLogout = () => logout();
 
   const sidebarProps = {
     collapsed,
@@ -80,6 +115,20 @@ const DashboardLayout = ({ children }) => {
           collapsed ? "md:ml-16" : "md:ml-64"
         } md:min-w-0`}
       >
+        {/* Header */}
+        <Header
+          toggleMobileMenu={toggleMobileMenu}
+          mobileMenuOpen={mobileMenuOpen}
+          showUserMenu={showUserMenu}
+          toggleUserMenu={toggleUserMenu}
+          user={user}
+          handleLogout={handleLogout}
+          collapsed={collapsed}
+          toggleSidebar={toggleSidebar}
+          selectedLocation={selectedLocation}
+          locations={locations}
+        />
+        
         <div className="p-6">{React.cloneElement(children, sidebarProps)}</div>
       </main>
     </div>
@@ -193,6 +242,16 @@ function App() {
             }
           />
           <Route
+            path="/admin/rake-departure"
+            element={
+              <ProtectedRoute allowedRoles={["Admin"]}>
+                <DashboardLayout>
+                  <RakeDeparture />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/admin/rake-exam"
             element={
               <ProtectedRoute allowedRoles={["Customer"]}>
@@ -290,6 +349,26 @@ function App() {
               <ProtectedRoute allowedRoles={["Customer"]}>
                 <DashboardLayout>
                   <ArrivalAtPlantPage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/rake-arrival"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+                  <RakeArrivalPage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/rake-departure"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+                  <RakeDeparture />
                 </DashboardLayout>
               </ProtectedRoute>
             }

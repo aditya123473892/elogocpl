@@ -18,12 +18,14 @@ const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [selectedLocation, setSelectedLocation] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Function to handle logout
   const logout = useCallback((navigate, showMessage = true) => {
     clearAuthData();
     setUser(null);
+    setSelectedLocation(null);
 
     if (showMessage) {
       toast.info("You have been logged out.");
@@ -43,6 +45,7 @@ export const AuthProvider = ({ children }) => {
     (navigate, message = "Session expired. Please log in again.") => {
       clearAuthData();
       setUser(null);
+      setSelectedLocation(null);
       toast.error(message);
 
       if (navigate) {
@@ -58,6 +61,9 @@ export const AuthProvider = ({ children }) => {
   const checkUserSession = useCallback(async () => {
     const token = localStorage.getItem("token");
     const storedUser = localStorage.getItem("user");
+    const storedLocation = localStorage.getItem("selectedLocation");
+    
+    console.log('AuthContext - storedLocation:', storedLocation);
   
     if (!token || !storedUser) {
       return false;
@@ -67,8 +73,10 @@ export const AuthProvider = ({ children }) => {
       // Parse user data
       const userData = JSON.parse(storedUser);
       
-      // Set user data without strict validation
+      // Set user data and location without strict validation
       setUser(userData);
+      setSelectedLocation(storedLocation);
+      console.log('AuthContext - setSelectedLocation called with:', storedLocation);
       setAuthToken(token);
       return true;
     } catch (error) {
@@ -86,6 +94,7 @@ export const AuthProvider = ({ children }) => {
         console.error("Error initializing auth:", error);
         clearAuthData();
         setUser(null);
+        setSelectedLocation(null);
       } finally {
         setLoading(false);
       }
@@ -178,6 +187,8 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
+    selectedLocation,
+    setSelectedLocation,
     login,
     signup,
     logout,
