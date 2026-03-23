@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Search, Plus, Edit, Trash2, Train, X, Check } from "lucide-react";
 
 import { rakePlanningAPI, rakeMasterAPI, routeMasterAPI, terminalMasterAPI, rakeVisitAPI } from "../utils/Api";
+import { useAuth } from "../contexts/AuthContext";
 
 
 
@@ -43,8 +44,11 @@ const DEFAULT_FORM = {
 
 const RakePlanning = () => {
 
+  const { user, selectedLocation } = useAuth(); // Get logged-in user info and selected location
+
   const [rakePlans, setRakePlans] = useState([]);
   const [availableRakes, setAvailableRakes] = useState([]);
+  const [arrivedRakes, setArrivedRakes] = useState([]);
   const [availableRoutes, setAvailableRoutes] = useState([]);
   const [availableTerminals, setAvailableTerminals] = useState([]);
 
@@ -64,53 +68,57 @@ const RakePlanning = () => {
 
   const [message, setMessage] = useState({ type: "", text: "" });
 
-
-
-  // Fetch data from API
   const fetchRakePlans = async () => {
     try {
       setLoading(true);
       const [plansData, visitsData] = await Promise.all([
         rakePlanningAPI.getAllRakePlans(),
-        rakeVisitAPI.getAllRakeVisits()
+        rakeVisitAPI.getAllRakeVisits(),
       ]);
-      
+
       if (plansData.success) {
         const allPlans = plansData.data || [];
         let filteredPlans = allPlans;
-        
-        // Only show plans that have arrival records
+
         if (visitsData.success && visitsData.data && visitsData.data.length > 0) {
-          // Get all identifiers that have arrival records
           const arrivedTrainNos = new Set(
             visitsData.data
-              .filter(visit => visit.ARRVAL_DATE) // Any visit with arrival date
-              .map(visit => (visit.IB_TRAIN_NO || visit.OB_TRAIN_NO)?.trim())
-              .filter(trainNo => trainNo) // Remove null/undefined
+              .filter((visit) => visit.ARRVAL_DATE)
+              .map((visit) => (visit.IB_TRAIN_NO || visit.OB_TRAIN_NO)?.trim())
+              .filter((trainNo) => trainNo)
           );
-          
+
           const arrivedTripNos = new Set(
             visitsData.data
-              .filter(visit => visit.ARRVAL_DATE) // Any visit with arrival date
-              .map(visit => visit.TRIP_NO?.trim())
-              .filter(tripNo => tripNo) // Remove null/undefined
+              .filter((visit) => visit.ARRVAL_DATE)
+              .map((visit) => visit.TRIP_NO?.trim())
+              .filter((tripNo) => tripNo)
           );
-          
-          // Filter to only show plans that have arrival records
-          filteredPlans = allPlans.filter(plan => {
+
+          setArrivedRakes(visitsData.data.filter((visit) => visit.ARRVAL_DATE));
+
+          // Filter by logged-in terminal (Base_Depot) and arrival status
+          filteredPlans = allPlans.filter((plan) => {
             const trainNoMatch = plan.Train_No && arrivedTrainNos.has(plan.Train_No.trim());
             const tripNoMatch = plan.Trip_No && arrivedTripNos.has(plan.Trip_No.trim());
-            
-            // Show only if either train number or trip number matches an arrived record
+
             const shouldShow = trainNoMatch || tripNoMatch;
             
-            return shouldShow;
+            // Filter by logged-in terminal - only show plans where Base_Depot matches selectedLocation
+            const terminalMatch = selectedLocation && plan.Base_Depot === selectedLocation;
+
+            return shouldShow && terminalMatch;
           });
         } else {
-          // If no arrival records exist, show nothing
-          filteredPlans = [];
+          // No visits data, but still filter by logged-in terminal
+          filteredPlans = allPlans.filter(plan => {
+            // Filter by logged-in terminal - only show plans where Base_Depot matches selectedLocation
+            const terminalMatch = selectedLocation && plan.Base_Depot === selectedLocation;
+            return terminalMatch;
+          });
+          setArrivedRakes([]);
         }
-        
+
         setRakePlans(filteredPlans);
       } else {
         setMessage({ type: "error", text: plansData.message || "Failed to fetch rake plans" });
@@ -149,6 +157,7 @@ const RakePlanning = () => {
     try {
       const data = await terminalMasterAPI.getTerminalCodes();
       if (data.success) {
+        // Show all terminals from API without hardcoded filtering
         setAvailableTerminals(data.data);
       }
     } catch (error) {
@@ -156,12 +165,31 @@ const RakePlanning = () => {
     }
   };
 
+  const getRakesWithArrival = () => {
+    if (arrivedRakes.length === 0 || availableRakes.length === 0) {
+      return [];
+    }
+
+    const arrivedTrainNos = new Set(
+      arrivedRakes
+        .map((visit) => (visit.IB_TRAIN_NO || visit.OB_TRAIN_NO)?.trim())
+        .filter((trainNo) => trainNo)
+    );
+
+    return availableRakes.filter((rake) => {
+      return arrivedTrainNos.has(rake.Rake_Name?.trim()) ||
+        arrivedRakes.some((visit) =>
+          (visit.IB_TRAIN_NO || visit.OB_TRAIN_NO)?.trim() === rake.Rake_Name?.trim()
+        );
+    });
+  };
+
   useEffect(() => {
     fetchRakePlans();
     fetchAvailableRakes();
     fetchAvailableRoutes();
     fetchAvailableTerminals();
-  }, []);
+  }, [selectedLocation]); // Re-fetch when selectedLocation changes
 
   useEffect(() => {
     const filtered = rakePlans.filter(
@@ -288,7 +316,7 @@ const RakePlanning = () => {
 
   const regenerateJourneyId = () => {
     if (formData.Route) {
-      const baseDepot = formData.Base_Depot || "CCH";
+      const baseDepot = formData.Base_Depot || "";
       const routeParts = formData.Route.split("-");
       const destination = routeParts[1] || routeParts[0];
       
@@ -298,7 +326,7 @@ const RakePlanning = () => {
       const timeStr = now.toLocaleTimeString('en-GB', { hour12: false }).replace(/:/g, ''); // HHMMSS format
       const uniqueId = `${dateStr}${timeStr}`.slice(-8); // Take last 8 digits for uniqueness
       
-      const journeyId = `${baseDepot}-${destination}-${uniqueId}`;
+      const journeyId = baseDepot && destination ? `${baseDepot}-${destination}-${uniqueId}` : `${destination}-${uniqueId}`;
       
       setFormData((prev) => ({ 
         ...prev, 
@@ -330,7 +358,7 @@ const RakePlanning = () => {
 
     // Auto-populate Journey_Id, Train_No, and IB_Train_No when Route is selected
     if (name === "Route" && value) {
-      const baseDepot = formData.Base_Depot || "CCH";
+      const baseDepot = formData.Base_Depot || "";
       const routeParts = value.split("-");
       const destination = routeParts[1] || routeParts[0];
       
@@ -341,7 +369,7 @@ const RakePlanning = () => {
       const timeStr = now.toLocaleTimeString('en-GB', { hour12: false }).replace(/:/g, ''); // HHMMSS format
       const uniqueId = `${dateStr}${timeStr}`.slice(-8); // Take last 8 digits for uniqueness
       
-      const journeyId = `${baseDepot}-${destination}-${uniqueId}`;
+      const journeyId = baseDepot && destination ? `${baseDepot}-${destination}-${uniqueId}` : `${destination}-${uniqueId}`;
       
       // Generate IB Train No using route and current date/time
       const ibDateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' }).replace(/\//g, '');
@@ -705,7 +733,7 @@ const RakePlanning = () => {
 
                   <label className="block text-sm font-medium text-gray-700 mb-2">
 
-                    Rake Name <span className="text-red-500">*</span>
+                    Rake Name (Arrived Only) <span className="text-red-500">*</span>
 
                   </label>
 
@@ -723,7 +751,7 @@ const RakePlanning = () => {
 
                     <option value="">Select Rake</option>
 
-                    {availableRakes.map((rake) => (
+                    {getRakesWithArrival().map((rake) => (
 
                       <option key={rake.RakeId} value={rake.Rake_Name}>{rake.Rake_Name}</option>
 

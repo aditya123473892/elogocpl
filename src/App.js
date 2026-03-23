@@ -49,7 +49,7 @@ import ExamTypeManagement from "./Pages/ExamTypeManagement";
 import RakeExamManagement from "./Pages/RakeExamManagement";
 import RakeDeparture from "./Pages/RakeDeparture";
 import Header from "./Components/dashboard/Header";
-import { locationAPI } from "./utils/Api";  
+import { terminalMasterAPI } from "./utils/Api";  
 
 const DashboardLayout = ({ children }) => {
   const [collapsed, setCollapsed] = useState(false);
@@ -58,27 +58,27 @@ const DashboardLayout = ({ children }) => {
   
   // Header states
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [locations, setLocations] = useState([]);
+  const [terminals, setTerminals] = useState([]);
   
   const { user, logout, selectedLocation } = useAuth();
   
   // Debug logging
   console.log('DashboardLayout - selectedLocation from AuthContext:', selectedLocation);
 
-  // Load locations
+  // Load terminals
   useEffect(() => {
-    const loadLocations = async () => {
+    const loadTerminals = async () => {
       try {
-        const data = await locationAPI.getAllLocations();
-        console.log('DashboardLayout - Locations API response:', data);
-        console.log('DashboardLayout - Locations data array:', data.data);
-        console.log('DashboardLayout - First location structure:', data.data?.[0]);
-        setLocations(data.data || []);
+        const data = await terminalMasterAPI.getAllTerminals();
+        console.log('DashboardLayout - Terminals API response:', data);
+        console.log('DashboardLayout - Terminals data array:', data.data);
+        console.log('DashboardLayout - First terminal structure:', data.data?.[0]);
+        setTerminals(data.data || []);
       } catch (error) {
-        console.error("Failed to load locations:", error);
+        console.error("Failed to load terminals:", error);
       }
     };
-    loadLocations();
+    loadTerminals();
   }, []);
 
   const toggleSidebar = () => {
@@ -126,7 +126,7 @@ const DashboardLayout = ({ children }) => {
           collapsed={collapsed}
           toggleSidebar={toggleSidebar}
           selectedLocation={selectedLocation}
-          locations={locations}
+          terminals={terminals}
         />
         
         <div className="p-6">{React.cloneElement(children, sidebarProps)}</div>

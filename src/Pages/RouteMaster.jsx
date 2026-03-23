@@ -1,15 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Search, Plus, Edit, Trash2, Route, X, Check } from "lucide-react";
-import { routeMasterAPI } from "../utils/Api";
-
-const TERMINAL_OPTIONS = [
-  "CCH", "ICOD", "PLHW", "PLPC", "CE", "FN", "DETR",
-  "GDGH", "HYDE", "NDV", "SVMS", "DLIB", "BRC", "BCT", "NDLS", "MAS",
-];
+import { routeMasterAPI, terminalMasterAPI } from "../utils/Api";
 
 const DEFAULT_FORM = {
-  From_Terminal: "CCH",
-  To_Terminal: "CCH",
+  From_Terminal: "",
+  To_Terminal: "",
   Route_Type: "GENERAL",
   Billable_Distance: "",
   Actual_Distance: "",
@@ -22,6 +17,7 @@ const DEFAULT_FORM = {
 const RouteMaster = () => {
   const [routes, setRoutes] = useState([]);
   const [filteredRoutes, setFilteredRoutes] = useState([]);
+  const [terminals, setTerminals] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingRoute, setEditingRoute] = useState(null);
@@ -30,6 +26,18 @@ const RouteMaster = () => {
   const [subRoutes, setSubRoutes] = useState([""]);
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState({ type: "", text: "" });
+
+  const fetchTerminals = async () => {
+    try {
+      const data = await terminalMasterAPI.getTerminalCodes();
+      if (data.success) {
+        // Show all terminals from API without hardcoded filtering
+        setTerminals(data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching terminals:", error);
+    }
+  };
 
   // API functions
   const fetchRoutes = async () => {
@@ -90,6 +98,7 @@ const RouteMaster = () => {
 
   useEffect(() => {
     fetchRoutes();
+    fetchTerminals();
   }, []);
 
   useEffect(() => {
@@ -343,7 +352,7 @@ const RouteMaster = () => {
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    {TERMINAL_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
+                    {terminals.map((terminal) => <option key={terminal.TerminalCode} value={terminal.TerminalCode}>{terminal.TerminalCode}</option>)}
                   </select>
                 </div>
 
@@ -356,7 +365,7 @@ const RouteMaster = () => {
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    {TERMINAL_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
+                    {terminals.map((terminal) => <option key={terminal.TerminalCode} value={terminal.TerminalCode}>{terminal.TerminalCode}</option>)}
                   </select>
                 </div>
 

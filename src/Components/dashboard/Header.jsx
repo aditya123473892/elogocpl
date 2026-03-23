@@ -19,11 +19,11 @@ const Header = ({
   collapsed,
   toggleSidebar,
   selectedLocation,
-  locations,
+  terminals,
 }) => {
   // Debug logging
   console.log('Header - selectedLocation:', selectedLocation);
-  console.log('Header - locations:', locations);
+  console.log('Header - terminals:', terminals);
   
   return (
     // Change the header class to adjust z-index and ensure proper positioning
@@ -59,38 +59,38 @@ const Header = ({
               <MapPin className="h-5 w-5 text-blue-600" />
               <span className="text-sm font-semibold text-blue-800">
                 {(() => {
-                  console.log('Header - locations array:', locations);
+                  console.log('Header - terminals array:', terminals);
                   console.log('Header - selectedLocation:', selectedLocation);
-                  console.log('Header - locations length:', locations?.length);
+                  console.log('Header - terminals length:', terminals?.length);
                   
-                  if (!selectedLocation) return 'No Location Selected';
+                  if (!selectedLocation) return 'No Terminal Selected';
                   
-                  if (!locations || locations.length === 0) {
-                    console.log('Header - No locations loaded');
-                    return `Location ${selectedLocation}`;
+                  if (!terminals || terminals.length === 0) {
+                    console.log('Header - No terminals loaded');
+                    return `Terminal ${selectedLocation}`;
                   }
                   
-                  // Log all location IDs to see what we have
-                  console.log('Header - All location IDs:', locations.map(loc => ({
-                    LocationId: loc.LocationId,
-                    locationId: loc.locationId,
-                    id: loc.id,
-                    name: loc.LocationName || loc.locationName || loc.name
+                  // Log all terminal IDs to see what we have
+                  console.log('Header - All terminal IDs:', terminals.map(terminal => ({
+                    TerminalId: terminal.TerminalId,
+                    terminalId: terminal.terminalId,
+                    id: terminal.id,
+                    name: terminal.TerminalName || terminal.terminalName || terminal.name
                   })));
                   
-                  // Try multiple ways to find the location name
-                  const location = locations?.find(loc => 
-                    loc.LocationId == selectedLocation || 
-                    loc.locationId == selectedLocation ||
-                    loc.id == selectedLocation
+                  // Try multiple ways to find the terminal name
+                  const terminal = terminals?.find(terminal => 
+                    terminal.TerminalId == selectedLocation || 
+                    terminal.terminalId == selectedLocation ||
+                    terminal.id == selectedLocation
                   );
                   
-                  console.log('Header - found location:', location);
+                  console.log('Header - found terminal:', terminal);
                   
-                  return location?.LocationName || 
-                         location?.locationName || 
-                         location?.name || 
-                         `Location ${selectedLocation}`;
+                  return terminal?.TerminalName || 
+                         terminal?.terminalName || 
+                         terminal?.name || 
+                         `Terminal ${selectedLocation}`;
                 })()}
               </span>
             </div>
@@ -100,7 +100,7 @@ const Header = ({
           {process.env.NODE_ENV === 'development' && (
             <div className="hidden md:flex items-center space-x-2 px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">
               <span className="text-gray-600">
-                Loc: {selectedLocation ? (locations?.find(loc => loc.LocationId === selectedLocation)?.LocationName || selectedLocation) : 'None'}
+                Loc: {selectedLocation ? (terminals?.find(terminal => terminal.TerminalId === selectedLocation)?.TerminalName || selectedLocation) : 'None'}
               </span>
             </div>
           )}

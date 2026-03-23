@@ -13,11 +13,11 @@ import {
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { authAPI, setAuthToken } from "../utils/Api";
-import { locationAPI } from "../utils/Api";
+import { terminalMasterAPI } from "../utils/Api";
 
 export default function Login() {
   const [isLogin, setIsLogin] = useState(true);
-  const [locations, setLocations] = useState([]);
+  const [terminals, setTerminals] = useState([]);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -32,17 +32,17 @@ export default function Login() {
   const { login, signup, setSelectedLocation } = useAuth();
 
   useEffect(() => {
-    const loadLocations = async () => {
+    const loadTerminals = async () => {
       try {
-        const data = await locationAPI.getAllLocations();
-        setLocations(data.data || []);
+        const data = await terminalMasterAPI.getAllTerminals();
+        setTerminals(data.data || []);
       } catch (err) {
-        console.error("Failed to load locations:", err);
-        toast.error("Failed to load locations.");
-        setError("Failed to load locations");
+        console.error("Failed to load terminals:", err);
+        toast.error("Failed to load terminals.");
+        setError("Failed to load terminals");
       }
     };
-    loadLocations();
+    loadTerminals();
   }, []);
 
   const handleChange = (e) => {
@@ -59,9 +59,9 @@ export default function Login() {
       if (isLogin) {
         const { email, password, location } = formData;
         
-        // Validate location selection
+        // Validate terminal selection
         if (!location) {
-          setError("Please select a location to continue");
+          setError("Please select a terminal to continue");
           setLoading(false);
           return;
         }
@@ -340,11 +340,11 @@ export default function Login() {
                 </div>
               </div>
 
-              {/* Location Selection for Login */}
+              {/* Terminal Selection for Login */}
               {isLogin && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Location <span className="text-red-500">*</span>
+                    Terminal <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <select
@@ -362,11 +362,11 @@ export default function Login() {
                       required
                     >
                       <option value="" disabled>
-                        Select Location/Siding
+                        Select Terminal
                       </option>
-                      {locations.map((loc) => (
-                        <option key={loc.LocationId} value={loc.LocationId}>
-                          {loc.LocationName}
+                      {terminals.map((terminal) => (
+                        <option key={terminal.TerminalId} value={terminal.TerminalCode}>
+                          {terminal.TerminalName}
                         </option>
                       ))}
                     </select>
@@ -380,7 +380,7 @@ export default function Login() {
               {!isLogin && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Location
+                    Terminal
                   </label>
                   <div className="relative">
                     <select
@@ -398,11 +398,11 @@ export default function Login() {
                       required={!isLogin}
                     >
                       <option value="" disabled>
-                        Select Location
+                        Select Terminal
                       </option>
-                      {locations.map((loc) => (
-                        <option key={loc.LocationId} value={loc.LocationId}>
-                          {loc.LocationName}
+                      {terminals.map((terminal) => (
+                        <option key={terminal.TerminalId} value={terminal.TerminalCode}>
+                          {terminal.TerminalName}
                         </option>
                       ))}
                     </select>

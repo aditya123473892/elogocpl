@@ -27,13 +27,11 @@ const DealerReport = () => {
     totalVinsCars: dealerRecords.length, // Total from dealer records
     oemPickups: oemPickupRecords.length, // Total from OEM pickup records
     inTransit: oemPickupRecords.filter(record => 
-      record.Status === 'IN-TRANSIT' || 
-      record.Status?.toLowerCase().includes('transit')
-    ).length + arrivalRecords.filter(record =>
-      record.status === 'in-transit' ||
-      record.status?.toLowerCase().includes('transit')
-    ).length, // From both OEM and Arrival records
-    arrivalAtPlant: arrivalRecords.length, // Show total arrivals like OEM pickups shows total
+      record.Status === 'IN-TRANSIT'
+    ).length, // Only from OEM records with IN-TRANSIT status
+    arrivalAtPlant: oemPickupRecords.filter(record =>
+      record.Status === 'REACHED PLANT'
+    ).length, // Only from OEM records with REACHED PLANT status
     ewayBillExpiryDelay: dealerRecords.filter(record => {
       if (!record.EWAY_BILL || !record.VALID_TILL) return false;
       const validTill = new Date(record.VALID_TILL);

@@ -1,11 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Search, Plus, Edit, Trash2, Train, X, Check, Filter, Calendar } from "lucide-react";
-import { rakeVisitAPI, rakeMasterAPI, routeMasterAPI } from "../utils/Api";
-
-const TERMINAL_OPTIONS = [
-  "CCH", "ICOD", "PLHW", "PLPC", "CE", "FN", "DETR",
-  "GDGH", "HYDE", "NDV", "SVMS", "DLIB", "BRC", "BCT", "NDLS", "MAS",
-];
+import { rakeVisitAPI, rakeMasterAPI, routeMasterAPI, terminalMasterAPI } from "../utils/Api";
 
 const OPERATOR_OPTIONS = [
   "INDIAN RAILWAY", "PRIVATE OPERATOR", "CONCOR", "CONTAINER CORPORATION"
@@ -71,6 +66,7 @@ const DEFAULT_FORM = {
 const RakeVisit = () => {
   const [rakeVisits, setRakeVisits] = useState([]);
   const [filteredRakeVisits, setFilteredRakeVisits] = useState([]);
+  const [terminals, setTerminals] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingRakeVisit, setEditingRakeVisit] = useState(null);
@@ -86,6 +82,18 @@ const RakeVisit = () => {
   
   // Routes data for dropdown
   const [routes, setRoutes] = useState([]);
+
+  const fetchTerminals = async () => {
+    try {
+      const data = await terminalMasterAPI.getTerminalCodes();
+      if (data.success) {
+        // Show all terminals from API without hardcoded filtering
+        setTerminals(data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching terminals:", error);
+    }
+  };
 
   // Fetch rakes following RakeMaster pattern
   const fetchRakes = async () => {
@@ -356,6 +364,7 @@ const RakeVisit = () => {
 
   useEffect(() => {
     fetchRakeVisits();
+    fetchTerminals();
   }, []);
 
   return (
@@ -420,8 +429,8 @@ const RakeVisit = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">All Terminals</option>
-                {TERMINAL_OPTIONS.map(terminal => (
-                  <option key={terminal} value={terminal}>{terminal}</option>
+                {terminals.map((terminal) => (
+                  <option key={terminal.TerminalCode} value={terminal.TerminalCode}>{terminal.TerminalCode}</option>
                 ))}
               </select>
             </div>
@@ -652,8 +661,8 @@ const RakeVisit = () => {
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       >
                         <option value="">Select Terminal</option>
-                        {TERMINAL_OPTIONS.map(terminal => (
-                          <option key={terminal} value={terminal}>{terminal}</option>
+                        {terminals.map((terminal) => (
+                          <option key={terminal.TerminalCode} value={terminal.TerminalCode}>{terminal.TerminalCode}</option>
                         ))}
                       </select>
                     </div>
@@ -669,8 +678,8 @@ const RakeVisit = () => {
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       >
                         <option value="">Select Terminal</option>
-                        {TERMINAL_OPTIONS.map(terminal => (
-                          <option key={terminal} value={terminal}>{terminal}</option>
+                        {terminals.map((terminal) => (
+                          <option key={terminal.TerminalCode} value={terminal.TerminalCode}>{terminal.TerminalCode}</option>
                         ))}
                       </select>
                     </div>

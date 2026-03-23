@@ -100,7 +100,7 @@ export default function RakeArrivalPage() {
         const allPlans = plansData.data || [];
         let filteredPlans = allPlans;
         
-        // Filter out plans that already have arrival records
+        // Filter out plans that already have arrival records and don't belong to logged-in terminal
         if (visitsData.success && visitsData.data && visitsData.data.length > 0) {
           // Get all identifiers that have arrival records
           const arrivedTrainNos = new Set(
@@ -118,6 +118,7 @@ export default function RakeArrivalPage() {
           );
           
           // Filter out plans that have any arrival record using multiple criteria
+          // AND filter by logged-in terminal (Base_Depot)
           filteredPlans = allPlans.filter(plan => {
             const trainNoMatch = plan.Train_No && arrivedTrainNos.has(plan.Train_No.trim());
             const tripNoMatch = plan.Trip_No && arrivedTripNos.has(plan.Trip_No.trim());
@@ -125,7 +126,11 @@ export default function RakeArrivalPage() {
             // Filter if either train number or trip number matches an arrived record
             const shouldFilter = trainNoMatch || tripNoMatch;
             
-            return !shouldFilter;
+            // Filter by logged-in terminal - only show plans where Base_Depot matches selectedLocation
+            const terminalMatch = selectedLocation && plan.Base_Depot === selectedLocation;
+            
+            // Return true if plan should NOT be filtered out (no arrival record) AND matches terminal
+            return !shouldFilter && terminalMatch;
           });
 
           // Set filter info for display
@@ -135,10 +140,17 @@ export default function RakeArrivalPage() {
             hidden: allPlans.length - filteredPlans.length
           });
         } else {
+          // No visits data, but still filter by logged-in terminal
+          filteredPlans = allPlans.filter(plan => {
+            // Filter by logged-in terminal - only show plans where Base_Depot matches selectedLocation
+            const terminalMatch = selectedLocation && plan.Base_Depot === selectedLocation;
+            return terminalMatch;
+          });
+          
           setFilterInfo({
             total: allPlans.length,
-            filtered: allPlans.length,
-            hidden: 0
+            filtered: filteredPlans.length,
+            hidden: allPlans.length - filteredPlans.length
           });
         }
         
@@ -155,7 +167,7 @@ export default function RakeArrivalPage() {
 
   useEffect(() => {
     fetchPlannedRakes();
-  }, []);
+  }, [selectedLocation]); // Re-fetch when selectedLocation changes
 
   const set = (key) => (val) => setForm((f) => ({ ...f, [key]: val }));
   const setField = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));

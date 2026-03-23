@@ -10,9 +10,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-import { rakeMasterAPI } from "../utils/Api";
-
-const LOCATION_OPTIONS = ["CCH", "BRC", "BCT", "NDLS", "MAS"];
+import { rakeMasterAPI, terminalMasterAPI } from "../utils/Api";
 
 const WAGON_TYPE_OPTIONS = ["BOX", "FLAT", "TANKER", "HOPPER", "COVERED", "OPEN", "BOXN", "BCN", "BRN"];
 
@@ -28,12 +26,12 @@ const DEFAULT_FORM = {
   POH_Months: "",
   Lease_From: "",
   Lease_To: "",
-  Lease_Loc: "CCH",
-  Handover_At: "CCH",
+  Lease_Loc: "",
+  Handover_At: "",
   Exam_Date: "",
   Balance_KM: "",
   Status: "Active",
-  Base_Depot: "CCH",
+  Base_Depot: "",
 };
 
 const DEFAULT_WAGONS = Array.from({ length: 27 }, (_, i) => ({
@@ -45,6 +43,7 @@ const DEFAULT_WAGONS = Array.from({ length: 27 }, (_, i) => ({
 const RakeMaster = () => {
   const [rakes, setRakes] = useState([]);
   const [filteredRakes, setFilteredRakes] = useState([]);
+  const [terminals, setTerminals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -55,8 +54,21 @@ const RakeMaster = () => {
   const [errors, setErrors] = useState({});
   const [showWagons, setShowWagons] = useState(false);
 
+  const fetchTerminals = async () => {
+    try {
+      const data = await terminalMasterAPI.getTerminalCodes();
+      if (data.success) {
+        // Show all terminals from API without hardcoded filtering
+        setTerminals(data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching terminals:", error);
+    }
+  };
+
   useEffect(() => {
     fetchRakes();
+    fetchTerminals();
   }, []);
 
   useEffect(() => {
@@ -676,9 +688,9 @@ const RakeMaster = () => {
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    {LOCATION_OPTIONS.map((loc) => (
-                      <option key={loc} value={loc}>
-                        {loc}
+                    {terminals.map((terminal) => (
+                      <option key={terminal.TerminalCode} value={terminal.TerminalCode}>
+                        {terminal.TerminalCode}
                       </option>
                     ))}
                   </select>
@@ -695,9 +707,9 @@ const RakeMaster = () => {
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    {LOCATION_OPTIONS.map((loc) => (
-                      <option key={loc} value={loc}>
-                        {loc}
+                    {terminals.map((terminal) => (
+                      <option key={terminal.TerminalCode} value={terminal.TerminalCode}>
+                        {terminal.TerminalCode}
                       </option>
                     ))}
                   </select>
@@ -714,9 +726,9 @@ const RakeMaster = () => {
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    {LOCATION_OPTIONS.map((loc) => (
-                      <option key={loc} value={loc}>
-                        {loc}
+                    {terminals.map((terminal) => (
+                      <option key={terminal.TerminalCode} value={terminal.TerminalCode}>
+                        {terminal.TerminalCode}
                       </option>
                     ))}
                   </select>
