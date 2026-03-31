@@ -15,6 +15,8 @@ import {
   Shield,
   Activity,
   Train,
+  BarChart3,
+  FileSpreadsheet,
 } from "lucide-react";
 
 export function AdminSidebar({
@@ -90,6 +92,30 @@ export function AdminSidebar({
       icon: FileText,
       path: "rake-exam",
       description: "Rake Exam Management",
+    },
+    {
+      name: "Rake Report",
+      icon: FileText,
+      path: "rake-report",
+      description: "Rake Operations Report",
+    },
+    {
+      name: "Comprehensive Reports",
+      icon: BarChart3,
+      path: "comprehensive-reports",
+      description: "All Operations Reports",
+    },
+    {
+      name: "Unified Report",
+      icon: FileSpreadsheet,
+      path: "unified-report",
+      description: "Single Table Report",
+    },
+    {
+      name: "Rail Operations Report",
+      icon: Train,
+      path: "rail-operations-report",
+      description: "Complete Rail Operations",
     },
     // {
     //   name: "Fleet Equipment",

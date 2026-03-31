@@ -35,6 +35,8 @@ const defaultForm = {
   vinDetails: "",
   pickupDate: today,
   deliveryDate: today,
+  arrivalTime: "",
+  departureTime: "",
   driverName: "",
   remarks: "",
   transportationType: "TRUCK", // Default to truck
@@ -524,6 +526,36 @@ export default function OEMPickupPage() {
                 {errors.deliveryDate && (
                   <p className="text-xs text-red-500 mt-1">Dispatch date is required</p>
                 )}
+              </div>
+            </div>
+            
+            {/* Time Fields */}
+            <div className="grid grid-cols-2 gap-5 mt-5">
+              <div>
+                <FieldLabel>Arrival Time</FieldLabel>
+                <input
+                  type="time"
+                  value={form.arrivalTime}
+                  onChange={set("arrivalTime")}
+                  className={inputClass}
+                  placeholder="e.g., 09:30"
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  Optional - Vehicle arrival time at plant
+                </p>
+              </div>
+              <div>
+                <FieldLabel>Departure Time</FieldLabel>
+                <input
+                  type="time"
+                  value={form.departureTime}
+                  onChange={set("departureTime")}
+                  className={inputClass}
+                  placeholder="e.g., 14:45"
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  Optional - Vehicle departure time from plant
+                </p>
               </div>
             </div>
           </div>

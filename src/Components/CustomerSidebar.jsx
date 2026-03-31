@@ -18,6 +18,8 @@ import {
   Warehouse,
   Train,
   Calendar,
+  BarChart3,
+  FileSpreadsheet,
 } from "lucide-react";
 
 export function CustomerSidebar({
@@ -118,8 +120,32 @@ export function CustomerSidebar({
         {
           name: "Transport Reports",
           icon: FileText,
-          path: "customer-reports",
+          path: "reports",
           description: "View Transport Reports",
+        },
+        {
+          name: "Rake Report",
+          icon: Train,
+          path: "rake-report",
+          description: "Rake Operations Report",
+        },
+        {
+          name: "Comprehensive Reports",
+          icon: BarChart3,
+          path: "comprehensive-reports",
+          description: "All Operations Reports",
+        },
+        {
+          name: "Unified Report",
+          icon: FileSpreadsheet,
+          path: "unified-report",
+          description: "Single Table Report",
+        },
+        {
+          name: "Rail Operations Report",
+          icon: Train,
+          path: "rail-operations-report",
+          description: "Complete Rail Operations",
         },
       ],
     },

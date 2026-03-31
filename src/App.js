@@ -48,6 +48,10 @@ import MonthlyReport from "./Pages/MonthlyReport";
 import ExamTypeManagement from "./Pages/ExamTypeManagement";
 import RakeExamManagement from "./Pages/RakeExamManagement";
 import RakeDeparture from "./Pages/RakeDeparture";
+import RakeReport from "./Pages/RakeReport";
+import ComprehensiveReport from "./Pages/ComprehensiveReport";
+import UnifiedReport from "./Pages/UnifiedReport";
+import RailOperationsReport from "./Pages/RailOperationsReport";
 import Header from "./Components/dashboard/Header";
 import { terminalMasterAPI } from "./utils/Api";  
 
@@ -281,6 +285,46 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/admin/rake-report"
+            element={
+              <ProtectedRoute allowedRoles={["Admin"]}>
+                <DashboardLayout>
+                  <RakeReport />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/comprehensive-reports"
+            element={
+              <ProtectedRoute allowedRoles={["Admin"]}>
+                <DashboardLayout>
+                  <ComprehensiveReport />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/unified-report"
+            element={
+              <ProtectedRoute allowedRoles={["Admin"]}>
+                <DashboardLayout>
+                  <UnifiedReport />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/rail-operations-report"
+            element={
+              <ProtectedRoute allowedRoles={["Admin"]}>
+                <DashboardLayout>
+                  <RailOperationsReport />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
 
           {/* Customer route */}
           <Route
@@ -329,6 +373,46 @@ function App() {
               <ProtectedRoute allowedRoles={["Customer"]}>
                 <DashboardLayout>
                   <MonthlyReport />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/comprehensive-reports"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+                  <ComprehensiveReport />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/unified-report"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+                  <UnifiedReport />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/rail-operations-report"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+                  <RailOperationsReport />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/rake-report"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+                  <RakeReport />
                 </DashboardLayout>
               </ProtectedRoute>
             }
