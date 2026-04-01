@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { Search, Filter, Download, Eye, Edit, Truck, Package, CheckCircle, XCircle, Clock, X, AlertTriangle, MapPin, FileText } from "lucide-react";
-import { dealerTripDetailsAPI, oemPickupAPI, arrivalAtPlantAPI } from "../utils/Api";
+import { Search, Filter, Download, Eye, Edit, Truck, Package, CheckCircle, XCircle, Clock, X, AlertTriangle, MapPin, FileText, Train, Navigation } from "lucide-react";
+import { dealerTripDetailsAPI, oemPickupAPI, arrivalAtPlantAPI, rakeVisitAPI, rakeDepartureAPI, lastMileDepartureAPI, loadingStageAPI } from "../utils/Api";
 import { toast } from "react-toastify";
 
 const DealerReport = () => {
   const [dealerRecords, setDealerRecords] = useState([]);
   const [oemPickupRecords, setOemPickupRecords] = useState([]);
   const [arrivalRecords, setArrivalRecords] = useState([]);
+  const [rakeVisitRecords, setRakeVisitRecords] = useState([]);
+  const [rakeDepartureRecords, setRakeDepartureRecords] = useState([]);
+  const [lastMileDepartureRecords, setLastMileDepartureRecords] = useState([]);
+  const [loadingStageRecords, setLoadingStageRecords] = useState([]);
   const [filteredRecords, setFilteredRecords] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -32,6 +36,37 @@ const DealerReport = () => {
     arrivalAtPlant: oemPickupRecords.filter(record =>
       record.Status === 'REACHED PLANT'
     ).length, // Only from OEM records with REACHED PLANT status
+    
+    // Real operational data from loading stages
+    loadedVehicles: loadingStageRecords.filter(record => 
+      record.status === 'LOADED' || record.status === 'COMPLETED'
+    ).length, // Vehicles that have been loaded into rakes
+    
+    // Real operational data from rake departures (dispatched)
+    dispatchedRakes: rakeDepartureRecords.filter(record => 
+      record.status === 'DEPARTED' || record.status === 'DISPATCHED'
+    ).length, // Rakes that have been dispatched from yards
+    
+    // Real operational data from last mile departures
+    lastMileDepartures: lastMileDepartureRecords.filter(record => 
+      record.status === 'DEPARTED' || record.status === 'DISPATCHED'
+    ).length, // Last mile departures from plants to yards
+    
+    // Rakes currently assigned for loading
+    rakeAssigned: loadingStageRecords.filter(record => 
+      record.status === 'ASSIGNED' || record.status === 'PENDING'
+    ).length, // Rakes assigned for loading operations
+    
+    // Vehicles in transit to destination yards (from rake departures)
+    inTransitToDestinationYard: rakeDepartureRecords.filter(record => 
+      record.status === 'IN-TRANSIT' || record.status === 'DISPATCHED'
+    ).length, // Rakes in transit to destination yards
+    
+    // Vehicles in transit to destination dealers
+    inTransitToDestinationDealer: lastMileDepartureRecords.filter(record => 
+      record.status === 'IN-TRANSIT' && record.destination_dealer
+    ).length, // Vehicles in last mile transit to dealers
+    
     ewayBillExpiryDelay: dealerRecords.filter(record => {
       if (!record.EWAY_BILL || !record.VALID_TILL) return false;
       const validTill = new Date(record.VALID_TILL);
@@ -72,16 +107,24 @@ const DealerReport = () => {
     try {
       setLoading(true);
       
-      // Load all three data sources
-      const [dealerData, oemData, arrivalData] = await Promise.all([
+      // Load all seven data sources
+      const [dealerData, oemData, arrivalData, rakeVisitData, rakeDepartureData, lastMileData, loadingStageData] = await Promise.all([
         dealerTripDetailsAPI.getAllDealerTripDetails(),
         oemPickupAPI.getAllOEMPickups(),
-        arrivalAtPlantAPI.getAllArrivals()
+        arrivalAtPlantAPI.getAllArrivals(),
+        rakeVisitAPI.getAllRakeVisits(),
+        rakeDepartureAPI.getAllRakeDepartures(),
+        lastMileDepartureAPI.getAllLastMileDepartures(),
+        loadingStageAPI.getAllLoadingStages()
       ]);
       
       setDealerRecords(dealerData.data || dealerData || []);
       setOemPickupRecords(oemData.data || oemData || []);
       setArrivalRecords(arrivalData.data || arrivalData || []);
+      setRakeVisitRecords(rakeVisitData.data || rakeVisitData || []);
+      setRakeDepartureRecords(rakeDepartureData.data || rakeDepartureData || []);
+      setLastMileDepartureRecords(lastMileData.data || lastMileData || []);
+      setLoadingStageRecords(loadingStageData.data || loadingStageData || []);
       
       // Set filtered records from dealer data for the table
       setFilteredRecords(dealerData.data || dealerData || []);
@@ -190,15 +233,15 @@ const DealerReport = () => {
         </p>
       </div>
 
-      {/* Statistics Cards - Only 4 Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      {/* Statistics Cards - 8 Key Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-6">
         {/* Total VINs/Cars Card */}
         <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Total VINs/Cars</p>
               <p className="text-2xl font-bold text-gray-900">{statistics.totalVinsCars}</p>
-              <p className="text-xs text-gray-500 mt-1">All vehicles</p>
+              <p className="text-xs text-gray-500 mt-1">Total vehicles</p>
             </div>
             <div className="bg-blue-100 rounded-full p-3">
               <Package className="w-6 h-6 text-blue-600" />
@@ -244,6 +287,90 @@ const DealerReport = () => {
             </div>
             <div className="bg-purple-100 rounded-full p-3">
               <MapPin className="w-6 h-6 text-purple-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* Loaded Vehicles Card */}
+        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Loaded Vehicles</p>
+              <p className="text-2xl font-bold text-gray-900">{statistics.loadedVehicles}</p>
+              <p className="text-xs text-gray-500 mt-1">Vehicles loaded into rakes</p>
+            </div>
+            <div className="bg-green-100 rounded-full p-3">
+              <Package className="w-6 h-6 text-green-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* Dispatched Rakes Card */}
+        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-orange-500">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Dispatched Rakes</p>
+              <p className="text-2xl font-bold text-gray-900">{statistics.dispatchedRakes}</p>
+              <p className="text-xs text-gray-500 mt-1">Rakes dispatched from yards</p>
+            </div>
+            <div className="bg-orange-100 rounded-full p-3">
+              <Train className="w-6 h-6 text-orange-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* Last Mile Departures Card */}
+        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Last Mile Departures</p>
+              <p className="text-2xl font-bold text-gray-900">{statistics.lastMileDepartures}</p>
+              <p className="text-xs text-gray-500 mt-1">Departures from plants</p>
+            </div>
+            <div className="bg-purple-100 rounded-full p-3">
+              <Navigation className="w-6 h-6 text-purple-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* Rakes Assigned for Loading Card */}
+        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Rakes Assigned for Loading</p>
+              <p className="text-2xl font-bold text-gray-900">{statistics.rakeAssigned}</p>
+              <p className="text-xs text-gray-500 mt-1">Rakes ready for loading</p>
+            </div>
+            <div className="bg-blue-100 rounded-full p-3">
+              <Train className="w-6 h-6 text-blue-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* In Transit to Destination Yard Card */}
+        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-indigo-500">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">In Transit to Destination Yard</p>
+              <p className="text-2xl font-bold text-gray-900">{statistics.inTransitToDestinationYard}</p>
+              <p className="text-xs text-gray-500 mt-1">Rakes in transit to yards</p>
+            </div>
+            <div className="bg-indigo-100 rounded-full p-3">
+              <Navigation className="w-6 h-6 text-indigo-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* In Transit to Destination Dealer Card */}
+        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-teal-500">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">In Transit to Destination Dealer</p>
+              <p className="text-2xl font-bold text-gray-900">{statistics.inTransitToDestinationDealer}</p>
+              <p className="text-xs text-gray-500 mt-1">Vehicles in last mile transit</p>
+            </div>
+            <div className="bg-teal-100 rounded-full p-3">
+              <Truck className="w-6 h-6 text-teal-600" />
             </div>
           </div>
         </div>

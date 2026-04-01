@@ -2159,12 +2159,88 @@ export const oemPickupAPI = {
       throw error.response?.data || error.message;
 
     }
-
   },
-
 };
 
+// Last Mile Departure API
+export const lastMileDepartureAPI = {
+  // Get all Last Mile Departure records
+  getAllLastMileDepartures: async () => {
+    try {
+      const response = await api.get("/last-mile-departure");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching Last Mile Departure records:", error);
+      throw error.response?.data || error.message;
+    }
+  },
 
+  // Get Last Mile Departure by ID
+  getLastMileDepartureById: async (id) => {
+    try {
+      const response = await api.get(`/last-mile-departure/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching Last Mile Departure record:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get available VINs for Last Mile Departure (only from completed OEM pickups)
+  getAvailableVINs: async () => {
+    try {
+      const response = await api.get("/last-mile-departure/available-vins");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching available VINs:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Validate VINs for Last Mile Departure
+  validateVINs: async (vinDetails) => {
+    try {
+      const response = await api.post("/last-mile-departure/validate-vins", { vinDetails });
+      return response.data;
+    } catch (error) {
+      console.error("Error validating VINs:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Create new Last Mile Departure record
+  createLastMileDeparture: async (data) => {
+    try {
+      const response = await api.post("/last-mile-departure", data);
+      return response.data;
+    } catch (error) {
+      console.error("Error creating Last Mile Departure record:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Update Last Mile Departure record
+  updateLastMileDeparture: async (id, data) => {
+    try {
+      const response = await api.put(`/last-mile-departure/${id}`, data);
+      return response.data;
+    } catch (error) {
+      console.error("Error updating Last Mile Departure record:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Delete Last Mile Departure record
+  deleteLastMileDeparture: async (id) => {
+    try {
+      const response = await api.delete(`/last-mile-departure/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error deleting Last Mile Departure record:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+};
 
 // Location Master API
 
@@ -4239,6 +4315,97 @@ export const damageTypeAPI = {
       return response.data;
     } catch (error) {
       console.error("Error fetching damage type count by status:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+};
+
+// Loading Stage API
+export const loadingStageAPI = {
+  // Get all loading stage records
+  getAllLoadingStages: async () => {
+    try {
+      const response = await api.get("/loading-stage");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching loading stage records:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get loading stage by ID
+  getLoadingStageById: async (id) => {
+    try {
+      const response = await api.get(`/loading-stage/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching loading stage record:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get loading stages by terminal ID
+  getLoadingStagesByTerminal: async (terminalId) => {
+    try {
+      const response = await api.get(`/loading-stage/terminal/${terminalId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching loading stages by terminal:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get available VINs for loading stage
+  getAvailableVINs: async () => {
+    try {
+      const response = await api.get("/loading-stage/available-vins");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching available VINs:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Validate VINs for loading stage
+  validateVINs: async (vinDetails) => {
+    try {
+      const response = await api.post("/loading-stage/validate-vins", { vinDetails });
+      return response.data;
+    } catch (error) {
+      console.error("Error validating VINs:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Create new loading stage record
+  createLoadingStage: async (loadingStageData) => {
+    try {
+      const response = await api.post("/loading-stage", loadingStageData);
+      return response.data;
+    } catch (error) {
+      console.error("Error creating loading stage record:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Update loading stage record
+  updateLoadingStage: async (id, loadingStageData) => {
+    try {
+      const response = await api.put(`/loading-stage/${id}`, loadingStageData);
+      return response.data;
+    } catch (error) {
+      console.error("Error updating loading stage record:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Delete loading stage record
+  deleteLoadingStage: async (id) => {
+    try {
+      const response = await api.delete(`/loading-stage/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error deleting loading stage record:", error);
       throw error.response?.data || error.message;
     }
   },

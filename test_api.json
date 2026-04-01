@@ -1,0 +1,14 @@
+{
+  "plant": "JAIPUR",
+  "yardLocation": "FARUKHNAGAR", 
+  "vendorTransporter": "Transporter B Pvt.",
+  "truckNumber": "Y2YUWUE",
+  "departureDate": "2026-03-31",
+  "deliveryDate": "2026-03-31",
+  "arrivalTime": "17:54",
+  "departureTime": "14:54",
+  "driverName": "Amit Yadav",
+  "remarks": "",
+  "vinDetails": "VIN0007",
+  "transportationType": "TRUCK"
+}

@@ -77,6 +77,12 @@ export function CustomerSidebar({
           path: "loading-stage",
           description: "Vehicle Loading Operations",
         },
+        {
+          name: "Last Mile Departure",
+          icon: Truck,
+          path: "last-mile-departure",
+          description: "Final Vehicle Delivery",
+        },
       ],
     },
     {
@@ -124,25 +130,19 @@ export function CustomerSidebar({
           description: "View Transport Reports",
         },
         {
-          name: "Rake Report",
+          name: "Rake Transit",
           icon: Train,
           path: "rake-report",
           description: "Rake Operations Report",
         },
-        {
-          name: "Comprehensive Reports",
-          icon: BarChart3,
-          path: "comprehensive-reports",
-          description: "All Operations Reports",
-        },
-        {
+                {
           name: "Unified Report",
           icon: FileSpreadsheet,
           path: "unified-report",
           description: "Single Table Report",
         },
         {
-          name: "Rail Operations Report",
+          name: "DCT Report",
           icon: Train,
           path: "rail-operations-report",
           description: "Complete Rail Operations",
@@ -166,7 +166,7 @@ export function CustomerSidebar({
         },
         {
           name: "Monthly Report",
-          icon: Calendar,
+          icon: MessageSquare,
           path: "monthly-report",
           description: "View Monthly Transportation Report",
         },

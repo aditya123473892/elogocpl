@@ -49,9 +49,10 @@ import ExamTypeManagement from "./Pages/ExamTypeManagement";
 import RakeExamManagement from "./Pages/RakeExamManagement";
 import RakeDeparture from "./Pages/RakeDeparture";
 import RakeReport from "./Pages/RakeReport";
-import ComprehensiveReport from "./Pages/ComprehensiveReport";
 import UnifiedReport from "./Pages/UnifiedReport";
 import RailOperationsReport from "./Pages/RailOperationsReport";
+import LastMileDeparturePage from "./Pages/LastMileDeparture";
+import LastMileDepartureDashboard from "./Pages/LastMileDepartureDashboard";
 import Header from "./Components/dashboard/Header";
 import { terminalMasterAPI } from "./utils/Api";  
 
@@ -296,16 +297,6 @@ function App() {
             }
           />
           <Route
-            path="/admin/comprehensive-reports"
-            element={
-              <ProtectedRoute allowedRoles={["Admin"]}>
-                <DashboardLayout>
-                  <ComprehensiveReport />
-                </DashboardLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/admin/unified-report"
             element={
               <ProtectedRoute allowedRoles={["Admin"]}>
@@ -378,16 +369,6 @@ function App() {
             }
           />
           <Route
-            path="/customer/comprehensive-reports"
-            element={
-              <ProtectedRoute allowedRoles={["Customer"]}>
-                <DashboardLayout>
-                  <ComprehensiveReport />
-                </DashboardLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/customer/unified-report"
             element={
               <ProtectedRoute allowedRoles={["Customer"]}>
@@ -423,6 +404,26 @@ function App() {
               <ProtectedRoute allowedRoles={["Customer"]}>
                 <DashboardLayout>
                   <OEMPickupPage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/last-mile-departure"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+                  <LastMileDeparturePage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/last-mile-departure/list"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+                  <LastMileDepartureDashboard />
                 </DashboardLayout>
               </ProtectedRoute>
             }

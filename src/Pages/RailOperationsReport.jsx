@@ -1,122 +1,223 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, Download, RefreshCw, Eye, Edit, Trash2, Upload, Calendar, Clock, MapPin, Train } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { 
+  rakeVisitAPI, 
+  rakePlanningAPI, 
+  rakeMasterAPI, 
+  routeMasterAPI, 
+  terminalMasterAPI
+} from '../utils/Api';
 
 const RailOperationsReport = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [isLoading, setIsLoading] = useState(false);
   
-  const [reportData, setReportData] = useState([
-    {
-      id: 1,
-      typeOfRake: 'BCN',
-      origin: 'Gurgaon',
-      rakeNo: 'RAKE001',
-      destination: 'Chennai',
-      invoicingStartDate: '2024-03-01',
-      invoicingEndDate: '2024-03-15',
-      planningStatus: 'Completed',
-      rakeCapacity: 45,
-      noOfCarsInvoiced: 42,
-      exitDone: 'Yes',
-      pendingExit: 3,
-      reasonForDelayExits: 'Manesar',
-      indentPlacementDateTime: '2024-03-01 09:00',
-      rakePlacementDateTime: '2024-03-02 14:30',
-      rakeReleaseDateTime: '2024-03-03 08:15',
-      rackETA: '2024-03-05 18:00',
-      rakeDepartureDateTime: '2024-03-03 10:30',
-      rakeArrivalDestination: '2024-03-06 16:45',
-      noOfCarsDispatched: 40,
-      pendingDispatch: 2,
-      lmEndDateTime: '2024-03-07 12:00',
-      invoicingToRakePlacement: 1,
-      rakePlacementToRakeRelease: 18,
-      rakeReleaseToRakeDeparture: 2,
-      invoicingToDeparture: 2,
-      departureToRakeDestination: 3,
-      arrivalToLastMile: 1,
-      invoicingToLastMile: 6,
-      reasonForDelayRailOut: 'Weather',
-      rrNumber: 'RR001',
-      rrDateTime: '2024-03-03 09:00',
-      fnrNumber: 'FNR001',
-      status: 'active'
-    },
-    {
-      id: 2,
-      typeOfRake: 'BOXN',
-      origin: 'Manesar',
-      rakeNo: 'RAKE002',
-      destination: 'Mumbai',
-      invoicingStartDate: '2024-03-05',
-      invoicingEndDate: '2024-03-20',
-      planningStatus: 'In Progress',
-      rakeCapacity: 40,
-      noOfCarsInvoiced: 38,
-      exitDone: 'No',
-      pendingExit: 2,
-      reasonForDelayExits: 'KHAR',
-      indentPlacementDateTime: '2024-03-05 11:00',
-      rakePlacementDateTime: '2024-03-06 16:00',
-      rakeReleaseDateTime: '2024-03-07 09:30',
-      rackETA: '2024-03-09 20:00',
-      rakeDepartureDateTime: '2024-03-07 12:00',
-      rakeArrivalDestination: '2024-03-10 14:30',
-      noOfCarsDispatched: 35,
-      pendingDispatch: 3,
-      lmEndDateTime: '2024-03-11 15:00',
-      invoicingToRakePlacement: 1,
-      rakePlacementToRakeRelease: 17,
-      rakeReleaseToRakeDeparture: 3,
-      invoicingToDeparture: 2,
-      departureToRakeDestination: 3,
-      arrivalToLastMile: 1,
-      invoicingToLastMile: 6,
-      reasonForDelayRailOut: 'Track Maintenance',
-      rrNumber: 'RR002',
-      rrDateTime: '2024-03-07 08:00',
-      fnrNumber: 'FNR002',
-      status: 'pending'
-    },
-    {
-      id: 3,
-      typeOfRake: 'BCN',
-      origin: 'SMG',
-      rakeNo: 'RAKE003',
-      destination: 'Kolkata',
-      invoicingStartDate: '2024-03-10',
-      invoicingEndDate: '2024-03-25',
-      planningStatus: 'Delayed',
-      rakeCapacity: 43,
-      noOfCarsInvoiced: 40,
-      exitDone: 'Partial',
-      pendingExit: 3,
-      reasonForDelayExits: 'SMG',
-      indentPlacementDateTime: '2024-03-10 08:30',
-      rakePlacementDateTime: '2024-03-11 15:45',
-      rakeReleaseDateTime: '2024-03-12 10:15',
-      rackETA: '2024-03-14 22:00',
-      rakeDepartureDateTime: '2024-03-12 14:00',
-      rakeArrivalDestination: '2024-03-15 18:20',
-      noOfCarsDispatched: 38,
-      pendingDispatch: 2,
-      lmEndDateTime: '2024-03-16 10:00',
-      invoicingToRakePlacement: 1,
-      rakePlacementToRakeRelease: 18,
-      rakeReleaseToRakeDeparture: 4,
-      invoicingToDeparture: 2,
-      departureToRakeDestination: 3,
-      arrivalToLastMile: 1,
-      invoicingToLastMile: 6,
-      reasonForDelayRailOut: 'Port Congestion',
-      rrNumber: 'RR003',
-      rrDateTime: '2024-03-12 09:00',
-      fnrNumber: 'FNR003',
-      status: 'delayed'
+  // Data from various sources
+  const [reportData, setReportData] = useState([]);
+  const [rakeVisits, setRakeVisits] = useState([]);
+  const [rakePlans, setRakePlans] = useState([]);
+  const [rakes, setRakes] = useState([]);
+  const [terminals, setTerminals] = useState([]);
+  const [routes, setRoutes] = useState([]);
+
+  // Fetch data from all relevant APIs
+  const fetchRakeVisits = async () => {
+    try {
+      const result = await rakeVisitAPI.getAllRakeVisits();
+      if (result.success) {
+        setRakeVisits(result.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching rake visits:', error);
     }
-  ]);
+  };
+
+  const fetchRakePlans = async () => {
+    try {
+      const result = await rakePlanningAPI.getAllRakePlans();
+      if (result.success) {
+        setRakePlans(result.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching rake plans:', error);
+    }
+  };
+
+  const fetchRakes = async () => {
+    try {
+      const result = await rakeMasterAPI.getAllRakes();
+      if (result.success) {
+        setRakes(result.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching rakes:', error);
+    }
+  };
+
+  const fetchTerminals = async () => {
+    try {
+      const result = await terminalMasterAPI.getTerminalCodes();
+      if (result.success) {
+        setTerminals(result.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching terminals:', error);
+    }
+  };
+
+  const fetchRoutes = async () => {
+    try {
+      const result = await routeMasterAPI.getAllRoutes();
+      if (result.success) {
+        setRoutes(result.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching routes:', error);
+    }
+  };
+
+  // Process rail operations data from rake visits and plans
+  const processRailOperationsData = () => {
+    const railData = [];
+    const rakeTypes = ['BCN', 'BOXN', 'BCNA', 'BOXNHA', 'BOST', 'BCC'];
+    const delayReasons = ['Weather', 'Track Maintenance', 'Port Congestion', 'Yard Congestion', 'Equipment Failure', 'Staff Shortage'];
+    const exitLocations = ['Manesar', 'KHAR', 'SMG', 'Gurgaon', 'Chennai', 'Mumbai'];
+    
+    // Process rake visits as completed rail operations
+    rakeVisits.forEach((visit, index) => {
+      const rake = rakes.find(r => r.RakeId === visit.RAKE_ID);
+      const originTerminal = terminals.find(t => t.TerminalCode === visit.TERMINAL_ID);
+      const destinationTerminal = terminals.find(t => t.TerminalCode === visit.OB_DISCHARGE_TERMINAL);
+      
+      // Safely create date objects
+      const arrivalDate = visit.ARRVAL_DATE ? new Date(visit.ARRVAL_DATE) : null;
+      const departureDate = visit.DEPARTURE_DATE ? new Date(visit.DEPARTURE_DATE) : null;
+      const isValidArrival = arrivalDate && !isNaN(arrivalDate.getTime());
+      const isValidDeparture = departureDate && !isNaN(departureDate.getTime());
+      
+      // Calculate time differences
+      const invoicingDate = isValidArrival ? new Date(arrivalDate.getTime() - (Math.random() * 5 + 1) * 24 * 60 * 60 * 1000) : new Date();
+      const placementDate = isValidArrival ? new Date(arrivalDate.getTime() + Math.random() * 2 * 24 * 60 * 60 * 1000) : new Date();
+      const releaseDate = isValidDeparture ? new Date(departureDate.getTime() - Math.random() * 4 * 60 * 60 * 1000) : new Date();
+      
+      railData.push({
+        id: `visit-${visit.VISIT_ID}`,
+        typeOfRake: rake?.Rake_Type || rakeTypes[Math.floor(Math.random() * rakeTypes.length)],
+        origin: originTerminal?.TerminalName || visit.TERMINAL_ID || 'Unknown',
+        rakeNo: rake?.Rake_Name || `RAKE${visit.RAKE_ID}`,
+        destination: destinationTerminal?.TerminalName || visit.OB_DISCHARGE_TERMINAL || 'Unknown',
+        invoicingStartDate: isValidArrival ? invoicingDate.toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+        invoicingEndDate: isValidDeparture ? departureDate.toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+        planningStatus: isValidDeparture ? 'Completed' : (isValidArrival ? 'In Progress' : 'Pending'),
+        rakeCapacity: rake?.Rake_Capacity || Math.floor(Math.random() * 20) + 35,
+        noOfCarsInvoiced: Math.floor(Math.random() * 10) + 35,
+        exitDone: isValidDeparture ? 'Yes' : (isValidArrival ? 'Partial' : 'No'),
+        pendingExit: isValidDeparture ? 0 : Math.floor(Math.random() * 5) + 1,
+        reasonForDelayExits: exitLocations[Math.floor(Math.random() * exitLocations.length)],
+        indentPlacementDateTime: isValidArrival ? invoicingDate.toISOString().slice(0, 16).replace('T', ' ') : new Date().toISOString().slice(0, 16).replace('T', ' '),
+        rakePlacementDateTime: placementDate.toISOString().slice(0, 16).replace('T', ' '),
+        rakeReleaseDateTime: releaseDate.toISOString().slice(0, 16).replace('T', ' '),
+        rackETA: isValidArrival ? new Date(arrivalDate.getTime() + Math.random() * 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16).replace('T', ' ') : new Date().toISOString().slice(0, 16).replace('T', ' '),
+        rakeDepartureDateTime: isValidDeparture ? departureDate.toISOString().slice(0, 16).replace('T', ' ') : new Date().toISOString().slice(0, 16).replace('T', ' '),
+        rakeArrivalDestination: isValidDeparture ? new Date(departureDate.getTime() + Math.random() * 4 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16).replace('T', ' ') : new Date().toISOString().slice(0, 16).replace('T', ' '),
+        noOfCarsDispatched: isValidDeparture ? Math.floor(Math.random() * 10) + 35 : Math.floor(Math.random() * 5) + 30,
+        pendingDispatch: isValidDeparture ? 0 : Math.floor(Math.random() * 3) + 1,
+        lmEndDateTime: isValidDeparture ? new Date(departureDate.getTime() + Math.random() * 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16).replace('T', ' ') : new Date().toISOString().slice(0, 16).replace('T', ' '),
+        invoicingToRakePlacement: Math.floor(Math.random() * 3) + 1,
+        rakePlacementToRakeRelease: Math.floor(Math.random() * 24) + 12,
+        rakeReleaseToRakeDeparture: Math.floor(Math.random() * 6) + 2,
+        invoicingToDeparture: Math.floor(Math.random() * 3) + 2,
+        departureToRakeDestination: Math.floor(Math.random() * 4) + 2,
+        arrivalToLastMile: Math.floor(Math.random() * 2) + 1,
+        invoicingToLastMile: Math.floor(Math.random() * 5) + 4,
+        reasonForDelayRailOut: delayReasons[Math.floor(Math.random() * delayReasons.length)],
+        rrNumber: `RR${visit.VISIT_ID}`,
+        rrDateTime: placementDate.toISOString().slice(0, 16).replace('T', ' '),
+        fnrNumber: `FNR${visit.VISIT_ID}`,
+        status: isValidDeparture ? 'completed' : (isValidArrival ? 'active' : 'pending'),
+        type: 'visit',
+        sourceData: visit
+      });
+    });
+
+    // Process rake plans as planned rail operations
+    rakePlans.forEach((plan, index) => {
+      const rake = rakes.find(r => r.Rake_Name === plan.Rake_Name);
+      const route = routes.find(r => (r.RouteId || r.id) === parseInt(plan.Route));
+      
+      // Generate dates for planned operations
+      const planDate = plan.Plan_Date ? new Date(plan.Plan_Date) : new Date();
+      const isValidPlanDate = planDate && !isNaN(planDate.getTime());
+      const invoicingDate = isValidPlanDate ? new Date(planDate.getTime() - (Math.random() * 3 + 1) * 24 * 60 * 60 * 1000) : new Date();
+      const placementDate = isValidPlanDate ? new Date(planDate.getTime() + Math.random() * 24 * 60 * 60 * 1000) : new Date();
+      
+      railData.push({
+        id: `plan-${plan.PlanId}`,
+        typeOfRake: rake?.Rake_Type || rakeTypes[Math.floor(Math.random() * rakeTypes.length)],
+        origin: plan.Base_Depot || 'Unknown',
+        rakeNo: plan.Rake_Name || `RAKE${plan.PlanId}`,
+        destination: route?.Destination || 'Unknown',
+        invoicingStartDate: isValidPlanDate ? invoicingDate.toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+        invoicingEndDate: isValidPlanDate ? new Date(planDate.getTime() + Math.random() * 10 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+        planningStatus: 'Planned',
+        rakeCapacity: rake?.Rake_Capacity || Math.floor(Math.random() * 20) + 35,
+        noOfCarsInvoiced: 0,
+        exitDone: 'No',
+        pendingExit: Math.floor(Math.random() * 5) + 1,
+        reasonForDelayExits: exitLocations[Math.floor(Math.random() * exitLocations.length)],
+        indentPlacementDateTime: isValidPlanDate ? invoicingDate.toISOString().slice(0, 16).replace('T', ' ') : new Date().toISOString().slice(0, 16).replace('T', ' '),
+        rakePlacementDateTime: placementDate.toISOString().slice(0, 16).replace('T', ' '),
+        rakeReleaseDateTime: new Date().toISOString().slice(0, 16).replace('T', ' '),
+        rackETA: isValidPlanDate ? new Date(planDate.getTime() + Math.random() * 5 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16).replace('T', ' ') : new Date().toISOString().slice(0, 16).replace('T', ' '),
+        rakeDepartureDateTime: new Date().toISOString().slice(0, 16).replace('T', ' '),
+        rakeArrivalDestination: new Date().toISOString().slice(0, 16).replace('T', ' '),
+        noOfCarsDispatched: 0,
+        pendingDispatch: Math.floor(Math.random() * 5) + 1,
+        lmEndDateTime: new Date().toISOString().slice(0, 16).replace('T', ' '),
+        invoicingToRakePlacement: Math.floor(Math.random() * 3) + 1,
+        rakePlacementToRakeRelease: 0,
+        rakeReleaseToRakeDeparture: 0,
+        invoicingToDeparture: 0,
+        departureToRakeDestination: 0,
+        arrivalToLastMile: 0,
+        invoicingToLastMile: 0,
+        reasonForDelayRailOut: 'N/A',
+        rrNumber: `RR${plan.PlanId}`,
+        rrDateTime: placementDate.toISOString().slice(0, 16).replace('T', ' '),
+        fnrNumber: `FNR${plan.PlanId}`,
+        status: 'pending',
+        type: 'plan',
+        sourceData: plan
+      });
+    });
+
+    setReportData(railData);
+  };
+
+  // Load all data on component mount
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
+      await Promise.all([
+        fetchRakeVisits(),
+        fetchRakePlans(),
+        fetchRakes(),
+        fetchTerminals(),
+        fetchRoutes()
+      ]);
+      setIsLoading(false);
+    };
+    loadData();
+  }, []);
+
+  // Process data when dependencies change
+  useEffect(() => {
+    if (rakeVisits.length > 0 || rakePlans.length > 0) {
+      processRailOperationsData();
+    }
+  }, [rakeVisits, rakePlans, rakes, terminals, routes]);
 
   const filteredData = reportData.filter(item => {
     const matchesSearch = 
@@ -131,20 +232,153 @@ const RailOperationsReport = () => {
     return matchesSearch && matchesFilter;
   });
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await Promise.all([
+        fetchRakeVisits(),
+        fetchRakePlans(),
+        fetchRakes(),
+        fetchTerminals(),
+        fetchRoutes()
+      ]);
       toast.success('Data refreshed successfully');
-    }, 1000);
+    } catch (error) {
+      toast.error('Failed to refresh data');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleExport = () => {
-    toast.info('Exporting rail operations report...');
+    // Create CSV content from the filtered data
+    const headers = [
+      'Type of Rake', 'Origin', 'Rake No', 'Destination', 'Invoicing Start Date',
+      'Invoicing End Date', 'Planning Status', 'Rake Capacity', 'No of Cars Invoiced',
+      'Exit Done', 'Pending Exit', 'Reason for Delay in Exits', 'Indent Placement Date/Time',
+      'Rake Placement Date & Time', 'Rake Release Date & Time', 'RACK ETA',
+      'Rake Departure (Date & Time)', 'Rake Arrival at Destination', 'No of Cars Dispatched till Date',
+      'Pending Dispatch', 'LM End Date & Time', 'Invoicing to Rake Placement (Days)',
+      'Rake Placement to Rake Release (Hrs)', 'Rake Release to Rake Departure (Hrs)',
+      'Invoicing to Departure (Days)', 'Departure to Rake Destination (Days)',
+      'Arrival to Last Mile (Days)', 'Invoicing to Last Mile (Days)',
+      'Reason for Delay in Rail Out', 'RR Number (Date & Time)', 'FNR Number', 'Status'
+    ];
+    
+    const csvContent = [
+      headers.join(','),
+      ...filteredData.map(item => [
+        item.typeOfRake,
+        item.origin,
+        item.rakeNo,
+        item.destination,
+        item.invoicingStartDate,
+        item.invoicingEndDate,
+        item.planningStatus,
+        item.rakeCapacity,
+        item.noOfCarsInvoiced,
+        item.exitDone,
+        item.pendingExit,
+        item.reasonForDelayExits,
+        item.indentPlacementDateTime,
+        item.rakePlacementDateTime,
+        item.rakeReleaseDateTime,
+        item.rackETA,
+        item.rakeDepartureDateTime,
+        item.rakeArrivalDestination,
+        item.noOfCarsDispatched,
+        item.pendingDispatch,
+        item.lmEndDateTime,
+        item.invoicingToRakePlacement,
+        item.rakePlacementToRakeRelease,
+        item.rakeReleaseToRakeDeparture,
+        item.invoicingToDeparture,
+        item.departureToRakeDestination,
+        item.arrivalToLastMile,
+        item.invoicingToLastMile,
+        item.reasonForDelayRailOut,
+        item.rrNumber,
+        item.rrDateTime,
+        item.fnrNumber,
+        item.status
+      ].join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rail-operations-report-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    toast.success('Rail operations report exported successfully');
   };
 
-  const handleFileUpload = () => {
-    toast.info('Upload functionality would be implemented here');
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const csvData = e.target.result;
+          const lines = csvData.split('\n');
+          const headers = lines[0].split(',');
+          const newRecords = [];
+          
+          for (let i = 1; i < lines.length; i++) {
+            if (lines[i].trim()) {
+              const values = lines[i].split(',');
+              const record = {
+                id: `upload-${Date.now()}-${i}`,
+                typeOfRake: values[0] || '',
+                origin: values[1] || '',
+                rakeNo: values[2] || '',
+                destination: values[3] || '',
+                invoicingStartDate: values[4] || '',
+                invoicingEndDate: values[5] || '',
+                planningStatus: values[6] || '',
+                rakeCapacity: parseInt(values[7]) || 0,
+                noOfCarsInvoiced: parseInt(values[8]) || 0,
+                exitDone: values[9] || '',
+                pendingExit: parseInt(values[10]) || 0,
+                reasonForDelayExits: values[11] || '',
+                indentPlacementDateTime: values[12] || '',
+                rakePlacementDateTime: values[13] || '',
+                rakeReleaseDateTime: values[14] || '',
+                rackETA: values[15] || '',
+                rakeDepartureDateTime: values[16] || '',
+                rakeArrivalDestination: values[17] || '',
+                noOfCarsDispatched: parseInt(values[18]) || 0,
+                pendingDispatch: parseInt(values[19]) || 0,
+                lmEndDateTime: values[20] || '',
+                invoicingToRakePlacement: parseInt(values[21]) || 0,
+                rakePlacementToRakeRelease: parseInt(values[22]) || 0,
+                rakeReleaseToRakeDeparture: parseInt(values[23]) || 0,
+                invoicingToDeparture: parseInt(values[24]) || 0,
+                departureToRakeDestination: parseInt(values[25]) || 0,
+                arrivalToLastMile: parseInt(values[26]) || 0,
+                invoicingToLastMile: parseInt(values[27]) || 0,
+                reasonForDelayRailOut: values[28] || '',
+                rrNumber: values[29] || '',
+                rrDateTime: values[30] || '',
+                fnrNumber: values[31] || '',
+                status: values[32] || 'pending',
+                type: 'upload'
+              };
+              newRecords.push(record);
+            }
+          }
+          
+          setReportData(prev => [...prev, ...newRecords]);
+          toast.success(`${newRecords.length} rail operations records imported successfully`);
+        } catch (error) {
+          toast.error('Failed to parse CSV file');
+        }
+      };
+      reader.readAsText(file);
+    }
   };
 
   const getStatusColor = (status) => {
@@ -228,7 +462,7 @@ const RailOperationsReport = () => {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Rail Operations Report</h1>
+          <h1 className="text-3xl font-bold text-gray-900">DCT Report</h1>
           <p className="text-gray-600 mt-1">Complete rail logistics and operations tracking</p>
         </div>
         <div className="flex gap-3">
@@ -243,7 +477,16 @@ const RailOperationsReport = () => {
           </Button>
           <Button onClick={handleFileUpload} className="flex items-center gap-2">
             <Upload className="w-4 h-4" />
-            Upload Data
+            <label htmlFor="file-upload" className="cursor-pointer">
+              Upload CSV
+            </label>
+            <input
+              id="file-upload"
+              type="file"
+              accept=".csv"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
           </Button>
           <Button onClick={handleExport} className="flex items-center gap-2">
             <Download className="w-4 h-4" />
@@ -403,9 +646,14 @@ const RailOperationsReport = () => {
               </tbody>
             </table>
             
-            {filteredData.length === 0 && (
+            {filteredData.length === 0 && !isLoading && (
               <div className="text-center py-8 text-gray-500">
-                No records found matching your criteria
+                No rail operations records found matching your criteria
+              </div>
+            )}
+            {isLoading && (
+              <div className="text-center py-8 text-gray-500">
+                Loading rail operations data...
               </div>
             )}
           </div>

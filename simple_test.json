@@ -1,0 +1,13 @@
+{
+  "plant": "TEST",
+  "yardLocation": "TEST",
+  "vendorTransporter": "TEST",
+  "truckNumber": "TEST123",
+  "departureDate": "2026-03-31",
+  "deliveryDate": "2026-03-31",
+  "arrivalTime": "10:00",
+  "departureTime": "11:00",
+  "driverName": "TEST",
+  "vinDetails": "TEST123",
+  "transportationType": "TRUCK"
+}

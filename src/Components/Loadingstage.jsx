@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Warehouse,
   ScanLine,
@@ -7,18 +7,11 @@ import {
   ChevronDown,
   CheckCircle,
   LogIn,
-  LogOut,
+  ArrowRight,
   Package,
   X,
 } from "lucide-react";
-
-const loadingStations = [
-  "Loading Station 1 - Bay A",
-  "Loading Station 2 - Bay B",
-  "Loading Station 3 - Bay C",
-  "Loading Station 4 - Bay D",
-  "Loading Station 5 - Bay E",
-];
+import { loadingStageAPI } from "../utils/Api";
 
 const defaultForm = {
   loadingStation: "",
@@ -49,25 +42,29 @@ const FieldLabel = ({ children, required }) => (
 const inputClass =
   "w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all placeholder-gray-400";
 
-const SelectField = ({ value, onChange, options, placeholder, hasError }) => (
+const SelectField = ({ value, onChange, options, placeholder, hasError, disabled }) => (
   <div className="relative">
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
+      disabled={disabled}
       className={`${inputClass} appearance-none pr-9 ${
         !value ? "text-gray-400" : "text-gray-800"
-      } ${hasError ? "border-red-400 focus:ring-red-400 focus:border-red-400" : ""}`}
+      } ${hasError ? "border-red-400 focus:ring-red-400 focus:border-red-400" : ""} ${
+        disabled ? "opacity-60 cursor-not-allowed bg-gray-50" : ""
+      }`}
     >
       <option value="" disabled>{placeholder}</option>
       {options.map((o) => (
-        <option key={o} value={o}>{o}</option>
+        <option key={o.value} value={o.value}>
+          {o.label}
+        </option>
       ))}
     </select>
     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
   </div>
 );
 
-// Parse raw VIN text into individual VIN tokens
 const parseVINs = (raw) =>
   raw
     .split(/[\s,\n]+/)
@@ -78,7 +75,37 @@ export default function LoadingStagePage() {
   const [form, setForm] = useState(defaultForm);
   const [saved, setSaved] = useState(false);
   const [errors, setErrors] = useState({});
+  const [terminals, setTerminals] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
+  const [saving, setSaving] = useState(false);
   const textareaRef = useRef(null);
+
+  useEffect(() => {
+    const fetchTerminals = async () => {
+      try {
+        const response = await fetch("http://localhost:4000/api/terminal-master");
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          const terminalOptions = result.data.map((t) => ({
+            value: t.TerminalId,
+            label: `${t.TerminalName} (${t.TerminalCode})`,
+          }));
+          setTerminals(terminalOptions);
+        } else {
+          setFetchError(true);
+        }
+      } catch (error) {
+        console.error("Error fetching terminals:", error);
+        setFetchError(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTerminals();
+  }, []);
 
   const set = (field) => (val) =>
     setForm((prev) => ({ ...prev, [field]: typeof val === "string" ? val : val.target.value }));
@@ -90,7 +117,6 @@ export default function LoadingStagePage() {
     if (!form.loadingStation) errs.loadingStation = true;
     if (!form.operationType) errs.operationType = true;
     if (!form.vinDetails.trim()) errs.vinDetails = true;
-    // Validate Yard Out specific fields
     if (form.operationType === "Yard Out") {
       if (!form.fnrNo.trim()) errs.fnrNo = true;
       if (!form.rakeNo.trim()) errs.rakeNo = true;
@@ -101,11 +127,40 @@ export default function LoadingStagePage() {
     return Object.keys(errs).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3500);
+    
+    setSaving(true);
+    try {
+      const loadingStageData = {
+        loadingStation: form.loadingStation,
+        operationType: form.operationType,
+        vinDetails: form.vinDetails,
+        ...(form.operationType === "Yard Out" && {
+          fnrNo: form.fnrNo,
+          rakeNo: form.rakeNo,
+          deckPosition: form.deckPosition,
+          wagonNo: form.wagonNo,
+        }),
+      };
+
+      const response = await loadingStageAPI.createLoadingStage(loadingStageData);
+      
+      if (response.success) {
+        setSaved(true);
+        setForm(defaultForm);
+        setErrors({});
+        setTimeout(() => setSaved(false), 5000);
+      } else {
+        alert("Failed to save loading stage: " + response.message);
+      }
+    } catch (error) {
+      console.error("Error saving loading stage:", error);
+      alert("Error saving loading stage: " + (error.response?.data?.message || error.message));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleReset = () => {
@@ -122,6 +177,9 @@ export default function LoadingStagePage() {
 
   const fc = (key) =>
     `${inputClass} ${errors[key] ? "border-red-400 focus:ring-red-400 focus:border-red-400" : ""}`;
+
+  const selectedTerminalLabel =
+    terminals.find((t) => String(t.value) === String(form.loadingStation))?.label || "";
 
   const hasSummary = form.loadingStation || form.operationType || scannedVINs.length > 0;
 
@@ -147,10 +205,20 @@ export default function LoadingStagePage() {
           <button
             type="button"
             onClick={handleSubmit}
-            className="flex items-center px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-semibold transition-colors shadow-sm"
+            disabled={saving}
+            className="flex items-center px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm font-semibold transition-colors shadow-sm"
           >
-            <Save className="h-4 w-4 mr-2" />
-            Save Loading Stage
+            {saving ? (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Save Loading Stage
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -161,8 +229,18 @@ export default function LoadingStagePage() {
           <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
           <span className="text-sm font-medium">
             Loading stage saved successfully.{" "}
-            {scannedVINs.length} VIN{scannedVINs.length !== 1 ? "s" : ""}{" "}
-            recorded for {form.operationType} at {form.loadingStation}.
+            {scannedVINs.length} VIN{scannedVINs.length !== 1 ? "s" : ""} recorded for{" "}
+            {form.operationType} at {selectedTerminalLabel || form.loadingStation}.
+          </span>
+        </div>
+      )}
+
+      {/* ── Fetch Error Banner ──────────────────────────────────────── */}
+      {fetchError && (
+        <div className="mb-5 flex items-center gap-3 px-5 py-3 rounded-lg bg-red-50 border border-red-200 text-red-800">
+          <X className="h-5 w-5 text-red-500 flex-shrink-0" />
+          <span className="text-sm font-medium">
+            Failed to load terminals from the server. Please refresh and try again.
           </span>
         </div>
       )}
@@ -182,9 +260,16 @@ export default function LoadingStagePage() {
                 <SelectField
                   value={form.loadingStation}
                   onChange={set("loadingStation")}
-                  options={loadingStations}
-                  placeholder="Select Loading Station"
+                  options={terminals}
+                  placeholder={
+                    loading
+                      ? "Loading terminals..."
+                      : fetchError
+                      ? "Failed to load terminals"
+                      : "Select Loading Station"
+                  }
                   hasError={!!errors.loadingStation}
+                  disabled={loading || fetchError}
                 />
                 {errors.loadingStation && (
                   <p className="text-xs text-red-500 mt-1">Loading station is required</p>
@@ -197,7 +282,7 @@ export default function LoadingStagePage() {
                 <div className="flex rounded-lg overflow-hidden border border-gray-300">
                   {[
                     { label: "Yard In", value: "Yard In", icon: LogIn },
-                    { label: "Yard Out", value: "Yard Out", icon: LogOut },
+                    { label: "Yard Out", value: "Yard Out", icon: ArrowRight },
                   ].map(({ label, value, icon: Icon }) => (
                     <button
                       key={value}
@@ -247,7 +332,7 @@ export default function LoadingStagePage() {
                     ref={textareaRef}
                     value={form.vinDetails}
                     onChange={set("vinDetails")}
-                    placeholder="Enter or scan VIN numbers&#10;(use commas, spaces or new lines to separate)"
+                    placeholder={"Enter or scan VIN numbers\n(use commas, spaces or new lines to separate)"}
                     rows={5}
                     className={`${fc("vinDetails")} resize-none pr-10`}
                   />
@@ -289,10 +374,7 @@ export default function LoadingStagePage() {
                     </div>
                     <div className="p-3 max-h-40 overflow-y-auto divide-y divide-gray-50">
                       {scannedVINs.map((vin, i) => (
-                        <div
-                          key={i}
-                          className="flex items-center justify-between py-1.5 group"
-                        >
+                        <div key={i} className="flex items-center justify-between py-1.5 group">
                           <div className="flex items-center gap-2">
                             <Package className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
                             <span className="text-xs font-mono text-gray-700">{vin}</span>
@@ -322,10 +404,10 @@ export default function LoadingStagePage() {
             </div>
           </div>
 
-          {/* ── Section 3: Yard Out Details ─────────────────────────────── */}
+          {/* ── Section 3: Yard Out Details ──────────────────────────── */}
           {form.operationType === "Yard Out" && (
             <div className="px-6 pt-6 pb-5 border-b border-gray-100">
-              <SectionHeader icon={LogOut} title="Yard Out Details" color="blue" />
+              <SectionHeader icon={ArrowRight} title="Yard Out Details" color="blue" />
               <div className="grid grid-cols-2 gap-5">
 
                 {/* FNR No. */}
@@ -369,7 +451,9 @@ export default function LoadingStagePage() {
                     className={fc("deckPosition")}
                   />
                   {errors.deckPosition && (
-                    <p className="text-xs text-red-500 mt-1">Deck Position is required for Yard Out</p>
+                    <p className="text-xs text-red-500 mt-1">
+                      Deck Position is required for Yard Out
+                    </p>
                   )}
                 </div>
 
@@ -401,7 +485,7 @@ export default function LoadingStagePage() {
                 {form.loadingStation && (
                   <span className="text-xs text-gray-600">
                     <span className="font-semibold text-gray-800">Station:</span>{" "}
-                    {form.loadingStation}
+                    {selectedTerminalLabel || form.loadingStation}
                   </span>
                 )}
                 {form.operationType && (
@@ -420,14 +504,12 @@ export default function LoadingStagePage() {
                   <>
                     {form.fnrNo && (
                       <span className="text-xs text-gray-600">
-                        <span className="font-semibold text-gray-800">FNR No.:</span>{" "}
-                        {form.fnrNo}
+                        <span className="font-semibold text-gray-800">FNR No.:</span> {form.fnrNo}
                       </span>
                     )}
                     {form.rakeNo && (
                       <span className="text-xs text-gray-600">
-                        <span className="font-semibold text-gray-800">Rake No.:</span>{" "}
-                        {form.rakeNo}
+                        <span className="font-semibold text-gray-800">Rake No.:</span> {form.rakeNo}
                       </span>
                     )}
                     {form.deckPosition && (
@@ -448,7 +530,7 @@ export default function LoadingStagePage() {
             </div>
           )}
 
-          {/* ── Footer ─────────────────────────────────────────────── */}
+          {/* ── Footer ──────────────────────────────────────────────── */}
           <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
             <p className="text-xs text-gray-400">
               Fields marked <span className="text-red-400 font-semibold">*</span> are required

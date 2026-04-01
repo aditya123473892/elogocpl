@@ -99,13 +99,7 @@ export function AdminSidebar({
       path: "rake-report",
       description: "Rake Operations Report",
     },
-    {
-      name: "Comprehensive Reports",
-      icon: BarChart3,
-      path: "comprehensive-reports",
-      description: "All Operations Reports",
-    },
-    {
+        {
       name: "Unified Report",
       icon: FileSpreadsheet,
       path: "unified-report",
