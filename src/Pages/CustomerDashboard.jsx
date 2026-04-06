@@ -26,7 +26,7 @@ const DealerReport = () => {
     loadDealerRecords();
   }, []);
 
-  // Calculate statistics - Using data from all sources
+  // Calculate statistics - Using real data from all sources
   const statistics = {
     totalVinsCars: dealerRecords.length, // Total from dealer records
     oemPickups: oemPickupRecords.length, // Total from OEM pickup records
@@ -37,35 +37,46 @@ const DealerReport = () => {
       record.Status === 'REACHED PLANT'
     ).length, // Only from OEM records with REACHED PLANT status
     
-    // Real operational data from loading stages
-    loadedVehicles: loadingStageRecords.filter(record => 
-      record.status === 'LOADED' || record.status === 'COMPLETED'
-    ).length, // Vehicles that have been loaded into rakes
+    // Real operational data from loading stages - count loaded vehicles from LoadingStage component
+    loadedVehicles: loadingStageRecords.filter(record => {
+      // Count vehicles based on operation type and VIN details
+      // Note: API returns Operation_Type and VIN_Details fields
+      return record.Operation_Type === 'Yard Out' && record.VIN_Details;
+    }).reduce((total, record) => {
+      const vinCount = record.VIN_Details ? 
+        record.VIN_Details.split(/[\s,\n]+/).filter(v => v.trim().length > 0).length : 0;
+      return total + vinCount;
+    }, 0), // Total vehicles loaded in yard out operations
     
-    // Real operational data from rake departures (dispatched)
+    // Real operational data from rake departures - count dispatched rakes from RakeDeparture component
     dispatchedRakes: rakeDepartureRecords.filter(record => 
-      record.status === 'DEPARTED' || record.status === 'DISPATCHED'
-    ).length, // Rakes that have been dispatched from yards
+      record.DepartureDate || record.DEPARTURE_DATE
+    ).length, // Rakes that have departure dates (dispatched from yards)
     
-    // Real operational data from last mile departures
+    // Real operational data from last mile departures - count from LastMileDeparture component
     lastMileDepartures: lastMileDepartureRecords.filter(record => 
-      record.status === 'DEPARTED' || record.status === 'DISPATCHED'
-    ).length, // Last mile departures from plants to yards
+      record.Departure_Date || record.departureDate
+    ).length, // Last mile departures with departure dates
     
-    // Rakes currently assigned for loading
+    // Rakes assigned for loading - from LoadingStage component
     rakeAssigned: loadingStageRecords.filter(record => 
-      record.status === 'ASSIGNED' || record.status === 'PENDING'
-    ).length, // Rakes assigned for loading operations
+      record.Operation_Type === 'Yard In' || 
+      (record.Operation_Type === 'Yard Out' && !record.VIN_Details)
+    ).length, // Rakes in yard in or ready for loading
     
-    // Vehicles in transit to destination yards (from rake departures)
-    inTransitToDestinationYard: rakeDepartureRecords.filter(record => 
-      record.status === 'IN-TRANSIT' || record.status === 'DISPATCHED'
-    ).length, // Rakes in transit to destination yards
+    // Vehicles in transit to destination yards - same as last mile departures
+    inTransitToDestinationYard: lastMileDepartureRecords.filter(record => 
+      record.Departure_Date || record.departureDate
+    ).length, // Same as last mile departures - vehicles in transit to yards
     
-    // Vehicles in transit to destination dealers
-    inTransitToDestinationDealer: lastMileDepartureRecords.filter(record => 
-      record.status === 'IN-TRANSIT' && record.destination_dealer
-    ).length, // Vehicles in last mile transit to dealers
+    // Vehicles in transit to destination dealers - from LastMileDeparture component
+    inTransitToDestinationDealer: lastMileDepartureRecords.filter(record => {
+      const departureDate = record.Departure_Date || record.departureDate;
+      const deliveryDate = record.Delivery_Date || record.deliveryDate;
+      return departureDate && 
+        new Date(departureDate) <= new Date() &&
+        (!deliveryDate || new Date(deliveryDate) > new Date());
+    }).length, // Vehicles departed but not yet delivered
     
     ewayBillExpiryDelay: dealerRecords.filter(record => {
       if (!record.EWAY_BILL || !record.VALID_TILL) return false;
@@ -107,30 +118,108 @@ const DealerReport = () => {
     try {
       setLoading(true);
       
-      // Load all seven data sources
-      const [dealerData, oemData, arrivalData, rakeVisitData, rakeDepartureData, lastMileData, loadingStageData] = await Promise.all([
-        dealerTripDetailsAPI.getAllDealerTripDetails(),
-        oemPickupAPI.getAllOEMPickups(),
-        arrivalAtPlantAPI.getAllArrivals(),
-        rakeVisitAPI.getAllRakeVisits(),
-        rakeDepartureAPI.getAllRakeDepartures(),
-        lastMileDepartureAPI.getAllLastMileDepartures(),
-        loadingStageAPI.getAllLoadingStages()
-      ]);
+      console.log("Starting to load all data sources...");
       
-      setDealerRecords(dealerData.data || dealerData || []);
-      setOemPickupRecords(oemData.data || oemData || []);
-      setArrivalRecords(arrivalData.data || arrivalData || []);
-      setRakeVisitRecords(rakeVisitData.data || rakeVisitData || []);
-      setRakeDepartureRecords(rakeDepartureData.data || rakeDepartureData || []);
-      setLastMileDepartureRecords(lastMileData.data || lastMileData || []);
-      setLoadingStageRecords(loadingStageData.data || loadingStageData || []);
+      // Load all seven data sources with individual error handling
+      try {
+        const dealerData = await dealerTripDetailsAPI.getAllDealerTripDetails();
+        console.log("Dealer data loaded:", dealerData);
+        setDealerRecords(dealerData.data || dealerData || []);
+      } catch (error) {
+        console.error("Error loading dealer data:", error);
+        setDealerRecords([]);
+      }
+      
+      try {
+        const oemData = await oemPickupAPI.getAllOEMPickups();
+        console.log("OEM data loaded:", oemData);
+        setOemPickupRecords(oemData.data || oemData || []);
+      } catch (error) {
+        console.error("Error loading OEM data:", error);
+        setOemPickupRecords([]);
+      }
+      
+      try {
+        const arrivalData = await arrivalAtPlantAPI.getAllArrivals();
+        console.log("Arrival data loaded:", arrivalData);
+        setArrivalRecords(arrivalData.data || arrivalData || []);
+      } catch (error) {
+        console.error("Error loading arrival data:", error);
+        setArrivalRecords([]);
+      }
+      
+      try {
+        const rakeVisitData = await rakeVisitAPI.getAllRakeVisits();
+        console.log("Rake visit data loaded:", rakeVisitData);
+        setRakeVisitRecords(rakeVisitData.data || rakeVisitData || []);
+      } catch (error) {
+        console.error("Error loading rake visit data:", error);
+        setRakeVisitRecords([]);
+      }
+      
+      try {
+        const rakeDepartureData = await rakeDepartureAPI.getAllRakeDepartures();
+        console.log("Rake departure data loaded:", rakeDepartureData);
+        setRakeDepartureRecords(rakeDepartureData.data || rakeDepartureData || []);
+      } catch (error) {
+        console.error("Error loading rake departure data:", error);
+        setRakeDepartureRecords([]);
+      }
+      
+      try {
+        const lastMileData = await lastMileDepartureAPI.getAllLastMileDepartures();
+        console.log("Last mile data loaded:", lastMileData);
+        setLastMileDepartureRecords(lastMileData.data || lastMileData || []);
+      } catch (error) {
+        console.error("Error loading last mile data:", error);
+        setLastMileDepartureRecords([]);
+      }
+      
+      try {
+        const loadingStageData = await loadingStageAPI.getAllLoadingStages();
+        console.log("Loading stage data loaded:", loadingStageData);
+        console.log("Loading stage records:", loadingStageData.data);
+        setLoadingStageRecords(loadingStageData.data || loadingStageData || []);
+      } catch (error) {
+        console.error("Error loading loading stage data:", error);
+        setLoadingStageRecords([]);
+      }
       
       // Set filtered records from dealer data for the table
-      setFilteredRecords(dealerData.data || dealerData || []);
+      setFilteredRecords(dealerRecords);
+      
+      console.log("All data loading completed");
+      console.log("Final data counts:", {
+        dealerRecords: dealerRecords.length,
+        oemPickupRecords: oemPickupRecords.length,
+        loadingStageRecords: loadingStageRecords.length,
+        rakeDepartureRecords: rakeDepartureRecords.length,
+        lastMileDepartureRecords: lastMileDepartureRecords.length
+      });
+      
+      // Log sample data structure for debugging
+      if (loadingStageRecords.length > 0) {
+        console.log("Sample loading stage record:", loadingStageRecords[0]);
+      }
+      if (rakeDepartureRecords.length > 0) {
+        console.log("Sample rake departure record:", rakeDepartureRecords[0]);
+      }
+      if (lastMileDepartureRecords.length > 0) {
+        console.log("Sample last mile departure record:", lastMileDepartureRecords[0]);
+      }
     } catch (error) {
       console.error("Error loading records:", error);
-      toast.error("Failed to load records");
+      toast.error("Failed to load records: " + (error.message || "Unknown error"));
+      
+      // Set all records to empty on error
+      setDealerRecords([]);
+      setOemPickupRecords([]);
+      setArrivalRecords([]);
+      setRakeVisitRecords([]);
+      setRakeDepartureRecords([]);
+      setLastMileDepartureRecords([]);
+      setLoadingStageRecords([]);
+      setFilteredRecords([]);
     } finally {
       setLoading(false);
     }
@@ -236,18 +325,7 @@ const DealerReport = () => {
       {/* Statistics Cards - 8 Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-6">
         {/* Total VINs/Cars Card */}
-        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total VINs/Cars</p>
-              <p className="text-2xl font-bold text-gray-900">{statistics.totalVinsCars}</p>
-              <p className="text-xs text-gray-500 mt-1">Total vehicles</p>
-            </div>
-            <div className="bg-blue-100 rounded-full p-3">
-              <Package className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
-        </div>
+      
 
         {/* OEM Pickups Card */}
         <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
@@ -386,6 +464,23 @@ const DealerReport = () => {
             <div className="bg-red-100 rounded-full p-3">
               <AlertTriangle className="w-6 h-6 text-red-600" />
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Debug Information */}
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <AlertTriangle className="w-5 h-5 text-yellow-600 mr-2" />
+            <span className="text-yellow-800 font-medium">
+              Debug Info - Data Counts: 
+              Dealer: {dealerRecords.length} | 
+              OEM: {oemPickupRecords.length} | 
+              Loading: {loadingStageRecords.length} | 
+              Rake Departures: {rakeDepartureRecords.length} | 
+              Last Mile: {lastMileDepartureRecords.length}
+            </span>
           </div>
         </div>
       </div>
