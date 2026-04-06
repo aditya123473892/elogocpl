@@ -294,7 +294,7 @@ const RakeExamManagement = () => {
     fetchExams();
     fetchExamTypes();
     fetchEquipment();
-  }, []);
+  }, [fetchExamTypes, fetchEquipment]);
 
   useEffect(() => {
     if (searchTerm) {
