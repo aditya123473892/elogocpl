@@ -58,14 +58,14 @@ export default function Login() {
     try {
       if (isLogin) {
         const { email, password, location } = formData;
-        
+
         // Validate terminal selection
         if (!location) {
           setError("Please select a terminal to continue");
           setLoading(false);
           return;
         }
-        
+
         console.log("Attempting login for:", { email, location });
 
         const response = await authAPI.login({ email, password, location });
@@ -86,7 +86,7 @@ export default function Login() {
           localStorage.setItem("user", JSON.stringify(user));
           localStorage.setItem("token", token);
           localStorage.setItem("selectedLocation", location);
-          
+
           // Set selected location in context
           setSelectedLocation(location);
 
@@ -112,9 +112,16 @@ export default function Login() {
           throw new Error("Invalid response from server");
         }
       } else {
-        // Disable signup - show message instead
-        toast.error("Sign up is currently disabled. Please contact administrator.");
-        setError("Sign up is currently disabled. Please contact administrator.");
+        // Signup flow
+        const response = await authAPI.signup(formData);
+        console.log("Signup Response:", response);
+
+        if (response && (response.success || response.token)) {
+          toast.success("Account created successfully! Please log in.");
+          toggleAuthMode();
+        } else {
+          throw new Error(response?.message || "Signup failed. Please try again.");
+        }
       }
     } catch (err) {
       console.error("Authentication error:", err);
@@ -179,13 +186,23 @@ export default function Login() {
             {/* Auth Tabs */}
             <div className="flex mb-6 bg-gray-100 rounded-lg p-1">
               <button
-                onClick={() => setIsLogin(true)}
+                onClick={() => {
+                  setIsLogin(true);
+                  setError("");
+                  setFormData({
+                    name: "",
+                    email: "",
+                    phone: "",
+                    password: "",
+                    role: "Customer",
+                    location: "",
+                  });
+                }}
                 className={`w-1/2 py-2 text-sm font-medium rounded-md transition-all ${
                   isLogin
                     ? "bg-white shadow text-blue-600"
-                    : "text-gray-500 hover:text-gray-700 cursor-not-allowed"
+                    : "text-gray-500 hover:text-gray-700"
                 }`}
-                disabled={true} // Always keep login selected
               >
                 <span className="flex items-center justify-center">
                   <LogIn className="w-4 h-4 mr-2" />
@@ -193,15 +210,12 @@ export default function Login() {
                 </span>
               </button>
               <button
-                onClick={() => {
-                  toast.error("Sign up is currently disabled. Please contact administrator.");
-                }}
+                onClick={toggleAuthMode}
                 className={`w-1/2 py-2 text-sm font-medium rounded-md transition-all ${
                   !isLogin
                     ? "bg-white shadow text-blue-600"
-                    : "text-gray-500 hover:text-gray-700 cursor-not-allowed"
+                    : "text-gray-500 hover:text-gray-700"
                 }`}
-                disabled={true} // Always disable signup
               >
                 <span className="flex items-center justify-center">
                   <UserPlus className="w-4 h-4 mr-2" />
@@ -242,7 +256,7 @@ export default function Login() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  User Id 
+                  User Id
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
@@ -340,78 +354,43 @@ export default function Login() {
                 </div>
               </div>
 
-              {/* Terminal Selection for Login */}
-              {isLogin && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Terminal <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <select
-                      name="location"
-                      value={formData.location}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setFormData((prev) => ({
-                          ...prev,
-                          location: value,
-                        }));
-                        sessionStorage.setItem("selectedLocation", value);
-                      }}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg appearance-none focus:ring-blue-500 focus:border-blue-500"
-                      required
-                    >
-                      <option value="" disabled>
-                        Select Terminal
+              {/* Terminal Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Terminal {isLogin && <span className="text-red-500">*</span>}
+                </label>
+                <div className="relative">
+                  <select
+                    name="location"
+                    value={formData.location}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFormData((prev) => ({
+                        ...prev,
+                        location: value,
+                      }));
+                      sessionStorage.setItem("selectedLocation", value);
+                    }}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg appearance-none focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  >
+                    <option value="" disabled>
+                      Select Terminal
+                    </option>
+                    {terminals.map((terminal) => (
+                      <option
+                        key={terminal.TerminalId}
+                        value={terminal.TerminalCode}
+                      >
+                        {terminal.TerminalName}
                       </option>
-                      {terminals.map((terminal) => (
-                        <option key={terminal.TerminalId} value={terminal.TerminalCode}>
-                          {terminal.TerminalName}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                      <ChevronDown className="h-5 w-5 text-gray-400" />
-                    </div>
+                    ))}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                    <ChevronDown className="h-5 w-5 text-gray-400" />
                   </div>
                 </div>
-              )}
-
-              {!isLogin && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Terminal
-                  </label>
-                  <div className="relative">
-                    <select
-                      name="location"
-                      value={formData.location}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setFormData((prev) => ({
-                          ...prev,
-                          location: value,
-                        }));
-                        sessionStorage.setItem("selectedLocation", value);
-                      }}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg appearance-none focus:ring-blue-500 focus:border-blue-500"
-                      required={!isLogin}
-                    >
-                      <option value="" disabled>
-                        Select Terminal
-                      </option>
-                      {terminals.map((terminal) => (
-                        <option key={terminal.TerminalId} value={terminal.TerminalCode}>
-                          {terminal.TerminalName}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                      <ChevronDown className="h-5 w-5 text-gray-400" />
-                    </div>
-                  </div>
-                </div>
-              )}
+              </div>
 
               {isLogin && (
                 <div className="flex items-center justify-between">
@@ -456,8 +435,6 @@ export default function Login() {
                 </button>
               </div>
             </form>
-
-         
           </div>
         </div>
 
@@ -475,9 +452,8 @@ export default function Login() {
               Manage Your VIN's with Confidence
             </h2>
             <p className="text-blue-100 mb-6">
-              Our comprehensive Auto Freight system helps you track
-              vehicles, manage drivers, and optimize routes for maximum
-              efficiency.
+              Our comprehensive Auto Freight system helps you track vehicles,
+              manage drivers, and optimize routes for maximum efficiency.
             </p>
             <div className="space-y-4">
               <div className="flex items-start">
