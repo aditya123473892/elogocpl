@@ -10,7 +10,6 @@ import {
   authAPI,
   setAuthToken,
   isTokenExpired,
-  isValidTokenFormat,
   clearAuthData,
 } from "../utils/Api";
 

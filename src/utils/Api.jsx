@@ -24,9 +24,7 @@ const api = axios.create({
 
 
 
-// Variable to track if we're already handling an auth error to prevent infinite loops
-
-let isHandlingAuthError = false;
+// Note: Auth error handling is managed through response interceptors
 
 
 
@@ -61,11 +59,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
 
   (response) => {
-
-    isHandlingAuthError = false;
-
     return response;
-
   },
 
   (error) => {
@@ -799,10 +793,8 @@ export const locationAPI = {
     try {
 
       const response = await api.get("/location-master/locations");
-
-      return response.data;
-
       console.log("Locations fetched successfully:", response.data);
+      return response.data;
 
     } catch (error) {
 
@@ -1040,10 +1032,10 @@ export const vendorAPI = {
 
 
 
-// 2. Update these functions in your VendorDetails component:
+// Note: Document upload functionality can be implemented directly in component if needed
+// Commented out for now - use vendorAPI.createVendor directly
 
-
-
+/* Keeping for reference - update component if needed:
 const createVendorWithDocuments = async (formData, documentFiles) => {
 
   const data = new FormData();
@@ -1087,11 +1079,10 @@ const createVendorWithDocuments = async (formData, documentFiles) => {
 
 
   return await vendorAPI.createVendor(data);
-
 };
+*/
 
-
-
+/*
 const updateVendorWithDocuments = async (id, formData, documentFiles) => {
 
   const data = new FormData();
@@ -1135,8 +1126,8 @@ const updateVendorWithDocuments = async (id, formData, documentFiles) => {
 
 
   return await vendorAPI.updateVendor(id, data);
-
 };
+*/
 
 
 
