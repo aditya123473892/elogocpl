@@ -90,7 +90,7 @@ const VinDetailsPage = () => {
     } else {
       setContainers([createEmptyContainer()]);
     }
-  }, []);
+  }, [createEmptyContainer]);
 
   // Group containers by vehicle number whenever containers change
   useEffect(() => {
@@ -108,7 +108,7 @@ const VinDetailsPage = () => {
     if (expandedVehicle === null && Object.keys(grouped).length > 0) {
       setExpandedVehicle(Object.keys(grouped)[0]);
     }
-  }, [containers]);
+  }, [containers, expandedVehicle]);
 
   // Initialize empty containers based on vehicle type
   const initializeEmptyContainers = (vType) => {
@@ -213,14 +213,14 @@ const VinDetailsPage = () => {
         loadContainerData();
       });
     }
-  }, [transportRequestId]);
+  }, [transportRequestId, fetchExistingTransporterData, loadContainerData]);
 
   // Initialize empty containers when vehicle data is loaded
   useEffect(() => {
     if (vehicleType && vehicleDataList.length > 0 && containers.length === 0) {
       initializeEmptyContainers(vehicleType);
     }
-  }, [vehicleDataList, vehicleType]);
+  }, [vehicleDataList, vehicleType, containers.length, initializeEmptyContainers]);
 
   const onBack = () => {
     sessionStorage.setItem("containerData", JSON.stringify(containers));

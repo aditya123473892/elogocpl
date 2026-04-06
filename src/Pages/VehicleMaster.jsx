@@ -5,7 +5,7 @@ import { vehicleMasterAPI, driverMasterAPI } from "../utils/Api";
 const VehicleMaster = () => {
   const [vehicles, setVehicles] = useState([]);
   const [filteredVehicles, setFilteredVehicles] = useState([]);
-  const [transporters, setTransporters] = useState([]);
+  const [transporters, setTransporters] = useState([]); // Used in fetchTransporters
   const [drivers, setDrivers] = useState([]); // FIX 1: Added missing drivers state
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -154,26 +154,25 @@ const VehicleMaster = () => {
     setShowModal(true);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this vehicle?")) return;
-
-    try {
-      setLoading(true);
-      await vehicleMasterAPI.deleteVehicle(id);
-      setMessage({
-        type: "success",
-        text: "Vehicle deleted successfully"
-      });
-      fetchVehicles();
-    } catch (error) {
-      setMessage({
-        type: "error",
-        text: error.message || "Failed to delete vehicle"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  // const handleDelete = async (id) => {
+  //   if (!window.confirm("Are you sure you want to delete this vehicle?")) return;
+  //   try {
+  //     setLoading(true);
+  //     await vehicleMasterAPI.deleteVehicle(id);
+  //     setMessage({
+  //       type: "success",
+  //       text: "Vehicle deleted successfully"
+  //     });
+  //     fetchVehicles();
+  //   } catch (error) {
+  //     setMessage({
+  //       type: "error",
+  //       text: error.message || "Failed to delete vehicle"
+  //     });
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const handleToggleStatus = async (id) => {
     try {

@@ -150,7 +150,6 @@ const UnifiedReport = () => {
 
     // Process rake visits for transit data
     rakeVisits.forEach(visit => {
-      const rake = rakes.find(r => r.RakeId === visit.RAKE_ID);
       const transitTime = visit.ARRVAL_DATE && visit.DEPARTURE_DATE 
         ? calculateTransitTime(visit.ARRVAL_DATE, visit.DEPARTURE_DATE)
         : 'N/A';
@@ -340,7 +339,7 @@ const UnifiedReport = () => {
     if (rakeVisits.length > 0 || rakePlans.length > 0 || oemPickups.length > 0) {
       processUnifiedData();
     }
-  }, [rakeVisits, rakePlans, rakes, oemPickups, transportRequests]);
+  }, [rakeVisits, rakePlans, rakes, oemPickups, transportRequests, processUnifiedData]);
 
   const filteredData = reportData.filter(item => {
     const matchesSearch = 
@@ -427,7 +426,7 @@ const UnifiedReport = () => {
         try {
           const csvData = e.target.result;
           const lines = csvData.split('\n');
-          const headers = lines[0].split(',');
+          // const headers = lines[0].split(','); // Unused variable
           const newRecords = [];
           
           for (let i = 1; i < lines.length; i++) {
