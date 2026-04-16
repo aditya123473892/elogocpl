@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { toast } from "react-toastify";
 import { transporterAPI } from "../utils/Api";
 import { useNavigate } from "react-router-dom";
@@ -20,7 +20,7 @@ const VinDetailsPage = () => {
   const [modalData, setModalData] = useState(null);
 
   // Helper function to get VIN count from vehicle type
-  const getVinCountFromVehicleType = (vType) => {
+  const getVinCountFromVehicleType = useCallback((vType) => {
     if (!vType) return 0;
 
     if (vType.startsWith("Tr-")) {
@@ -32,10 +32,10 @@ const VinDetailsPage = () => {
       return 4;
     }
     return 0;
-  };
+  }, []);
 
   // Create empty container with a unique client-side ID
-  const createEmptyContainer = (vehicleNumber = "") => ({
+  const createEmptyContainer = useCallback((vehicleNumber = "") => ({
     clientId: `temp-${Date.now()}-${Math.random()}`,
     id: null,
     containerNo: "", // VIN will be stored here
@@ -43,7 +43,7 @@ const VinDetailsPage = () => {
       vehicleNumber ||
       (vehicleDataList.length > 0 ? vehicleDataList[0].vehicleNumber : ""),
     isDirty: true, // New containers are always dirty
-  });
+  }), [vehicleDataList]);
 
   // Initialize with data from sessionStorage
   useEffect(() => {
@@ -111,7 +111,7 @@ const VinDetailsPage = () => {
   }, [containers, expandedVehicle]);
 
   // Initialize empty containers based on vehicle type
-  const initializeEmptyContainers = (vType) => {
+  const initializeEmptyContainers = useCallback((vType) => {
     const vinCount = getVinCountFromVehicleType(vType);
     if (vinCount > 0 && vehicleDataList.length > 0) {
       const newContainers = [];
@@ -125,10 +125,10 @@ const VinDetailsPage = () => {
       }
       setContainers(newContainers);
     }
-  };
+  }, [getVinCountFromVehicleType, vehicleDataList, createEmptyContainer]);
 
   // Fetch existing transporter data
-  const fetchExistingTransporterData = async () => {
+  const fetchExistingTransporterData = useCallback(async () => {
     if (!transportRequestId) return;
 
     try {
@@ -154,10 +154,10 @@ const VinDetailsPage = () => {
     } catch (error) {
       console.error("Error fetching existing transporter data:", error);
     }
-  };
+  }, [transportRequestId]);
 
   // Load existing container data (VINs)
-  const loadContainerData = async () => {
+  const loadContainerData = useCallback(async () => {
     if (!transportRequestId) {
       toast.error("Transport request ID is missing");
       return;
@@ -204,7 +204,7 @@ const VinDetailsPage = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [transportRequestId, vehicleType, initializeEmptyContainers]);
 
   // Load data on component mount
   useEffect(() => {
