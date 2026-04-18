@@ -54,7 +54,8 @@ import RailOperationsReport from "./Pages/RailOperationsReport";
 import LastMileDeparturePage from "./Pages/LastMileDeparture";
 import LastMileDepartureDashboard from "./Pages/LastMileDepartureDashboard";
 import Header from "./Components/dashboard/Header";
-import { terminalMasterAPI } from "./utils/Api";  
+import { terminalMasterAPI } from "./utils/Api";
+import RateContractMaster from "./Pages/RateContractMaster";  
 
 const DashboardLayout = ({ children }) => {
   const [collapsed, setCollapsed] = useState(false);
@@ -514,6 +515,16 @@ function App() {
               <ProtectedRoute allowedRoles={["Customer"]}>
                 <DashboardLayout>
                   <ArticleMaster />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/rate-contract-master"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+                  <RateContractMaster />
                 </DashboardLayout>
               </ProtectedRoute>
             }

@@ -224,6 +224,12 @@ export function CustomerSidebar({
           path: "article-master",
           description: "Article Management",
         },
+        {
+          name: "Rate Contract Master",
+          icon: FileText,
+          path: "rate-contract-master",
+          description: "Rate Contract Management",
+        },
       ],
 
     },

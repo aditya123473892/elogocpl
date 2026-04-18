@@ -84,7 +84,7 @@ export default function LoadingStagePage() {
   useEffect(() => {
     const fetchTerminals = async () => {
       try {
-        const response = await fetch("http://localhost:4000/api/terminal-master");
+        const response = await fetch("https://elogivinbackend-1.onrender.com/api/terminal-master");
         const result = await response.json();
 
         if (result.success && result.data) {

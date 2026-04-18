@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { toast } from "react-toastify";
 import {
   transporterAPI,
@@ -47,7 +47,7 @@ export const TransporterDetails = ({
     setServices(servicesArray);
   }, [selectedServices]);
 
-  const initializeVehicleData = (numVehicles) => {
+  const initializeVehicleData = useCallback((numVehicles) => {
     const defaultVehicleData = {
       transporterName: "",
       vehicleNumber: "",
@@ -85,7 +85,7 @@ export const TransporterDetails = ({
       vehicleIndex: index + 1,
       id: null,
     }));
-  };
+  }, [services, vehicleType]);
 
   useEffect(() => {
     // Initialize or update vehicleDataList when vehicleCount changes
@@ -103,9 +103,9 @@ export const TransporterDetails = ({
 
       return newList;
     });
-  }, [vehicleCount, services, vehicleType]);
+  }, [vehicleCount, initializeVehicleData]);
 
-  const loadTransporterDetails = async () => {
+  const loadTransporterDetails = useCallback(async () => {
     if (!transportRequestId) return;
 
     setIsLoading(true);
@@ -205,13 +205,13 @@ export const TransporterDetails = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [transportRequestId, vehicleType, vehicleCount, initializeVehicleData]);
 
   useEffect(() => {
     if (transportRequestId) {
       loadTransporterDetails();
     }
-  }, [transportRequestId, vehicleType]);
+  }, [transportRequestId, loadTransporterDetails]);
 
   useEffect(() => {
     const fetchTransporters = async () => {
