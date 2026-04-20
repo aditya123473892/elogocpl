@@ -111,6 +111,12 @@ export function AdminSidebar({
       path: "rail-operations-report",
       description: "Complete Rail Operations",
     },
+    {
+      name: "Customer Master",
+      icon: Users,
+      path: "customer-master",
+      description: "Customer Management",
+    },
     // {
     //   name: "Fleet Equipment",
     //   icon: Activity, // Add this line to fix the error

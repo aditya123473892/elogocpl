@@ -314,10 +314,10 @@ export default function ArrivalAtPlantPage() {
         if (!form.transportMode) {
           setForm((prev) => ({ ...prev, transportMode: "Truck" }));
         }
-        if (vehicleDetails.sideing || vehicleDetails.sidingLocation) {
+        if (vehicleDetails.sideing || vehicleDetails.sidingLocation || vehicleDetails.plant) {
           setForm((prev) => ({
             ...prev,
-            SideingLocation: vehicleDetails.sideing || vehicleDetails.sidingLocation,
+            SideingLocation: vehicleDetails.sideing || vehicleDetails.sidingLocation || vehicleDetails.plant,
           }));
         }
         if (vehicleDetails.yard || vehicleDetails.yardLocation) {
@@ -559,13 +559,13 @@ export default function ArrivalAtPlantPage() {
               <div>
                 <FieldLabel required>Siding Location</FieldLabel>
                 {form.vehicleDetails &&
-                (form.vehicleDetails.sideing || form.vehicleDetails.sidingLocation) ? (
+                (form.vehicleDetails.sideing || form.vehicleDetails.sidingLocation || form.vehicleDetails.plant) ? (
                   <>
                     <div className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-100 text-sm text-gray-700">
-                      {form.vehicleDetails.sideing || form.vehicleDetails.sidingLocation}
+                      {form.vehicleDetails.sideing || form.vehicleDetails.sidingLocation || form.vehicleDetails.plant}
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
-                      Siding location auto-populated from vehicle details
+                      Siding location auto-populated from OEM pickup data
                     </p>
                   </>
                 ) : (

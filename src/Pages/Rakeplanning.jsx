@@ -51,6 +51,7 @@ const RakePlanning = () => {
   const [arrivedRakes, setArrivedRakes] = useState([]);
   const [availableRoutes, setAvailableRoutes] = useState([]);
   const [availableTerminals, setAvailableTerminals] = useState([]);
+  const [availableSubRoutes, setAvailableSubRoutes] = useState([]);
 
   const [filteredPlans, setFilteredPlans] = useState([]);
 
@@ -376,12 +377,31 @@ const RakePlanning = () => {
       const ibTimeStr = now.toLocaleTimeString('en-GB', { hour12: false, hour: '2-digit', minute: '2-digit' }).replace(/:/g, '');
       const ibTrainNo = `${value}-${ibDateStr}${ibTimeStr}`;
       
+      // Fetch subroutes for the selected route
+      const selectedRoute = availableRoutes.find(route => 
+        (route.Route_Name || route.Route) === value
+      );
+      const subRoutes = selectedRoute?.sub_routes || [];
+      setAvailableSubRoutes(subRoutes);
+      
+      // Set default subroute to "Main Route" or first available subroute
       setFormData((prev) => ({ 
         ...prev, 
         [name]: value,
         Journey_Id: journeyId,
         Train_No: journeyId, // Set Train_No to match Journey_Id
-        IB_Train_No: ibTrainNo // Set IB_Train_No using route and current date/time
+        IB_Train_No: ibTrainNo, // Set IB_Train_No using route and current date/time
+        Sub_Route: subRoutes.length > 0 ? subRoutes[0] : "Main Route"
+      }));
+    }
+    
+    // Reset subroutes when route is cleared
+    if (name === "Route" && !value) {
+      setAvailableSubRoutes([]);
+      setFormData((prev) => ({ 
+        ...prev, 
+        [name]: value,
+        Sub_Route: "Main Route"
       }));
     }
 
@@ -906,6 +926,44 @@ const RakePlanning = () => {
 
 
 
+                {/* Route */}
+
+                <div>
+
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+
+                    Route <span className="text-red-500">*</span>
+
+                  </label>
+
+                  <select
+
+                    name="Route"
+
+                    value={formData.Route}
+
+                    onChange={handleInputChange}
+
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.Route ? "border-red-300" : "border-gray-300"}`}
+
+                  >
+
+                    <option value="">Select Route</option>
+
+                    {availableRoutes.map((route) => (
+
+                      <option key={route.RouteId || route.Route_Name} value={route.Route_Name || route.Route}>{route.Route_Name || route.Route}</option>
+
+                    ))}
+
+                  </select>
+
+                  {errors.Route && <p className="mt-1 text-sm text-red-600">{errors.Route}</p>}
+
+                </div>
+
+
+
                 {/* Sub Route */}
 
                 <div>
@@ -922,13 +980,21 @@ const RakePlanning = () => {
 
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
 
+                    disabled={!formData.Route}
+
                   >
 
-                    <option value="Main Route">Main Route</option>
-
-                    <option value="Sub Route 1">Sub Route 1</option>
-
-                    <option value="Sub Route 2">Sub Route 2</option>
+                    {formData.Route ? (
+                      availableSubRoutes.length > 0 ? (
+                        availableSubRoutes.map((subRoute, index) => (
+                          <option key={index} value={subRoute}>{subRoute}</option>
+                        ))
+                      ) : (
+                        <option value="Main Route">No Subroutes</option>
+                      )
+                    ) : (
+                      <option value="">Select Route First</option>
+                    )}
 
                   </select>
 
@@ -1041,44 +1107,6 @@ const RakePlanning = () => {
                   </select>
 
                   {errors.Device_ID && <p className="mt-1 text-sm text-red-600">{errors.Device_ID}</p>}
-
-                </div>
-
-
-
-                {/* Route */}
-
-                <div>
-
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-
-                    Route <span className="text-red-500">*</span>
-
-                  </label>
-
-                  <select
-
-                    name="Route"
-
-                    value={formData.Route}
-
-                    onChange={handleInputChange}
-
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.Route ? "border-red-300" : "border-gray-300"}`}
-
-                  >
-
-                    <option value="">Select Route</option>
-
-                    {availableRoutes.map((route) => (
-
-                      <option key={route.RouteId || route.Route_Name} value={route.Route_Name || route.Route}>{route.Route_Name || route.Route}</option>
-
-                    ))}
-
-                  </select>
-
-                  {errors.Route && <p className="mt-1 text-sm text-red-600">{errors.Route}</p>}
 
                 </div>
 

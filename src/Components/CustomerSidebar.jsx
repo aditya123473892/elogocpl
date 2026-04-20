@@ -20,6 +20,8 @@ import {
   Calendar,
   BarChart3,
   FileSpreadsheet,
+  Building2,
+  Users,
 } from "lucide-react";
 
 export function CustomerSidebar({
@@ -174,6 +176,23 @@ export function CustomerSidebar({
       ],
     },
     {
+      heading: "Maintenance",
+      items: [
+        {
+          name: "Exam Master",
+          icon: FileText,
+          path: "exam-types",
+          description: "Manage Exam Types",
+        },
+        {
+          name: "Exam Management",
+          icon: FileText,
+          path: "rake-exam",
+          description: "Manage Exams",
+        },
+      ],
+    },
+    {
       heading: "Master Data",
       items: [
         {
@@ -207,18 +226,6 @@ export function CustomerSidebar({
           description: "Analytics & History",
         },
         {
-          name: "Exam Type Management",
-          icon: FileText,
-          path: "exam-types",
-          description: "Manage Exam Types",
-        },
-        {
-          name: "Exam Management",
-          icon: FileText,
-          path: "rake-exam",
-          description: "Manage Exams",
-        },
-        {
           name: "Article Master",
           icon: Train,
           path: "article-master",
@@ -229,6 +236,12 @@ export function CustomerSidebar({
           icon: FileText,
           path: "rate-contract-master",
           description: "Rate Contract Management",
+        },
+        {
+          name: "Customer Master",
+          icon: Users,
+          path: "customer-master",
+          description: "Customer Management",
         },
       ],
 

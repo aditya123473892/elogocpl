@@ -99,6 +99,11 @@ export default function OEMPickupPage() {
   const [allDriversData, setAllDriversData] = useState([]);
   const [driverDetails, setDriverDetails] = useState(null);
   const [qrCodeUrl, setQrCodeUrl] = useState("");
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [pendingVINs, setPendingVINs] = useState([]);
+  const [showPendingVINs, setShowPendingVINs] = useState(false);
+  const [pendingVINsError, setPendingVINsError] = useState(null);
+  const [pendingVINsSearch, setPendingVINsSearch] = useState("");
   const debounceTimerRef = useRef(null);
 
   // Toast notification function - moved before fetchLocations
@@ -155,9 +160,11 @@ export default function OEMPickupPage() {
     if (selectedDriver) {
       setDriverDetails(selectedDriver);
       generateDriverQRCode(selectedDriver);
+      setShowQRModal(true);
     } else {
       setDriverDetails(null);
       setQrCodeUrl("");
+      setShowQRModal(false);
     }
   }, [allDriversData]);
 
@@ -188,6 +195,19 @@ export default function OEMPickupPage() {
       console.error('Error generating QR code:', error);
     }
   };
+
+  // Fetch pending VINs for OEM pickup
+  const fetchPendingVINs = useCallback(async () => {
+    try {
+      const response = await oemPickupAPI.getAvailableVINs();
+      setPendingVINs(response.data || []);
+      setPendingVINsError(null);
+    } catch (error) {
+      console.error('Error fetching pending VINs:', error);
+      setPendingVINsError('Backend endpoint not available. Please implement /oem-pickup/available-vins endpoint.');
+      setPendingVINs([]);
+    }
+  }, []);
 
   // Fetch locations and drivers on component mount
   useEffect(() => {
@@ -300,6 +320,26 @@ export default function OEMPickupPage() {
     setErrors({});
     setSaved(false);
   };
+
+  const handleAddVIN = (vin) => {
+    const currentVINs = form.vinDetails.split(/[,\s\n]+/).map((v) => v.trim().toUpperCase()).filter((v) => v.length > 0);
+    if (!currentVINs.includes(vin)) {
+      const newVINs = [...currentVINs, vin].join(", ");
+      setForm((prev) => ({ ...prev, vinDetails: newVINs }));
+    }
+  };
+
+  const handleTogglePendingVINs = () => {
+    setShowPendingVINs(!showPendingVINs);
+    if (!showPendingVINs && pendingVINs.length === 0) {
+      fetchPendingVINs();
+    }
+  };
+
+  // Filter pending VINs based on search
+  const filteredPendingVINs = pendingVINs.filter(vin =>
+    vin.toLowerCase().includes(pendingVINsSearch.toLowerCase())
+  );
 
   const fc = (key) =>
     `${inputClass} ${errors[key] ? "border-red-400 focus:ring-red-400 focus:border-red-400" : ""}`;
@@ -443,6 +483,22 @@ export default function OEMPickupPage() {
                     (Only VINs from delivery reports allowed)
                   </span>
                 </FieldLabel>
+                
+                {/* Toggle Button for Pending VINs */}
+                <button
+                  type="button"
+                  onClick={handleTogglePendingVINs}
+                  className="mb-2 flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-300 rounded-lg text-xs font-medium hover:bg-blue-100 transition-colors"
+                >
+                  <ScanLine className="h-3.5 w-3.5" />
+                  {showPendingVINs ? 'Hide Pending VINs' : 'Show Pending VINs'}
+                  {pendingVINs.length > 0 && !showPendingVINs && (
+                    <span className="ml-1 bg-blue-600 text-white text-xs px-1.5 py-0.5 rounded-full">
+                      {pendingVINs.length}
+                    </span>
+                  )}
+                </button>
+
                 <div className="relative">
                   <textarea
                     value={form.vinDetails}
@@ -459,6 +515,76 @@ export default function OEMPickupPage() {
                     <ScanLine className="h-4 w-4" />
                   </button>
                 </div>
+
+                {/* Pending VINs Display */}
+                {showPendingVINs && pendingVINs.length > 0 && (
+                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <ScanLine className="h-4 w-4 text-blue-600" />
+                      <span className="text-xs font-semibold text-blue-800 uppercase tracking-wide">
+                        Pending VINs for OEM Pickup ({pendingVINs.length})
+                      </span>
+                    </div>
+                    {/* Search Input */}
+                    <div className="relative mb-3">
+                      <input
+                        type="text"
+                        value={pendingVINsSearch}
+                        onChange={(e) => setPendingVINsSearch(e.target.value)}
+                        placeholder="Search VINs..."
+                        className="w-full px-3 py-2 text-xs border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      {pendingVINsSearch && (
+                        <button
+                          type="button"
+                          onClick={() => setPendingVINsSearch("")}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {filteredPendingVINs.length > 0 ? (
+                        filteredPendingVINs.map((vin) => {
+                          const currentVINs = form.vinDetails.split(/[,\s\n]+/).map((v) => v.trim().toUpperCase()).filter((v) => v.length > 0);
+                          const isAdded = currentVINs.includes(vin);
+                          return (
+                            <button
+                              key={vin}
+                              type="button"
+                              onClick={() => handleAddVIN(vin)}
+                              disabled={isAdded}
+                              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                                isAdded
+                                  ? "bg-green-100 text-green-600 cursor-not-allowed"
+                                  : "bg-white text-blue-700 border border-blue-300 hover:bg-blue-100 hover:border-blue-400"
+                              }`}
+                            >
+                              {isAdded ? <Check className="h-3 w-3 inline mr-1" /> : null}
+                              {vin}
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <p className="text-xs text-gray-500 italic">No VINs match your search</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {showPendingVINs && pendingVINs.length === 0 && (
+                  <div className="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg text-center">
+                    {pendingVINsError ? (
+                      <div className="flex items-center gap-2 justify-center text-amber-600">
+                        <AlertCircle className="h-4 w-4" />
+                        <p className="text-xs">{pendingVINsError}</p>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-500">No pending VINs available</p>
+                    )}
+                  </div>
+                )}
 
                 {/* VIN Validation Feedback */}
                 {vinValidation && (
@@ -532,7 +658,7 @@ export default function OEMPickupPage() {
             {/* Time Fields */}
             <div className="grid grid-cols-2 gap-5 mt-5">
               <div>
-                <FieldLabel>Arrival Time</FieldLabel>
+                <FieldLabel>Pickup Time</FieldLabel>
                 <input
                   type="time"
                   value={form.arrivalTime}
@@ -545,7 +671,7 @@ export default function OEMPickupPage() {
                 </p>
               </div>
               <div>
-                <FieldLabel>Departure Time</FieldLabel>
+                <FieldLabel>Dispatch Time</FieldLabel>
                 <input
                   type="time"
                   value={form.departureTime}
@@ -591,9 +717,19 @@ export default function OEMPickupPage() {
             {/* Driver Details Display */}
             {driverDetails && (
               <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="flex items-center gap-2 mb-3">
-                  <User className="h-5 w-5 text-blue-600" />
-                  <h4 className="text-sm font-semibold text-blue-800">Driver Information</h4>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <User className="h-5 w-5 text-blue-600" />
+                    <h4 className="text-sm font-semibold text-blue-800">Driver Information</h4>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowQRModal(true)}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    <QrCode className="h-3.5 w-3.5" />
+                    Show QR Code
+                  </button>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
@@ -637,14 +773,21 @@ export default function OEMPickupPage() {
               )}
             </button>
           </div>
-
         </form>
       </div>
 
-      {/* QR Code Sidebar */}
-      <div className="w-80 ml-6">
-        {qrCodeUrl && driverDetails && (
-          <div className="bg-white rounded-lg shadow p-6 sticky top-6">
+      {/* QR Code Modal */}
+      {showQRModal && qrCodeUrl && driverDetails && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 relative">
+            <button
+              type="button"
+              onClick={() => setShowQRModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            
             <div className="flex items-center gap-2 mb-4">
               <QrCode className="h-5 w-5 text-green-600" />
               <h3 className="text-lg font-semibold text-gray-800">Driver QR Code</h3>
@@ -654,7 +797,7 @@ export default function OEMPickupPage() {
               <img 
                 src={qrCodeUrl} 
                 alt="Driver QR Code" 
-                className="w-48 h-48 border-2 border-gray-200 rounded-lg mb-4"
+                className="w-64 h-64 border-2 border-gray-200 rounded-lg mb-4"
               />
               
               <div className="w-full space-y-2 text-sm">
@@ -681,17 +824,8 @@ export default function OEMPickupPage() {
               </div>
             </div>
           </div>
-        )}
-        
-        {!qrCodeUrl && (
-          <div className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-8 text-center">
-            <QrCode className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-            <p className="text-sm text-gray-500">
-              Select a driver to generate QR code
-            </p>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Toast Notification */}
       {toast && (
