@@ -31,7 +31,8 @@ const DealerReport = () => {
         record.Sales_Model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         record.Dealer_Name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         record.Destination_City?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        record.INVOICE_NO?.toLowerCase().includes(searchTerm.toLowerCase())
+        record.INVOICE_NO?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        record.Rake_NO?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -176,7 +177,7 @@ const DealerReport = () => {
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search by ASN number, vehicle, supplier..."
+                placeholder="Search by rake no, invoice, VIN, dealer, city..."
                 className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>

@@ -629,10 +629,9 @@ export default function RakeArrivalPage() {
             {[
               { label: "Arrival Date", key: "arrivalDate", required: true },
               { label: "Placement", key: "placement_arr" },
-              { label: "Unloading Start", key: "unloadingStart" },
-              { label: "Unloading End", key: "unloadingEnd" },
-              { label: "Stabling Start", key: "stablingStart" },
-              { label: "Stabling End", key: "stablingEnd" },
+              { label: "Operation Start", key: "unloadingStart" },
+              { label: "Operation End", key: "unloadingEnd" },
+              // Stabling Start and Stabling End hidden for now
               { label: "Released", key: "released", required: true },
               { label: "Delivery Date", key: "deliveryDate" },
             ].map(({ label, key, required }, idx) => (

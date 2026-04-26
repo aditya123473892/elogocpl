@@ -22,6 +22,7 @@ import {
   FileSpreadsheet,
   Building2,
   Users,
+  Workflow,
 } from "lucide-react";
 
 export function CustomerSidebar({
@@ -50,19 +51,25 @@ export function CustomerSidebar({
           path: "dashboard",
           description: "Overview & Summary",
         },
+        {
+          name: "Workflow",
+          icon: Workflow,
+          path: "workflow",
+          description: "Process Workflow Guide",
+        },
       ],
     },
     {
       heading: "Road Operations",
       items: [
         {
-          name: "OEM Pickup",
+          name: "Plant Stage",
           icon: Package,
           path: "oem-pickup",
           description: "Register Vehicle Pickup",
         },
         {
-          name: "Vehicle Arrival",
+          name: "Second mile Yard In ",
           icon: MapPin,
           path: "arrival-plant",
           description: "Log Vehicle Arrival",
@@ -74,7 +81,7 @@ export function CustomerSidebar({
           description: "Vehicle Inspection Survey",
         },
         {
-          name: "Loading Stage",
+          name: "Second Mile Yard Out",
           icon: Package,
           path: "loading-stage",
           description: "Vehicle Loading Operations",
@@ -148,6 +155,12 @@ export function CustomerSidebar({
           icon: Train,
           path: "rail-operations-report",
           description: "Complete Rail Operations",
+        },
+        {
+          name: "Operational Report",
+          icon: BarChart3,
+          path: "operational-report",
+          description: "Comprehensive Operations Report",
         },
       ],
     },

@@ -4483,6 +4483,30 @@ export const loadingStageAPI = {
   },
 };
 
+// Operational Report API
+export const operationalReportAPI = {
+  // Get comprehensive operational report with all sections
+  getOperationalReport: async (filters = {}) => {
+    try {
+      const response = await api.get("/operational-report", { params: filters });
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching operational report:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get summary metrics for dashboard
+  getOperationalSummary: async (filters = {}) => {
+    try {
+      const response = await api.get("/operational-report/summary", { params: filters });
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching operational summary:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+};
 
 // Location Master API
 

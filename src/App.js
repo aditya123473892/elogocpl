@@ -53,6 +53,8 @@ import UnifiedReport from "./Pages/UnifiedReport";
 import RailOperationsReport from "./Pages/RailOperationsReport";
 import LastMileDeparturePage from "./Pages/LastMileDeparture";
 import LastMileDepartureDashboard from "./Pages/LastMileDepartureDashboard";
+import Workflow from "./Pages/Workflow";
+import OperationalReport from "./Pages/OperationalReport";
 import Header from "./Components/dashboard/Header";
 import { terminalMasterAPI } from "./utils/Api";
 import RateContractMaster from "./Pages/RateContractMaster";
@@ -328,6 +330,26 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/admin/operational-report"
+            element={
+              <ProtectedRoute allowedRoles={["Admin"]}>
+                <DashboardLayout>
+                  <OperationalReport />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/vin-survey"
+            element={
+              <ProtectedRoute allowedRoles={["Admin"]}>
+                <DashboardLayout>
+                  <VINSurveyPage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
 
           {/* Customer route */}
           <Route
@@ -336,6 +358,16 @@ function App() {
               <ProtectedRoute allowedRoles={["Customer"]}>
                 <DashboardLayout>
                   <CustomerDashboard />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/workflow"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+                  <Workflow />
                 </DashboardLayout>
               </ProtectedRoute>
             }
@@ -546,6 +578,16 @@ function App() {
               <ProtectedRoute allowedRoles={["Customer"]}>
                 <DashboardLayout>
                   <CustomerMaster />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/operational-report"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+                  <OperationalReport />
                 </DashboardLayout>
               </ProtectedRoute>
             }

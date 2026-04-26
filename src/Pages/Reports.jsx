@@ -16,6 +16,7 @@ import {
 import { toast } from "react-toastify";
 import api from "../utils/Api";
 import { transporterAPI } from "../utils/Api";
+import { generateInvoice } from "../utils/pdfGenerator";
 
 // Utility function to format currency
 const formatCurrency = (amount) =>
@@ -401,6 +402,28 @@ const ShipmentReports = () => {
     window.URL.revokeObjectURL(url);
     toast.success("Reports exported successfully!");
   }, [filteredReports]);
+
+  // Handle download invoice PDF
+  const handleDownloadInvoice = async (report) => {
+    try {
+      const loadingToast = toast.loading("Generating invoice PDF...");
+      const response = await api.get(
+        `/transport-requests/${report.id}/transporter`
+      );
+      const transporterDetails = response.data.success
+        ? response.data.data
+        : null;
+      const doc = generateInvoice(report, transporterDetails);
+      if (!doc) throw new Error("Failed to generate PDF document");
+      const timestamp = new Date().toISOString().split("T")[0];
+      doc.save(`invoice-${report.id}-${timestamp}.pdf`);
+      toast.dismiss(loadingToast);
+      toast.success("Invoice downloaded successfully!");
+    } catch (error) {
+      console.error("Invoice download error:", error);
+      toast.error("Failed to generate invoice");
+    }
+  };
 
   // Calculate summary stats
   const summaryStats = useMemo(() => {
@@ -1203,6 +1226,13 @@ const ShipmentReports = () => {
                 className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Close
+              </button>
+              <button
+                onClick={() => handleDownloadInvoice(selectedReport)}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Download Invoice
               </button>
               <button
                 onClick={() => {

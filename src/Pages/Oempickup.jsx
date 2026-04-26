@@ -13,9 +13,11 @@ import {
   X,
   Check,
   QrCode,
+  Camera,
 } from "lucide-react";
 import { oemPickupAPI, locationMasterAPI, driverMasterAPI } from "../utils/Api";
 import QRCodeLib from "qrcode";
+import { useNavigate } from "react-router-dom";
 
 const transporters = [
   "Transporter A Ltd.",
@@ -84,6 +86,7 @@ const SelectField = ({ value, onChange, options, placeholder, hasError }) => (
 );
 
 export default function OEMPickupPage() {
+  const navigate = useNavigate();
   const [form, setForm] = useState(defaultForm);
   const [saved, setSaved] = useState(false);
   const [errors, setErrors] = useState({});
@@ -754,6 +757,14 @@ export default function OEMPickupPage() {
             >
               <RefreshCw className="h-4 w-4 mr-2" />
               Reset
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/customer/vin-survey')}
+              className="flex items-center px-4 py-2 border border-orange-500 text-orange-600 rounded-lg hover:bg-orange-50 text-sm font-medium transition-colors"
+            >
+              <Camera className="h-4 w-4 mr-2" />
+              VIN Survey
             </button>
             <button
               type="submit"

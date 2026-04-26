@@ -435,10 +435,9 @@ export default function RakeDeparturePage() {
           <div className="divide-y divide-gray-50">
             {[
               { label: "Placement", key: "placement_dep" },
-              { label: "Loading Start", key: "loadingStart" },
-              { label: "Loading End", key: "loadingEnd" },
-              { label: "Stabling Start", key: "stablingStart_dep" },
-              { label: "Stabling End", key: "stablingEnd_dep" },
+              { label: "Operation Start", key: "loadingStart" },
+              { label: "Operation End", key: "loadingEnd" },
+              // Stabling Start and Stabling End hidden for now
               { label: "Removal", key: "removal" },
               { label: "Departure Date", key: "departureDate", required: true },
             ].map(({ label, key, required }, idx) => (

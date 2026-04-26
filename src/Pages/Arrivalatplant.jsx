@@ -13,9 +13,11 @@ import {
   AlertCircle,
   X,
   Check,
+  Camera,
 } from "lucide-react";
 import { arrivalAtPlantAPI, locationMasterAPI } from "../utils/Api";
 import { useAuth } from "../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const today = new Date().toISOString().split("T")[0];
 
@@ -211,6 +213,7 @@ const SelectField = ({ value, onChange, options, placeholder, hasError }) => (
 // ── Main Page ────────────────────────────────────────────────────────────────
 export default function ArrivalAtPlantPage() {
   const { selectedLocation } = useAuth();
+  const navigate = useNavigate();
   const [form, setForm] = useState(defaultForm);
   const [saved, setSaved] = useState(false);
   const [errors, setErrors] = useState({});
@@ -748,6 +751,14 @@ export default function ArrivalAtPlantPage() {
                 className="px-5 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-100 text-sm font-medium transition-colors"
               >
                 Clear
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/customer/vin-survey')}
+                className="flex items-center px-4 py-2 border border-orange-500 text-orange-600 rounded-lg hover:bg-orange-50 text-sm font-medium transition-colors"
+              >
+                <Camera className="h-4 w-4 mr-2" />
+                VIN Survey
               </button>
               <button
                 type="submit"

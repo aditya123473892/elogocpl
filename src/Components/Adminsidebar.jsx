@@ -112,6 +112,12 @@ export function AdminSidebar({
       description: "Complete Rail Operations",
     },
     {
+      name: "Operational Report",
+      icon: BarChart3,
+      path: "operational-report",
+      description: "Comprehensive Operations Report",
+    },
+    {
       name: "Customer Master",
       icon: Users,
       path: "customer-master",

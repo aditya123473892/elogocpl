@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Search, Filter, Download, RefreshCw, Eye, Edit, Trash2, Upload } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { 
@@ -36,115 +36,125 @@ const UnifiedReport = () => {
   const fetchRakeVisits = async () => {
     try {
       const result = await rakeVisitAPI.getAllRakeVisits();
-      if (result.success) {
+      if (result && (result.success || result.data)) {
         setRakeVisits(result.data || []);
       }
     } catch (error) {
       console.error('Error fetching rake visits:', error);
+      setRakeVisits([]);
     }
   };
 
   const fetchRakePlans = async () => {
     try {
       const result = await rakePlanningAPI.getAllRakePlans();
-      if (result.success) {
+      if (result && (result.success || result.data)) {
         setRakePlans(result.data || []);
       }
     } catch (error) {
       console.error('Error fetching rake plans:', error);
+      setRakePlans([]);
     }
   };
 
   const fetchRakes = async () => {
     try {
       const result = await rakeMasterAPI.getAllRakes();
-      if (result.success) {
+      if (result && (result.success || result.data)) {
         setRakes(result.data || []);
       }
     } catch (error) {
       console.error('Error fetching rakes:', error);
+      setRakes([]);
     }
   };
 
   const fetchOemPickups = async () => {
     try {
       const result = await oemPickupAPI.getAllOEMPickups();
-      if (result.success) {
+      if (result && (result.success || result.data)) {
         setOemPickups(result.data || []);
       }
     } catch (error) {
       console.error('Error fetching OEM pickups:', error);
+      setOemPickups([]);
     }
   };
 
   const fetchTransportRequests = async () => {
     try {
       const result = await transportRequestAPI.getAllRequests();
-      if (result.success) {
+      if (result && (result.success || result.data)) {
         setTransportRequests(result.data || []);
       }
     } catch (error) {
       console.error('Error fetching transport requests:', error);
+      setTransportRequests([]);
     }
   };
 
   const fetchASNData = async () => {
     try {
       const result = await asnAPI.getAllASN();
-      if (result.success) {
+      if (result && (result.success || result.data)) {
         setAsnData(result.data || []);
       }
     } catch (error) {
       console.error('Error fetching ASN data:', error);
+      setAsnData([]);
     }
   };
 
   const fetchDrivers = async () => {
     try {
       const result = await driverAPI.getAllDrivers();
-      if (result.success) {
+      if (result && (result.success || result.data)) {
         setDrivers(result.data || []);
       }
     } catch (error) {
       console.error('Error fetching drivers:', error);
+      setDrivers([]);
     }
   };
 
   const fetchVehicles = async () => {
     try {
       const result = await vehicleAPI.getAllvehicles();
-      if (result.success) {
+      if (result && (result.success || result.data)) {
         setVehicles(result.data || []);
       }
     } catch (error) {
       console.error('Error fetching vehicles:', error);
+      setVehicles([]);
     }
   };
 
   const fetchTerminals = async () => {
     try {
       const result = await terminalMasterAPI.getTerminalCodes();
-      if (result.success) {
+      if (result && (result.success || result.data)) {
         setTerminals(result.data || []);
       }
     } catch (error) {
       console.error('Error fetching terminals:', error);
+      setTerminals([]);
     }
   };
 
   const fetchRoutes = async () => {
     try {
       const result = await routeMasterAPI.getAllRoutes();
-      if (result.success) {
+      if (result && (result.success || result.data)) {
         setRoutes(result.data || []);
       }
     } catch (error) {
       console.error('Error fetching routes:', error);
+      setRoutes([]);
     }
   };
 
   // Process all data to create unified report
-  const processUnifiedData = () => {
+  const processUnifiedData = useCallback(() => {
     const unifiedData = [];
     const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
 
@@ -267,7 +277,7 @@ const UnifiedReport = () => {
     });
 
     setReportData(unifiedData);
-  };
+  }, [rakeVisits, rakePlans, rakes, oemPickups, transportRequests, asnData, drivers, vehicles, terminals, routes]);
 
   // Helper functions
   const calculateTransitTime = (arrivalDate, departureDate) => {
@@ -336,19 +346,19 @@ const UnifiedReport = () => {
 
   // Process data when dependencies change
   useEffect(() => {
-    if (rakeVisits.length > 0 || rakePlans.length > 0 || oemPickups.length > 0) {
-      processUnifiedData();
-    }
-  }, [rakeVisits, rakePlans, rakes, oemPickups, transportRequests, processUnifiedData]);
+    processUnifiedData();
+  }, [processUnifiedData]);
 
   const filteredData = reportData.filter(item => {
-    const matchesSearch = 
-      item.monthlyTrip.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.rakePlanning.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.newLoadsAtPlant.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.ewayBillSolution.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.basicBilling.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.intransitStatus.toLowerCase().includes(searchTerm.toLowerCase());
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch = !searchTerm || (
+      (item.monthlyTrip || '').toLowerCase().includes(searchLower) ||
+      (item.rakePlanning || '').toLowerCase().includes(searchLower) ||
+      (item.newLoadsAtPlant || '').toLowerCase().includes(searchLower) ||
+      (item.ewayBillSolution || '').toLowerCase().includes(searchLower) ||
+      (item.basicBilling || '').toLowerCase().includes(searchLower) ||
+      (item.intransitStatus || '').toLowerCase().includes(searchLower)
+    );
     const matchesFilter = filterStatus === 'all' || item.status === filterStatus;
     return matchesSearch && matchesFilter;
   });
@@ -466,6 +476,7 @@ const UnifiedReport = () => {
   };
 
   const getStatusColor = (status) => {
+    if (!status) return 'bg-gray-100 text-gray-800';
     switch (status) {
       case 'active':
       case 'completed':
@@ -579,7 +590,7 @@ const UnifiedReport = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Report Data ({filteredData.length} records)</CardTitle>
+          <CardTitle>Report Data ({filteredData?.length || 0} records)</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex gap-4 mb-6">
@@ -635,41 +646,41 @@ const UnifiedReport = () => {
                   <tr key={item.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 whitespace-nowrap text-sm">
                       <div>
-                        <div className="font-medium">{item.monthlyTrip}</div>
-                        <div className="text-gray-500">{item.totalVins} VINs</div>
+                        <div className="font-medium">{item.monthlyTrip || 'N/A'}</div>
+                        <div className="text-gray-500">{item.totalVins || 0} VINs</div>
                       </div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm">
                       <Badge className={getStatusColor(item.rakePlanning)}>
-                        {item.rakePlanning}
+                        {item.rakePlanning || 'N/A'}
                       </Badge>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm">
                       <Badge className={getStatusColor(item.intransitStatus)}>
-                        {item.intransitStatus}
+                        {item.intransitStatus || 'N/A'}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm">{item.stockInventory}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm">{item.transitTime}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">{item.dealerComp}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">{item.newLoadsAtPlant}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm">{item.pendingLoadPlantExit}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm">{item.stockInventory || 'N/A'}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm">{item.transitTime || 'N/A'}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">{item.dealerComp || 'N/A'}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">{item.newLoadsAtPlant || 'N/A'}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm">{item.pendingLoadPlantExit || 'N/A'}</td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm">
                       <Badge className={item.rakeVisibility === 'GPS Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
-                        {item.rakeVisibility}
+                        {item.rakeVisibility || 'Unknown'}
                       </Badge>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm">
                       <Badge className={getStatusColor(item.rohPodDetails)}>
-                        {item.rohPodDetails}
+                        {item.rohPodDetails || 'N/A'}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm">{item.rakeLoadingDetails}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-mono text-xs">{item.ewayBillSolution}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">{item.basicBilling}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm">{item.rakeLoadingDetails || 'N/A'}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-mono text-xs">{item.ewayBillSolution || 'N/A'}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">{item.basicBilling || 'N/A'}</td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <Badge className={getStatusColor(item.status)}>
-                        {item.status}
+                        {item.status || 'Unknown'}
                       </Badge>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm">
@@ -691,8 +702,9 @@ const UnifiedReport = () => {
             </table>
             
             {filteredData.length === 0 && !isLoading && (
-              <div className="text-center py-8 text-gray-500">
-                No records found matching your criteria
+              <div className="text-center py-12 text-gray-500">
+                <p className="text-lg font-medium mb-2">No records found</p>
+                <p className="text-sm">Try adjusting your search or filter criteria, or refresh the data</p>
               </div>
             )}
             {isLoading && (
