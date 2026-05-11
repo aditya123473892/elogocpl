@@ -10,6 +10,9 @@ import {
   ArrowRight,
   Package,
   X,
+  Upload,
+  Download,
+  FileSpreadsheet,
 } from "lucide-react";
 import { loadingStageAPI } from "../utils/Api";
 
@@ -80,6 +83,14 @@ export default function LoadingStagePage() {
   const [fetchError, setFetchError] = useState(false);
   const [saving, setSaving] = useState(false);
   const textareaRef = useRef(null);
+
+  // Bulk upload states
+  const [bulkMode, setBulkMode] = useState(false);
+  const [csvFile, setCsvFile] = useState(null);
+  const [bulkData, setBulkData] = useState([]);
+  const [bulkSaving, setBulkSaving] = useState(false);
+  const [bulkSaved, setBulkSaved] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     const fetchTerminals = async () => {
@@ -169,6 +180,89 @@ export default function LoadingStagePage() {
     setSaved(false);
   };
 
+  // CSV parsing function
+  const parseCSV = (csvText) => {
+    const lines = csvText.split('\n').filter(line => line.trim());
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    
+    const data = [];
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',').map(v => v.trim());
+      const row = {};
+      headers.forEach((header, index) => {
+        row[header] = values[index] || '';
+      });
+      data.push(row);
+    }
+    return data;
+  };
+
+  // Handle CSV file upload
+  const handleCSVUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setCsvFile(file);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const csvText = event.target.result;
+        const parsedData = parseCSV(csvText);
+        setBulkData(parsedData);
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  // Download CSV template
+  const downloadCSVTemplate = () => {
+    const headers = ['LoadingStation', 'OperationType', 'VINDetails', 'FNRNo', 'RakeNo', 'DeckPosition', 'WagonNo'];
+    const sampleRow = ['1', 'Yard Out', 'VIN1,VIN2,VIN3', 'FNR001', 'RAKE001', 'DECK1', 'WAGON1'];
+    const csvContent = [headers.join(','), sampleRow.join(',')].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'yard_out_template.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  // Handle bulk upload submission
+  const handleBulkUpload = async () => {
+    if (bulkData.length === 0) {
+      alert('No data to upload. Please upload a CSV file first.');
+      return;
+    }
+
+    setBulkSaving(true);
+    try {
+      const response = await loadingStageAPI.bulkUploadLoadingStage({ records: bulkData });
+      
+      if (response.success) {
+        setBulkSaved(true);
+        setCsvFile(null);
+        setBulkData([]);
+        setTimeout(() => setBulkSaved(false), 5000);
+      } else {
+        alert('Failed to bulk upload: ' + response.message);
+      }
+    } catch (error) {
+      console.error('Error bulk uploading:', error);
+      alert('Error bulk uploading: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setBulkSaving(false);
+    }
+  };
+
+  // Reset bulk upload
+  const resetBulkUpload = () => {
+    setCsvFile(null);
+    setBulkData([]);
+    setBulkSaved(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const removeVIN = (indexToRemove) => {
     const vins = parseVINs(form.vinDetails);
     vins.splice(indexToRemove, 1);
@@ -194,6 +288,18 @@ export default function LoadingStagePage() {
           </p>
         </div>
         <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => setBulkMode(!bulkMode)}
+            className={`flex items-center px-4 py-2 border rounded-lg text-sm font-medium transition-colors ${
+              bulkMode
+                ? "bg-blue-50 border-blue-300 text-blue-700"
+                : "border-gray-300 text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            <FileSpreadsheet className="h-4 w-4 mr-2" />
+            {bulkMode ? "Single Entry" : "Bulk Upload"}
+          </button>
           <button
             type="button"
             onClick={handleReset}
@@ -222,6 +328,127 @@ export default function LoadingStagePage() {
           </button>
         </div>
       </div>
+
+      {/* ── Bulk Upload Section ───────────────────────────────────────── */}
+      {bulkMode && (
+        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <FileSpreadsheet className="h-5 w-5 text-blue-600" />
+              <h3 className="text-lg font-semibold text-gray-800">Bulk Upload Yard Out Details</h3>
+            </div>
+            <button
+              type="button"
+              onClick={downloadCSVTemplate}
+              className="flex items-center px-3 py-2 text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download CSV Template
+            </button>
+          </div>
+
+          {/* Bulk Upload Success Banner */}
+          {bulkSaved && (
+            <div className="mb-4 flex items-center gap-3 px-4 py-3 rounded-lg bg-green-50 border border-green-200 text-green-800">
+              <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+              <span className="text-sm font-medium">
+                Bulk upload successful! Records have been processed.
+              </span>
+            </div>
+          )}
+
+          {/* File Upload Area */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Upload CSV File
+            </label>
+            <div className="flex items-center gap-3">
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept=".csv"
+                onChange={handleCSVUpload}
+                className="flex-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              />
+              {csvFile && (
+                <span className="text-sm text-green-600 font-medium flex items-center gap-1">
+                  <CheckCircle className="h-4 w-4" />
+                  {csvFile.name}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Data Preview Table */}
+          {bulkData.length > 0 && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Data Preview ({bulkData.length} records)
+              </label>
+              <div className="border border-gray-200 rounded-lg overflow-hidden max-h-64 overflow-y-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50 sticky top-0">
+                    <tr>
+                      {Object.keys(bulkData[0]).map((key) => (
+                        <th
+                          key={key}
+                          className="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                        >
+                          {key}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {bulkData.map((row, index) => (
+                      <tr key={index} className="hover:bg-gray-50">
+                        {Object.values(row).map((value, cellIndex) => (
+                          <td
+                            key={cellIndex}
+                            className="px-4 py-2 text-sm text-gray-700 whitespace-nowrap"
+                          >
+                            {value}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Bulk Upload Actions */}
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={handleBulkUpload}
+              disabled={bulkSaving || bulkData.length === 0}
+              className="flex items-center px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm font-semibold transition-colors shadow-sm"
+            >
+              {bulkSaving ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload {bulkData.length} Records
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={resetBulkUpload}
+              className="flex items-center px-4 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Success Banner ──────────────────────────────────────────── */}
       {saved && (

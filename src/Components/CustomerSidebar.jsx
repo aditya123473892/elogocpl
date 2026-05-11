@@ -23,6 +23,7 @@ import {
   Building2,
   Users,
   Workflow,
+  Package2,
 } from "lucide-react";
 
 export function CustomerSidebar({
@@ -67,6 +68,12 @@ export function CustomerSidebar({
           icon: Package,
           path: "oem-pickup",
           description: "Register Vehicle Pickup",
+        },
+        {
+          name: "Pickup Without ASN",
+          icon: Package2,
+          path: "pickup-without-asn",
+          description: "Direct Vehicle Pickup",
         },
         {
           name: "Second mile Yard In ",

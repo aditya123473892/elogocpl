@@ -27,6 +27,7 @@ import Vindetails from "./Pages/VinDetailsPage";
 import ASNManagement from "./Pages/ASNupload";
 import ASNReport from "./Pages/ASNReport";
 import OEMPickupPage from "./Pages/Oempickup";
+import PickupWithoutASN from "./Pages/PickupWithoutASN";
 import ArrivalAtPlantPage from "./Pages/Arrivalatplant";
 import RakeArrivalPage from "./Pages/RakeArrival";
 import VINSurveyPage from "./Components/Vinsurvey";
@@ -448,6 +449,16 @@ function App() {
               <ProtectedRoute allowedRoles={["Customer"]}>
                 <DashboardLayout>
                   <OEMPickupPage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/pickup-without-asn"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+                  <PickupWithoutASN />
                 </DashboardLayout>
               </ProtectedRoute>
             }

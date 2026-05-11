@@ -4481,6 +4481,17 @@ export const loadingStageAPI = {
       throw error.response?.data || error.message;
     }
   },
+
+  // Bulk upload loading stage records
+  bulkUploadLoadingStage: async (bulkData) => {
+    try {
+      const response = await api.post("/loading-stage/bulk", bulkData);
+      return response.data;
+    } catch (error) {
+      console.error("Error bulk uploading loading stage records:", error);
+      throw error.response?.data || error.message;
+    }
+  },
 };
 
 // Operational Report API
@@ -4503,6 +4514,64 @@ export const operationalReportAPI = {
       return response.data;
     } catch (error) {
       console.error("Error fetching operational summary:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+};
+
+// Pickup Without ASN API
+export const pickupWithoutASNAPI = {
+  // Create pickup without ASN
+  createPickupWithoutASN: async (data) => {
+    try {
+      const response = await api.post("/pickup-without-asn/create", data);
+      return response.data;
+    } catch (error) {
+      console.error("Error creating pickup without ASN:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get all pickups without ASN
+  getAllPickupsWithoutASN: async () => {
+    try {
+      const response = await api.get("/pickup-without-asn/all");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching pickups without ASN:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get pickup without ASN by ID
+  getPickupWithoutASNById: async (id) => {
+    try {
+      const response = await api.get(`/pickup-without-asn/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching pickup without ASN by ID:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Update pickup without ASN
+  updatePickupWithoutASN: async (id, data) => {
+    try {
+      const response = await api.put(`/pickup-without-asn/${id}`, data);
+      return response.data;
+    } catch (error) {
+      console.error("Error updating pickup without ASN:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Delete pickup without ASN
+  deletePickupWithoutASN: async (id) => {
+    try {
+      const response = await api.delete(`/pickup-without-asn/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error deleting pickup without ASN:", error);
       throw error.response?.data || error.message;
     }
   },
