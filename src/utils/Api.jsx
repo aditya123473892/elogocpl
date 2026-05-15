@@ -4492,6 +4492,37 @@ export const loadingStageAPI = {
       throw error.response?.data || error.message;
     }
   },
+
+  // Get yard out report with ASN details
+  getYardOutReport: async () => {
+    try {
+      const response = await api.get("/loading-stage/yard-out-report");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching yard out report:", error);
+      throw error.response?.data || error.message;
+    }
+  },
+};
+
+// Intra-Transit Report API
+export const intraInTransitAPI = {
+  /**
+   * Fetch the intra-transit report.
+   * GET /api/intra-transit/report
+   * Returns every VIN currently in the system with their full set of
+   * transit-event timestamps (Yard In, Yard Out, Arrival At Plant,
+   * Last Mile Departure, OEM Pickup Arrival/Departure times).
+   */
+  getIntraTransitReport: async () => {
+    try {
+      const response = await api.get("/intra-transit/report");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching intra-transit report:", error);
+      throw error.response?.data || error.message;
+    }
+  },
 };
 
 // Operational Report API

@@ -17,6 +17,8 @@ import {
   Train,
   BarChart3,
   FileSpreadsheet,
+  Clock,
+  MapPin,
 } from "lucide-react";
 
 export function AdminSidebar({
@@ -116,6 +118,12 @@ export function AdminSidebar({
       icon: BarChart3,
       path: "operational-report",
       description: "Comprehensive Operations Report",
+    },
+    {
+      name: "Intra-In-Transit Report",
+      icon: Clock,
+      path: "intra-transit-report",
+      description: "Arrival / Departure / Yard In-Out Times",
     },
     {
       name: "Customer Master",

@@ -13,6 +13,11 @@ import {
 } from "lucide-react";
 import { pickupWithoutASNAPI, locationMasterAPI, driverMasterAPI } from "../utils/Api";
 import { useNavigate } from "react-router-dom";
+import {
+  getCurrentDate,
+  getCurrentDateTimeText,
+  getCurrentTime,
+} from "../utils/dateTimeDefaults";
 
 const transporters = [
   "Transporter A Ltd.",
@@ -22,22 +27,20 @@ const transporters = [
   "Blue Dart Transport",
 ];
 
-const today = new Date().toISOString().split("T")[0];
-
-const defaultForm = {
+const createDefaultForm = () => ({
   plant: "",
   yardLocation: "",
   vendorTransporter: "",
   truckNumber: "",
   vinDetails: "",
-  pickupDate: today,
-  deliveryDate: today,
-  arrivalTime: "",
-  departureTime: "",
+  pickupDate: getCurrentDate(),
+  deliveryDate: getCurrentDate(),
+  arrivalTime: getCurrentTime(),
+  departureTime: getCurrentTime(),
   driverName: "",
-  remarks: "",
+  remarks: getCurrentDateTimeText(),
   transportationType: "TRUCK",
-};
+});
 
 const SectionHeader = ({ icon: Icon, title, color = "green" }) => (
   <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
@@ -82,7 +85,7 @@ const SelectField = ({ value, onChange, options, placeholder, hasError }) => (
 
 export default function PickupWithoutASN() {
   const navigate = useNavigate();
-  const [form, setForm] = useState(defaultForm);
+  const [form, setForm] = useState(createDefaultForm);
   const [saved, setSaved] = useState(false);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -217,7 +220,7 @@ export default function PickupWithoutASN() {
   };
 
   const handleReset = () => {
-    setForm(defaultForm);
+    setForm(createDefaultForm());
     setErrors({});
     setSaved(false);
     setDriverDetails(null);

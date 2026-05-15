@@ -18,20 +18,23 @@ import {
 import { arrivalAtPlantAPI, locationMasterAPI } from "../utils/Api";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import {
+  getCurrentDate,
+  getCurrentDateTimeText,
+  getCurrentTime,
+} from "../utils/dateTimeDefaults";
 
-const today = new Date().toISOString().split("T")[0];
-
-const defaultForm = {
+const createDefaultForm = () => ({
   transportMode: "",
   yardLocation: "",
   SideingLocation: "",
-  arrivalDate: today,
-  arrivalTime: "",
-  departureTime: "",
-  remarks: "",
+  arrivalDate: getCurrentDate(),
+  arrivalTime: getCurrentTime(),
+  departureTime: getCurrentTime(),
+  remarks: getCurrentDateTimeText(),
   selectedTruck: "",
   vehicleDetails: null,
-};
+});
 
 // ── Searchable Select Component ──────────────────────────────────────────────
 const SearchableSelect = ({ value, onChange, options, placeholder, hasError }) => {
@@ -214,7 +217,7 @@ const SelectField = ({ value, onChange, options, placeholder, hasError }) => (
 export default function ArrivalAtPlantPage() {
   const { selectedLocation } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState(defaultForm);
+  const [form, setForm] = useState(createDefaultForm);
   const [saved, setSaved] = useState(false);
   const [errors, setErrors] = useState({});
   const [vinData, setVinData] = useState([]);
@@ -381,7 +384,7 @@ export default function ArrivalAtPlantPage() {
   };
 
   const handleReset = () => {
-    setForm(defaultForm);
+    setForm(createDefaultForm());
     setErrors({});
     setSaved(false);
     setVinData([]);

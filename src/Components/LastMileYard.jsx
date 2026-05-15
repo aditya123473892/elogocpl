@@ -4,26 +4,17 @@ import {
   ScanLine,
   Save,
   RefreshCw,
-  ChevronDown,
   CheckCircle,
   LogIn,
-  ArrowRight,
   Package,
   X,
-  Upload,
-  Download,
-  FileSpreadsheet,
 } from "lucide-react";
 import { loadingStageAPI } from "../utils/Api";
 
 const defaultForm = {
   loadingStation: "",
-  operationType: "Yard Out",
+  operationType: "Yard In",
   vinDetails: "",
-  fnrNo: "",
-  rakeNo: "",
-  deckPosition: "",
-  wagonNo: "",
 };
 
 const SectionHeader = ({ icon: Icon, title, color = "green" }) => (
@@ -64,7 +55,11 @@ const SelectField = ({ value, onChange, options, placeholder, hasError, disabled
         </option>
       ))}
     </select>
-    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+      <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+      </svg>
+    </div>
   </div>
 );
 
@@ -74,7 +69,7 @@ const parseVINs = (raw) =>
     .map((v) => v.trim().toUpperCase())
     .filter((v) => v.length > 0);
 
-export default function LoadingStagePage() {
+export default function LastMileYard() {
   const [form, setForm] = useState(defaultForm);
   const [saved, setSaved] = useState(false);
   const [errors, setErrors] = useState({});
@@ -83,14 +78,6 @@ export default function LoadingStagePage() {
   const [fetchError, setFetchError] = useState(false);
   const [saving, setSaving] = useState(false);
   const textareaRef = useRef(null);
-
-  // Bulk upload states
-  const [bulkMode, setBulkMode] = useState(false);
-  const [csvFile, setCsvFile] = useState(null);
-  const [bulkData, setBulkData] = useState([]);
-  const [bulkSaving, setBulkSaving] = useState(false);
-  const [bulkSaved, setBulkSaved] = useState(false);
-  const fileInputRef = useRef(null);
 
   useEffect(() => {
     const fetchTerminals = async () => {
@@ -127,10 +114,6 @@ export default function LoadingStagePage() {
     const errs = {};
     if (!form.loadingStation) errs.loadingStation = true;
     if (!form.vinDetails.trim()) errs.vinDetails = true;
-    if (!form.fnrNo.trim()) errs.fnrNo = true;
-    if (!form.rakeNo.trim()) errs.rakeNo = true;
-    if (!form.deckPosition.trim()) errs.deckPosition = true;
-    if (!form.wagonNo.trim()) errs.wagonNo = true;
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -143,12 +126,8 @@ export default function LoadingStagePage() {
     try {
       const loadingStageData = {
         loadingStation: form.loadingStation,
-        operationType: "Yard Out",
+        operationType: "Yard In",
         vinDetails: form.vinDetails,
-        fnrNo: form.fnrNo,
-        rakeNo: form.rakeNo,
-        deckPosition: form.deckPosition,
-        wagonNo: form.wagonNo,
       };
 
       const response = await loadingStageAPI.createLoadingStage(loadingStageData);
@@ -159,11 +138,11 @@ export default function LoadingStagePage() {
         setErrors({});
         setTimeout(() => setSaved(false), 5000);
       } else {
-        alert("Failed to save loading stage: " + response.message);
+        alert("Failed to save yard in: " + response.message);
       }
     } catch (error) {
-      console.error("Error saving loading stage:", error);
-      alert("Error saving loading stage: " + (error.response?.data?.message || error.message));
+      console.error("Error saving yard in:", error);
+      alert("Error saving yard in: " + (error.response?.data?.message || error.message));
     } finally {
       setSaving(false);
     }
@@ -173,89 +152,6 @@ export default function LoadingStagePage() {
     setForm(defaultForm);
     setErrors({});
     setSaved(false);
-  };
-
-  // CSV parsing function
-  const parseCSV = (csvText) => {
-    const lines = csvText.split('\n').filter(line => line.trim());
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-    
-    const data = [];
-    for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(v => v.trim());
-      const row = {};
-      headers.forEach((header, index) => {
-        row[header] = values[index] || '';
-      });
-      data.push(row);
-    }
-    return data;
-  };
-
-  // Handle CSV file upload
-  const handleCSVUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setCsvFile(file);
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const csvText = event.target.result;
-        const parsedData = parseCSV(csvText);
-        setBulkData(parsedData);
-      };
-      reader.readAsText(file);
-    }
-  };
-
-  // Download CSV template
-  const downloadCSVTemplate = () => {
-    const headers = ['LoadingStation', 'OperationType', 'VINDetails', 'FNRNo', 'RakeNo', 'DeckPosition', 'WagonNo'];
-    const sampleRow = ['1', 'Yard Out', 'VIN1,VIN2,VIN3', 'FNR001', 'RAKE001', 'DECK1', 'WAGON1'];
-    const csvContent = [headers.join(','), sampleRow.join(',')].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'yard_out_template.csv';
-    a.click();
-    window.URL.revokeObjectURL(url);
-  };
-
-  // Handle bulk upload submission
-  const handleBulkUpload = async () => {
-    if (bulkData.length === 0) {
-      alert('No data to upload. Please upload a CSV file first.');
-      return;
-    }
-
-    setBulkSaving(true);
-    try {
-      const response = await loadingStageAPI.bulkUploadLoadingStage({ records: bulkData });
-      
-      if (response.success) {
-        setBulkSaved(true);
-        setCsvFile(null);
-        setBulkData([]);
-        setTimeout(() => setBulkSaved(false), 5000);
-      } else {
-        alert('Failed to bulk upload: ' + response.message);
-      }
-    } catch (error) {
-      console.error('Error bulk uploading:', error);
-      alert('Error bulk uploading: ' + (error.response?.data?.message || error.message));
-    } finally {
-      setBulkSaving(false);
-    }
-  };
-
-  // Reset bulk upload
-  const resetBulkUpload = () => {
-    setCsvFile(null);
-    setBulkData([]);
-    setBulkSaved(false);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
   };
 
   const removeVIN = (indexToRemove) => {
@@ -270,31 +166,19 @@ export default function LoadingStagePage() {
   const selectedTerminalLabel =
     terminals.find((t) => String(t.value) === String(form.loadingStation))?.label || "";
 
-  const hasSummary = form.loadingStation || form.operationType || scannedVINs.length > 0;
+  const hasSummary = form.loadingStation || scannedVINs.length > 0;
 
   return (
     <div className="p-6">
       {/* ── Page Header ─────────────────────────────────────────────── */}
       <div className="mb-6 flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Loading Stage - Yard Out</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Last Mile Yard</h2>
           <p className="text-gray-600 mt-1">
-            Manage yard-out operations with VIN tracking at loading stations
+            Manage yard-in operations with VIN tracking at loading stations
           </p>
         </div>
         <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={() => setBulkMode(!bulkMode)}
-            className={`flex items-center px-4 py-2 border rounded-lg text-sm font-medium transition-colors ${
-              bulkMode
-                ? "bg-blue-50 border-blue-300 text-blue-700"
-                : "border-gray-300 text-gray-600 hover:bg-gray-50"
-            }`}
-          >
-            <FileSpreadsheet className="h-4 w-4 mr-2" />
-            {bulkMode ? "Single Entry" : "Bulk Upload"}
-          </button>
           <button
             type="button"
             onClick={handleReset}
@@ -317,142 +201,21 @@ export default function LoadingStagePage() {
             ) : (
               <>
                 <Save className="h-4 w-4 mr-2" />
-                Save Loading Stage
+                Save Yard In
               </>
             )}
           </button>
         </div>
       </div>
 
-      {/* ── Bulk Upload Section ───────────────────────────────────────── */}
-      {bulkMode && (
-        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <FileSpreadsheet className="h-5 w-5 text-blue-600" />
-              <h3 className="text-lg font-semibold text-gray-800">Bulk Upload Yard Out Details</h3>
-            </div>
-            <button
-              type="button"
-              onClick={downloadCSVTemplate}
-              className="flex items-center px-3 py-2 text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Download CSV Template
-            </button>
-          </div>
-
-          {/* Bulk Upload Success Banner */}
-          {bulkSaved && (
-            <div className="mb-4 flex items-center gap-3 px-4 py-3 rounded-lg bg-green-50 border border-green-200 text-green-800">
-              <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
-              <span className="text-sm font-medium">
-                Bulk upload successful! Records have been processed.
-              </span>
-            </div>
-          )}
-
-          {/* File Upload Area */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Upload CSV File
-            </label>
-            <div className="flex items-center gap-3">
-              <input
-                type="file"
-                ref={fileInputRef}
-                accept=".csv"
-                onChange={handleCSVUpload}
-                className="flex-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-              />
-              {csvFile && (
-                <span className="text-sm text-green-600 font-medium flex items-center gap-1">
-                  <CheckCircle className="h-4 w-4" />
-                  {csvFile.name}
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Data Preview Table */}
-          {bulkData.length > 0 && (
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Data Preview ({bulkData.length} records)
-              </label>
-              <div className="border border-gray-200 rounded-lg overflow-hidden max-h-64 overflow-y-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50 sticky top-0">
-                    <tr>
-                      {Object.keys(bulkData[0]).map((key) => (
-                        <th
-                          key={key}
-                          className="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
-                        >
-                          {key}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {bulkData.map((row, index) => (
-                      <tr key={index} className="hover:bg-gray-50">
-                        {Object.values(row).map((value, cellIndex) => (
-                          <td
-                            key={cellIndex}
-                            className="px-4 py-2 text-sm text-gray-700 whitespace-nowrap"
-                          >
-                            {value}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Bulk Upload Actions */}
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={handleBulkUpload}
-              disabled={bulkSaving || bulkData.length === 0}
-              className="flex items-center px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm font-semibold transition-colors shadow-sm"
-            >
-              {bulkSaving ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Uploading...
-                </>
-              ) : (
-                <>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload {bulkData.length} Records
-                </>
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={resetBulkUpload}
-              className="flex items-center px-4 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors"
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Clear
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* ── Success Banner ──────────────────────────────────────────── */}
       {saved && (
         <div className="mb-5 flex items-center gap-3 px-5 py-3 rounded-lg bg-green-50 border border-green-200 text-green-800">
           <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
           <span className="text-sm font-medium">
-            Loading stage saved successfully.{" "}
-            {scannedVINs.length} VIN{scannedVINs.length !== 1 ? "s" : ""} recorded for{" "}
-            {form.operationType} at {selectedTerminalLabel || form.loadingStation}.
+            Yard in saved successfully.{" "}
+            {scannedVINs.length} VIN{scannedVINs.length !== 1 ? "s" : ""} recorded at{" "}
+            {selectedTerminalLabel || form.loadingStation}.
           </span>
         </div>
       )}
@@ -498,22 +261,22 @@ export default function LoadingStagePage() {
                 )}
               </div>
 
-              {/* Operation Type - Fixed to Yard Out */}
+              {/* Operation Type - Fixed to Yard In */}
               <div>
                 <FieldLabel required>Operation Type</FieldLabel>
                 <div className="flex rounded-lg overflow-hidden border border-gray-300">
                   <button
                     type="button"
                     disabled
-                    className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-semibold bg-blue-600 text-white border-blue-600 cursor-not-allowed"
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-semibold bg-green-600 text-white border-green-600 cursor-not-allowed"
                   >
-                    <ArrowRight className="h-4 w-4" />
-                    Yard Out
+                    <LogIn className="h-4 w-4" />
+                    Yard In
                   </button>
                 </div>
                 <div className="mt-2">
-                  <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                    Yard Out selected
+                  <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                    Yard In selected
                   </span>
                 </div>
               </div>
@@ -605,75 +368,6 @@ export default function LoadingStagePage() {
             </div>
           </div>
 
-          {/* ── Section 3: Yard Out Details ──────────────────────────── */}
-          <div className="px-6 pt-6 pb-5 border-b border-gray-100">
-            <SectionHeader icon={ArrowRight} title="Yard Out Details" color="blue" />
-            <div className="grid grid-cols-2 gap-5">
-
-                {/* FNR No. */}
-                <div>
-                  <FieldLabel required>FNR No.</FieldLabel>
-                  <input
-                    type="text"
-                    value={form.fnrNo}
-                    onChange={set("fnrNo")}
-                    placeholder="Enter FNR number"
-                    className={fc("fnrNo")}
-                  />
-                  {errors.fnrNo && (
-                    <p className="text-xs text-red-500 mt-1">FNR No. is required for Yard Out</p>
-                  )}
-                </div>
-
-                {/* Rake No. */}
-                <div>
-                  <FieldLabel required>Rake No.</FieldLabel>
-                  <input
-                    type="text"
-                    value={form.rakeNo}
-                    onChange={set("rakeNo")}
-                    placeholder="Enter Rake number"
-                    className={fc("rakeNo")}
-                  />
-                  {errors.rakeNo && (
-                    <p className="text-xs text-red-500 mt-1">Rake No. is required for Yard Out</p>
-                  )}
-                </div>
-
-                {/* Deck Position */}
-                <div>
-                  <FieldLabel required>Deck Position</FieldLabel>
-                  <input
-                    type="text"
-                    value={form.deckPosition}
-                    onChange={set("deckPosition")}
-                    placeholder="Enter Deck position"
-                    className={fc("deckPosition")}
-                  />
-                  {errors.deckPosition && (
-                    <p className="text-xs text-red-500 mt-1">
-                      Deck Position is required for Yard Out
-                    </p>
-                  )}
-                </div>
-
-                {/* Wagon No. */}
-                <div>
-                  <FieldLabel required>Wagon No.</FieldLabel>
-                  <input
-                    type="text"
-                    value={form.wagonNo}
-                    onChange={set("wagonNo")}
-                    placeholder="Enter Wagon number"
-                    className={fc("wagonNo")}
-                  />
-                  {errors.wagonNo && (
-                    <p className="text-xs text-red-500 mt-1">Wagon No. is required for Yard Out</p>
-                  )}
-                </div>
-              </div>
-            </div>
-
           {/* ── Live Summary ────────────────────────────────────────── */}
           {hasSummary && (
             <div className="mx-6 my-5 p-4 bg-green-50 border border-green-200 rounded-lg">
@@ -688,7 +382,7 @@ export default function LoadingStagePage() {
                   </span>
                 )}
                 <span className="text-xs text-gray-600">
-                  <span className="font-semibold text-gray-800">Operation:</span> Yard Out
+                  <span className="font-semibold text-gray-800">Operation:</span> Yard In
                 </span>
                 {scannedVINs.length > 0 && (
                   <span className="text-xs text-gray-600">
@@ -696,30 +390,6 @@ export default function LoadingStagePage() {
                     {scannedVINs.length} vehicle{scannedVINs.length !== 1 ? "s" : ""}
                   </span>
                 )}
-                <>
-                    {form.fnrNo && (
-                      <span className="text-xs text-gray-600">
-                        <span className="font-semibold text-gray-800">FNR No.:</span> {form.fnrNo}
-                      </span>
-                    )}
-                    {form.rakeNo && (
-                      <span className="text-xs text-gray-600">
-                        <span className="font-semibold text-gray-800">Rake No.:</span> {form.rakeNo}
-                      </span>
-                    )}
-                    {form.deckPosition && (
-                      <span className="text-xs text-gray-600">
-                        <span className="font-semibold text-gray-800">Deck Position:</span>{" "}
-                        {form.deckPosition}
-                      </span>
-                    )}
-                    {form.wagonNo && (
-                      <span className="text-xs text-gray-600">
-                        <span className="font-semibold text-gray-800">Wagon No.:</span>{" "}
-                        {form.wagonNo}
-                      </span>
-                    )}
-                  </>
               </div>
             </div>
           )}
@@ -742,7 +412,7 @@ export default function LoadingStagePage() {
                 className="flex items-center px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-semibold transition-colors shadow-sm"
               >
                 <Save className="h-4 w-4 mr-2" />
-                Save Loading Stage
+                Save Yard In
               </button>
             </div>
           </div>

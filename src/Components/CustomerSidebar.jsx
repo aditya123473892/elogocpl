@@ -24,6 +24,7 @@ import {
   Users,
   Workflow,
   Package2,
+  Clock,
 } from "lucide-react";
 
 export function CustomerSidebar({
@@ -86,6 +87,12 @@ export function CustomerSidebar({
           icon: Camera,
           path: "vin-survey",
           description: "Vehicle Inspection Survey",
+        },
+        {
+          name: "Last Mile Yard",
+          icon: Warehouse,
+          path: "last-mile-yard",
+          description: "Yard In Operations",
         },
         {
           name: "Second Mile Yard Out",
@@ -168,6 +175,12 @@ export function CustomerSidebar({
           icon: BarChart3,
           path: "operational-report",
           description: "Comprehensive Operations Report",
+        },
+        {
+          name: "Intra-In-Transit Report",
+          icon: Clock,
+          path: "intra-transit-report",
+          description: "Arrival / Yard In-Out / Departure Times",
         },
       ],
     },

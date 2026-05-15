@@ -359,7 +359,7 @@ const DealerReport = () => {
         <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Arrival at Plant</p>
+              <p className="text-sm font-medium text-gray-600">Arrival at Yard</p>
               <p className="text-2xl font-bold text-gray-900">{statistics.arrivalAtPlant}</p>
               <p className="text-xs text-gray-500 mt-1">Reached destination</p>
             </div>

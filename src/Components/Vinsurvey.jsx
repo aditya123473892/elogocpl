@@ -14,6 +14,7 @@ import {
   ImagePlus,
   FileSearch,
 } from "lucide-react";
+import { getCurrentDateTimeText } from "../utils/dateTimeDefaults";
 
 const yardTerminals = []; // Will be populated from API
 
@@ -21,13 +22,13 @@ const surveyTypes = []; // Will be populated from API
 
 const damageTypes = []; // Will be populated from API
 
-const defaultForm = {
+const createDefaultForm = () => ({
   vinDetails: "",
   yardTerminal: "",
   surveyType: "",
   damageType: "",
-  damageRemarks: "",
-};
+  damageRemarks: getCurrentDateTimeText(),
+});
 
 const SectionHeader = ({ icon: Icon, title, color = "green" }) => (
   <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
@@ -67,7 +68,7 @@ const SelectField = ({ value, onChange, options, placeholder, hasError }) => (
 );
 
 export default function VINSurveyPage() {
-  const [form, setForm] = useState(defaultForm);
+  const [form, setForm] = useState(createDefaultForm);
   const [photos, setPhotos] = useState([]);
   const [saved, setSaved] = useState(false);
   const [errors, setErrors] = useState({});
@@ -231,7 +232,7 @@ export default function VINSurveyPage() {
   };
 
   const handleReset = () => {
-    setForm(defaultForm);
+    setForm(createDefaultForm());
     setPhotos([]);
     setUploadedPhotos([]);
     setErrors({});

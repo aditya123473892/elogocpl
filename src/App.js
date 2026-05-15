@@ -28,10 +28,12 @@ import ASNManagement from "./Pages/ASNupload";
 import ASNReport from "./Pages/ASNReport";
 import OEMPickupPage from "./Pages/Oempickup";
 import PickupWithoutASN from "./Pages/PickupWithoutASN";
+import MobilePickupWithoutASN from "./Pages/MobilePickupWithoutASN";
 import ArrivalAtPlantPage from "./Pages/Arrivalatplant";
 import RakeArrivalPage from "./Pages/RakeArrival";
 import VINSurveyPage from "./Components/Vinsurvey";
 import LoadingStagePage from "./Components/Loadingstage";
+import LastMileYard from "./Components/LastMileYard";
 import LocationMaster from "./Pages/LocationMaster";
 import VehicleMaster from "./Pages/VehicleMaster";
 import DriverMaster from "./Pages/DriverMaster";
@@ -59,7 +61,9 @@ import OperationalReport from "./Pages/OperationalReport";
 import Header from "./Components/dashboard/Header";
 import { terminalMasterAPI } from "./utils/Api";
 import RateContractMaster from "./Pages/RateContractMaster";
-import CustomerMaster from "./Pages/CustomerMaster";  
+import CustomerMaster from "./Pages/CustomerMaster";
+import YardOutReport from "./Pages/YardOutReport";
+import IntraInTransitReport from "./Pages/IntraInTransitReport";  
 
 const DashboardLayout = ({ children }) => {
   const [collapsed, setCollapsed] = useState(false);
@@ -342,6 +346,26 @@ function App() {
             }
           />
           <Route
+            path="/admin/yard-out-report"
+            element={
+              <ProtectedRoute allowedRoles={["Admin"]}>
+                <DashboardLayout>
+                  <YardOutReport />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/intra-transit-report"
+            element={
+              <ProtectedRoute allowedRoles={["Admin"]}>
+                <DashboardLayout>
+                  <IntraInTransitReport />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/admin/vin-survey"
             element={
               <ProtectedRoute allowedRoles={["Admin"]}>
@@ -464,6 +488,14 @@ function App() {
             }
           />
           <Route
+            path="/mobile/pickup-without-asn"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <MobilePickupWithoutASN />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/customer/last-mile-departure"
             element={
               <ProtectedRoute allowedRoles={["Customer"]}>
@@ -529,6 +561,16 @@ function App() {
               <ProtectedRoute allowedRoles={["Customer"]}>
                 <DashboardLayout>
                   <LoadingStagePage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/last-mile-yard"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+                  <LastMileYard />
                 </DashboardLayout>
               </ProtectedRoute>
             }
@@ -603,7 +645,27 @@ function App() {
               </ProtectedRoute>
             }
           />
-                             <Route
+          <Route
+            path="/customer/yard-out-report"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+                  <YardOutReport />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+           />
+          <Route
+            path="/customer/intra-transit-report"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+                  <IntraInTransitReport />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/customer/rake-deaprture"
             element={
               <ProtectedRoute allowedRoles={["Customer"]}>
