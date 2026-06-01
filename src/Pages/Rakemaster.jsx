@@ -17,9 +17,9 @@ const WAGON_TYPE_OPTIONS = ["BOX", "FLAT", "TANKER", "HOPPER", "COVERED", "OPEN"
 const DEFAULT_FORM = {
   Rake_Name: "",
   Owner: "INDIAN RAILWAY",
-  Operator: "INDIAN RAILWAY",
-  Rake_Composition: "27",
-  Max: "27",
+  Operator: "",
+  Rake_Composition: "",
+  Max: "",
   Purchase_Date: "",
   Comm_Date: "",
   ROH_Months: "",
@@ -113,18 +113,10 @@ const RakeMaster = () => {
     const newErrors = {};
     if (!formData.Rake_Name?.toString().trim())
       newErrors.Rake_Name = "Required";
+    if (!formData.Owner?.toString().trim())
+      newErrors.Owner = "Required";
     if (!formData.Rake_Composition?.toString().trim())
       newErrors.Rake_Composition = "Required";
-    if (!formData.Max?.toString().trim()) newErrors.Max = "Required";
-    if (!formData.Purchase_Date) newErrors.Purchase_Date = "Required";
-    if (!formData.Comm_Date) newErrors.Comm_Date = "Required";
-    if (!formData.ROH_Months?.toString().trim())
-      newErrors.ROH_Months = "Required";
-    if (!formData.POH_Months?.toString().trim())
-      newErrors.POH_Months = "Required";
-    if (!formData.Lease_From) newErrors.Lease_From = "Required";
-    if (!formData.Lease_To) newErrors.Lease_To = "Required";
-    if (!formData.Exam_Date) newErrors.Exam_Date = "Required";
     if (!formData.Balance_KM?.toString().trim())
       newErrors.Balance_KM = "Required";
     setErrors(newErrors);
@@ -164,22 +156,22 @@ const RakeMaster = () => {
     setEditingRake(rake);
     setFormData({
       Rake_Name: rake.Rake_Name,
-      Owner: rake.Owner,
-      Operator: rake.Operator,
-      Rake_Composition: String(rake.Rake_Composition),
-      Max: String(rake.Max_Composition),
+      Owner: rake.Owner || "INDIAN RAILWAY",
+      Operator: rake.Operator || "",
+      Rake_Composition: rake.Rake_Composition ? String(rake.Rake_Composition) : "",
+      Max: rake.Max_Composition ? String(rake.Max_Composition) : "",
       Purchase_Date: rake.Purchase_Date ? rake.Purchase_Date.split("T")[0] : "",
       Comm_Date: rake.Comm_Date ? rake.Comm_Date.split("T")[0] : "",
-      ROH_Months: String(rake.ROH_Months),
-      POH_Months: String(rake.POH_Months),
+      ROH_Months: rake.ROH_Months ? String(rake.ROH_Months) : "",
+      POH_Months: rake.POH_Months ? String(rake.POH_Months) : "",
       Lease_From: rake.Lease_From ? rake.Lease_From.split("T")[0] : "",
       Lease_To: rake.Lease_To ? rake.Lease_To.split("T")[0] : "",
-      Lease_Loc: rake.Lease_Loc,
-      Handover_At: rake.Handover_At,
+      Lease_Loc: rake.Lease_Loc || "",
+      Handover_At: rake.Handover_At || "",
       Exam_Date: rake.Exam_Date ? rake.Exam_Date.split("T")[0] : "",
       Balance_KM: String(rake.Balance_KM),
-      Status: rake.Status,
-      Base_Depot: rake.Base_Depot,
+      Status: rake.Status || "Active",
+      Base_Depot: rake.Base_Depot || "",
     });
     if (rake.wagons && rake.wagons.length > 0) {
       setWagons(
@@ -357,12 +349,12 @@ const RakeMaster = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm text-gray-600">
-                        {rake.Rake_Composition} / {rake.Max_Composition}
+                        {rake.Rake_Composition || "-"} / {rake.Max_Composition || "-"}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                        {rake.Base_Depot}
+                        {rake.Base_Depot || "-"}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -441,18 +433,21 @@ const RakeMaster = () => {
                 {/* Owner */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Owner
+                    Owner <span className="text-red-500">*</span>
                   </label>
                   <select
                     name="Owner"
                     value={formData.Owner}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.Owner ? "border-red-300" : "border-gray-300"}`}
                   >
                     <option value="INDIAN RAILWAY">INDIAN RAILWAY</option>
                     <option value="PRIVATE">PRIVATE</option>
                     <option value="CONCOR">CONCOR</option>
                   </select>
+                  {errors.Owner && (
+                    <p className="mt-1 text-sm text-red-600">{errors.Owner}</p>
+                  )}
                 </div>
 
                 {/* Operator */}
@@ -494,7 +489,7 @@ const RakeMaster = () => {
                 {/* Max */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Max <span className="text-red-500">*</span>
+                    Max
                   </label>
                   <input
                     type="number"
@@ -530,7 +525,7 @@ const RakeMaster = () => {
                 {/* Purchase Date */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Purchase Date <span className="text-red-500">*</span>
+                    Purchase Date
                   </label>
                   <input
                     type="date"
@@ -549,7 +544,7 @@ const RakeMaster = () => {
                 {/* Comm Date */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Comm. Date <span className="text-red-500">*</span>
+                    Comm. Date
                   </label>
                   <input
                     type="date"
@@ -568,7 +563,7 @@ const RakeMaster = () => {
                 {/* Exam Date */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Exam Date <span className="text-red-500">*</span>
+                    Exam Date
                   </label>
                   <input
                     type="date"
@@ -587,7 +582,7 @@ const RakeMaster = () => {
                 {/* ROH Months */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    ROH (Months) <span className="text-red-500">*</span>
+                    ROH (Months)
                   </label>
                   <input
                     type="number"
@@ -606,7 +601,7 @@ const RakeMaster = () => {
                 {/* POH Months */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    POH (Months) <span className="text-red-500">*</span>
+                    POH (Months)
                   </label>
                   <input
                     type="number"
@@ -642,7 +637,7 @@ const RakeMaster = () => {
                 {/* Lease From */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Lease From Date  <span className="text-red-500">*</span>
+                    Lease From Date
                   </label>
                   <input
                     type="date"
@@ -661,7 +656,7 @@ const RakeMaster = () => {
                 {/* Lease To */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Lease To date  <span className="text-red-500">*</span>
+                    Lease To date
                   </label>
                   <input
                     type="date"

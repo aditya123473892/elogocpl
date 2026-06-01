@@ -158,7 +158,7 @@ export function CustomerSidebar({
           path: "rake-report",
           description: "Rake Operations Report",
         },
-                {
+        {
           name: "Unified Report",
           icon: FileSpreadsheet,
           path: "unified-report",
@@ -205,7 +205,18 @@ export function CustomerSidebar({
           path: "monthly-report",
           description: "View Monthly Transportation Report",
         },
-     
+        {
+          name: "Invoice Generation",
+          icon: FileText,
+          path: "invoice-generation",
+          description: "Generate and manage invoices",
+        },
+        {
+          name: "SS Invoice",
+          icon: FileText,
+          path: "ss-invoice",
+          description: "SS Invoice management",
+        },
       ],
     },
     {
@@ -240,7 +251,7 @@ export function CustomerSidebar({
           path: "vehicle-master",
           description: "Manage Vehicles",
         },
-         {
+        {
           name: "Vendor Master",
           icon: Package,
           path: "vendors",
@@ -277,7 +288,6 @@ export function CustomerSidebar({
           description: "Customer Management",
         },
       ],
-
     },
   ];
 
@@ -318,7 +328,7 @@ export function CustomerSidebar({
   const handleNavigation = (path) => {
     setActivePage(path);
     navigate(
-      path === "dashboard" ? "/customer-dashboard" : `/customer/${path}`
+      path === "dashboard" ? "/customer-dashboard" : `/customer/${path}`,
     );
     if (mobileMenuOpen) {
       toggleMobileMenu();
@@ -532,7 +542,9 @@ export function CustomerSidebar({
                       </div>
                       <ChevronRight
                         className={`h-5 w-5 relative z-10 transition-transform duration-200 group-hover:translate-x-1 ${
-                          isActiveItem(item.path) ? "text-white" : "text-slate-300"
+                          isActiveItem(item.path)
+                            ? "text-white"
+                            : "text-slate-300"
                         }`}
                       />
                       {isActiveItem(item.path) && (

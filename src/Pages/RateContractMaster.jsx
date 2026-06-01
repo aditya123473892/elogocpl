@@ -1,5 +1,39 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Search, Plus, Edit, Trash2, Calendar, FileText, X, Check } from "lucide-react";
+import { rateContractInvoiceAPI } from "../utils/Api";
+
+const toDateInput = (value) => {
+  if (!value) return "";
+  return new Date(value).toISOString().split("T")[0];
+};
+
+const mapRateItemFromApi = (item, index) => ({
+  id: item.RateContractItemId || index + 1,
+  from_date: toDateInput(item.FromDate),
+  to_date: toDateInput(item.ToDate),
+  service_mode: item.ServiceMode || "---ALL---",
+  wagon_type: item.WagonType || "---Select---",
+  from_location: item.FromLocation || "---ALL---",
+  from_terminal: item.FromTerminal || "---ALL---",
+  to_terminal: item.ToTerminal || "---ALL---",
+  article: item.ItemName || item.ItemDescription || "---ALL---",
+  load_factor: item.LoadFactor || "",
+  base_rate: item.BaseRate || "",
+  contd: item.Contd || "NONE",
+  dic: item.DIC || "",
+  rate: item.Rate || "",
+});
+
+const mapContractFromApi = (contract) => ({
+  id: contract.RateContractId,
+  contract_code: contract.ContractNumber || "",
+  billing_condition: contract.BillingCondition || "",
+  rate_type: contract.RateType || "Public",
+  service: contract.ServiceName || "",
+  customer: contract.PartyName || "",
+  total_amount: contract.TotalAmount || 0,
+  rate_details: contract.items?.map(mapRateItemFromApi) || [],
+});
 
 const RateContractMaster = () => {
   const [contracts, setContracts] = useState([]);
@@ -8,6 +42,7 @@ const RateContractMaster = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("dealer");
   const [message, setMessage] = useState({ type: "", text: "" });
+  const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     contract_code: "",
@@ -38,11 +73,36 @@ const RateContractMaster = () => {
 
   const billingConditions = ["Prepaid", "Postpaid", "Credit", "To Pay"];
   const rateTypes = ["Public", "Private", "Contract"];
-  const services = ["Road Transport", "Rail Transport", "Multimodal", "Warehousing"];
-  const customers = ["Customer A", "Customer B", "Customer C", "Customer D"];
+  const services = useMemo(
+    () => Array.from(new Set(["Road Transport", "Rail Transport", "Multimodal", "Warehousing", ...contracts.map((c) => c.service).filter(Boolean)])),
+    [contracts]
+  );
+  const customers = useMemo(
+    () => Array.from(new Set(["Customer A", "Customer B", "Customer C", "Customer D", ...contracts.map((c) => c.customer).filter(Boolean)])),
+    [contracts]
+  );
   const serviceModes = ["---ALL---", "FTL", "LTL", "Parcel", "Express"];
   const wagonTypes = ["---Select---", "Box", "Flat", "Tanker", "Open", "Covered"];
   const contdOptions = ["NONE", "Yes", "No"];
+
+  const loadContracts = async () => {
+    try {
+      setLoading(true);
+      const response = await rateContractInvoiceAPI.getRateContracts({
+        instituteId: 1,
+        academicYearId: 2025,
+      });
+      setContracts((response.data || []).map(mapContractFromApi));
+    } catch (error) {
+      setMessage({ type: "error", text: error.message || "Failed to load rate contracts" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadContracts();
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -114,7 +174,7 @@ const RateContractMaster = () => {
     setShowModal(false);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     // Validation
     if (!formData.contract_code.trim()) {
@@ -136,37 +196,54 @@ const RateContractMaster = () => {
 
     const contractData = {
       ...formData,
+      instituteId: 1,
+      academicYearId: 2025,
       rate_details: rateDetails,
     };
 
-    if (editingContract) {
-      setContracts(contracts.map(c => c.id === editingContract.id ? contractData : c));
-      setMessage({ type: "success", text: "Rate Contract updated successfully" });
-    } else {
-      setContracts([...contracts, { ...contractData, id: Date.now() }]);
-      setMessage({ type: "success", text: "Rate Contract created successfully" });
+    try {
+      if (editingContract) {
+        await rateContractInvoiceAPI.updateRateContract(editingContract.id, contractData);
+        setMessage({ type: "success", text: "Rate Contract updated successfully" });
+      } else {
+        await rateContractInvoiceAPI.createRateContract(contractData);
+        setMessage({ type: "success", text: "Rate Contract created successfully" });
+      }
+      await loadContracts();
+      resetForm();
+    } catch (error) {
+      setMessage({ type: "error", text: error.message || "Failed to save rate contract" });
     }
-
-    resetForm();
   };
 
-  const handleEdit = (contract) => {
-    setEditingContract(contract);
-    setFormData({
-      contract_code: contract.contract_code,
-      billing_condition: contract.billing_condition,
-      rate_type: contract.rate_type,
-      service: contract.service,
-      customer: contract.customer,
-    });
-    setRateDetails(contract.rate_details || []);
-    setShowModal(true);
+  const handleEdit = async (contract) => {
+    try {
+      const response = await rateContractInvoiceAPI.getRateContractById(contract.id);
+      const mapped = mapContractFromApi(response.data);
+      setEditingContract(mapped);
+      setFormData({
+        contract_code: mapped.contract_code,
+        billing_condition: mapped.billing_condition,
+        rate_type: mapped.rate_type,
+        service: mapped.service,
+        customer: mapped.customer,
+      });
+      setRateDetails(mapped.rate_details.length ? mapped.rate_details : rateDetails);
+      setShowModal(true);
+    } catch (error) {
+      setMessage({ type: "error", text: error.message || "Failed to load rate contract details" });
+    }
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this rate contract?")) {
-      setContracts(contracts.filter(c => c.id !== id));
-      setMessage({ type: "success", text: "Rate Contract deleted successfully" });
+      try {
+        await rateContractInvoiceAPI.deleteRateContract(id);
+        await loadContracts();
+        setMessage({ type: "success", text: "Rate Contract deleted successfully" });
+      } catch (error) {
+        setMessage({ type: "error", text: error.message || "Failed to delete rate contract" });
+      }
     }
   };
 
@@ -240,7 +317,7 @@ const RateContractMaster = () => {
             <div className="p-8 text-center">
               <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
               <p className="text-gray-600">
-                {searchTerm ? "No contracts found matching your search" : "No rate contracts found"}
+                {loading ? "Loading rate contracts..." : searchTerm ? "No contracts found matching your search" : "No rate contracts found"}
               </p>
             </div>
           ) : (

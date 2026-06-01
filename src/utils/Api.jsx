@@ -782,6 +782,80 @@ export { api };
 
 export default api;
 
+export const rateContractInvoiceAPI = {
+  getRateContracts: async (params = {}) => {
+    try {
+      const response = await api.get("/rate-contracts", { params });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  getRateContractById: async (id) => {
+    try {
+      const response = await api.get(`/rate-contracts/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  createRateContract: async (data) => {
+    try {
+      const response = await api.post("/rate-contracts", data);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  updateRateContract: async (id, data) => {
+    try {
+      const response = await api.put(`/rate-contracts/${id}`, data);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  deleteRateContract: async (id) => {
+    try {
+      const response = await api.delete(`/rate-contracts/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  getInvoices: async (params = {}) => {
+    try {
+      const response = await api.get("/invoices", { params });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  getInvoiceById: async (id) => {
+    try {
+      const response = await api.get(`/invoices/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  createInvoice: async (data) => {
+    try {
+      const response = await api.post("/invoices", data);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+};
+
 
 
 export const locationAPI = {

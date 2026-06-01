@@ -6,7 +6,6 @@ import {
   RefreshCw,
   ChevronDown,
   CheckCircle,
-  LogIn,
   ArrowRight,
   Package,
   X,
@@ -15,12 +14,14 @@ import {
   FileSpreadsheet,
 } from "lucide-react";
 import { loadingStageAPI } from "../utils/Api";
+import * as XLSX from "xlsx";
 
 const defaultForm = {
   loadingStation: "",
   operationType: "Yard Out",
   vinDetails: "",
   fnrNo: "",
+  rakeIdAgainstFnrNo: "",
   rakeNo: "",
   deckPosition: "",
   wagonNo: "",
@@ -59,7 +60,7 @@ const SelectField = ({ value, onChange, options, placeholder, hasError, disabled
     >
       <option value="" disabled>{placeholder}</option>
       {options.map((o) => (
-        <option key={o.value} value={o.value}>
+        <option key={o.value} value={o.value} disabled={o.disabled}>
           {o.label}
         </option>
       ))}
@@ -73,6 +74,27 @@ const parseVINs = (raw) =>
     .split(/[\s,\n]+/)
     .map((v) => v.trim().toUpperCase())
     .filter((v) => v.length > 0);
+
+const normalizeWagonNo = (wagonNo) =>
+  String(wagonNo || "")
+    .replace(/^\s*\d+\s*[.)-]?\s*/, "")
+    .trim()
+    .toUpperCase();
+
+const parseWagonNumbers = (raw) => {
+  if (!raw) return [];
+
+  const normalizedText = String(raw).toUpperCase();
+  const wagonMatches = normalizedText.match(/[A-Z]+[0-9]{6}/g);
+
+  if (wagonMatches?.length) {
+    return Array.from(new Set(wagonMatches));
+  }
+
+  const tokens = normalizedText.split(/[\s,;]+/).map(normalizeWagonNo).filter(Boolean);
+
+  return Array.from(new Set(tokens));
+};
 
 export default function LoadingStagePage() {
   const [form, setForm] = useState(defaultForm);
@@ -91,6 +113,11 @@ export default function LoadingStagePage() {
   const [bulkSaving, setBulkSaving] = useState(false);
   const [bulkSaved, setBulkSaved] = useState(false);
   const fileInputRef = useRef(null);
+  const wagonFileInputRef = useRef(null);
+  const [wagonText, setWagonText] = useState("");
+  const [wagonOptions, setWagonOptions] = useState([]);
+  const [wagonFileName, setWagonFileName] = useState("");
+  const [submittedWagons, setSubmittedWagons] = useState([]);
 
   useEffect(() => {
     const fetchTerminals = async () => {
@@ -118,19 +145,39 @@ export default function LoadingStagePage() {
     fetchTerminals();
   }, []);
 
+  useEffect(() => {
+    const fetchSubmittedWagons = async () => {
+      try {
+        const response = await loadingStageAPI.getAllLoadingStages();
+        const records = response.data || response || [];
+        const used = records
+          .filter((record) => record.Operation_Type === "Yard Out" && record.Status !== "Deleted")
+          .map((record) => normalizeWagonNo(record.Wagon_No))
+          .filter(Boolean);
+        setSubmittedWagons(Array.from(new Set(used)));
+      } catch (error) {
+        console.error("Error fetching submitted wagons:", error);
+      }
+    };
+
+    fetchSubmittedWagons();
+  }, []);
+
   const set = (field) => (val) =>
     setForm((prev) => ({ ...prev, [field]: typeof val === "string" ? val : val.target.value }));
 
   const scannedVINs = parseVINs(form.vinDetails);
+  const selectedWagonSubmitted =
+    form.wagonNo && submittedWagons.includes(normalizeWagonNo(form.wagonNo));
 
   const validate = () => {
     const errs = {};
     if (!form.loadingStation) errs.loadingStation = true;
     if (!form.vinDetails.trim()) errs.vinDetails = true;
     if (!form.fnrNo.trim()) errs.fnrNo = true;
+    if (!form.rakeIdAgainstFnrNo.trim()) errs.rakeIdAgainstFnrNo = true;
     if (!form.rakeNo.trim()) errs.rakeNo = true;
-    if (!form.deckPosition.trim()) errs.deckPosition = true;
-    if (!form.wagonNo.trim()) errs.wagonNo = true;
+    if (selectedWagonSubmitted) errs.wagonNoSubmitted = true;
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -146,6 +193,7 @@ export default function LoadingStagePage() {
         operationType: "Yard Out",
         vinDetails: form.vinDetails,
         fnrNo: form.fnrNo,
+        rakeIdAgainstFnrNo: form.rakeIdAgainstFnrNo,
         rakeNo: form.rakeNo,
         deckPosition: form.deckPosition,
         wagonNo: form.wagonNo,
@@ -155,6 +203,9 @@ export default function LoadingStagePage() {
       
       if (response.success) {
         setSaved(true);
+        setSubmittedWagons((prev) =>
+          Array.from(new Set([...prev, normalizeWagonNo(form.wagonNo)].filter(Boolean)))
+        );
         setForm(defaultForm);
         setErrors({});
         setTimeout(() => setSaved(false), 5000);
@@ -173,6 +224,60 @@ export default function LoadingStagePage() {
     setForm(defaultForm);
     setErrors({});
     setSaved(false);
+  };
+
+  const applyWagonText = (text) => {
+    const wagons = parseWagonNumbers(text);
+    setWagonOptions(wagons);
+    if (wagons.length > 0) {
+      const firstOpenWagon = wagons.find((wagon) => !submittedWagons.includes(wagon));
+      set("wagonNo")(firstOpenWagon || "");
+    }
+  };
+
+  const handleWagonTextChange = (event) => {
+    const value = event.target.value;
+    setWagonText(value);
+    applyWagonText(value);
+  };
+
+  const handleWagonFileUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setWagonFileName(file.name);
+
+    try {
+      const extension = file.name.split(".").pop()?.toLowerCase();
+
+      if (["xlsx", "xls"].includes(extension)) {
+        const buffer = await file.arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false });
+        const text = rows.flat().filter(Boolean).join("\n");
+        setWagonText(text);
+        applyWagonText(text);
+        return;
+      }
+
+      const text = await file.text();
+      setWagonText(text);
+      applyWagonText(text);
+    } catch (error) {
+      console.error("Error reading wagon file:", error);
+      alert("Could not read wagon file. Please upload an Excel, CSV, or text file.");
+    }
+  };
+
+  const clearWagons = () => {
+    setWagonText("");
+    setWagonOptions([]);
+    setWagonFileName("");
+    set("wagonNo")("");
+    if (wagonFileInputRef.current) {
+      wagonFileInputRef.current.value = "";
+    }
   };
 
   // CSV parsing function
@@ -209,8 +314,8 @@ export default function LoadingStagePage() {
 
   // Download CSV template
   const downloadCSVTemplate = () => {
-    const headers = ['LoadingStation', 'OperationType', 'VINDetails', 'FNRNo', 'RakeNo', 'DeckPosition', 'WagonNo'];
-    const sampleRow = ['1', 'Yard Out', 'VIN1,VIN2,VIN3', 'FNR001', 'RAKE001', 'DECK1', 'WAGON1'];
+    const headers = ['LoadingStation', 'OperationType', 'VINDetails', 'FNRNo', 'RakeIdAgainstFNRNo', 'RakeNo', 'DeckPosition', 'WagonNo'];
+    const sampleRow = ['1', 'Yard Out', 'VIN1,VIN2,VIN3', 'FNR001', 'RID001', 'RAKE001', 'DECK1', 'WAGON1'];
     const csvContent = [headers.join(','), sampleRow.join(',')].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -640,9 +745,26 @@ export default function LoadingStagePage() {
                   )}
                 </div>
 
+                {/* Rake ID against FNR No. */}
+                <div>
+                  <FieldLabel required>Rake ID against FNR No.</FieldLabel>
+                  <input
+                    type="text"
+                    value={form.rakeIdAgainstFnrNo}
+                    onChange={set("rakeIdAgainstFnrNo")}
+                    placeholder="Enter Rake ID against FNR No."
+                    className={fc("rakeIdAgainstFnrNo")}
+                  />
+                  {errors.rakeIdAgainstFnrNo && (
+                    <p className="text-xs text-red-500 mt-1">
+                      Rake ID against FNR No. is required for Yard Out
+                    </p>
+                  )}
+                </div>
+
                 {/* Deck Position */}
                 <div>
-                  <FieldLabel required>Deck Position</FieldLabel>
+                  <FieldLabel>Deck Position</FieldLabel>
                   <input
                     type="text"
                     value={form.deckPosition}
@@ -659,18 +781,84 @@ export default function LoadingStagePage() {
 
                 {/* Wagon No. */}
                 <div>
-                  <FieldLabel required>Wagon No.</FieldLabel>
-                  <input
-                    type="text"
-                    value={form.wagonNo}
-                    onChange={set("wagonNo")}
-                    placeholder="Enter Wagon number"
-                    className={fc("wagonNo")}
-                  />
+                  <FieldLabel>Wagon No.</FieldLabel>
+                  {wagonOptions.length > 0 ? (
+                    <SelectField
+                      value={form.wagonNo}
+                      onChange={set("wagonNo")}
+                      options={wagonOptions.map((wagon) => ({
+                        value: wagon,
+                        label: submittedWagons.includes(wagon) ? `${wagon} (submitted)` : wagon,
+                        disabled: submittedWagons.includes(wagon),
+                      }))}
+                      placeholder="Select Wagon number"
+                      hasError={!!errors.wagonNo || !!errors.wagonNoSubmitted}
+                    />
+                  ) : (
+                    <input
+                      type="text"
+                      value={form.wagonNo}
+                      onChange={(event) => set("wagonNo")(normalizeWagonNo(event.target.value))}
+                      placeholder="Enter Wagon number"
+                      className={fc("wagonNo")}
+                    />
+                  )}
                   {errors.wagonNo && (
                     <p className="text-xs text-red-500 mt-1">Wagon No. is required for Yard Out</p>
                   )}
+                  {errors.wagonNoSubmitted && (
+                    <p className="text-xs text-red-500 mt-1">
+                      This wagon has already been submitted for Yard Out
+                    </p>
+                  )}
                 </div>
+              </div>
+
+              <div className="mt-5 border-t border-gray-100 pt-5">
+                <FieldLabel>Upload or Paste Wagon Numbers</FieldLabel>
+                <div className="grid grid-cols-2 gap-5">
+                  <div>
+                    <input
+                      type="file"
+                      ref={wagonFileInputRef}
+                      accept=".xlsx,.xls,.csv,.txt"
+                      onChange={handleWagonFileUpload}
+                      className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    />
+                    {wagonFileName && (
+                      <p className="mt-2 text-xs text-green-600 font-medium">
+                        Loaded {wagonFileName}
+                      </p>
+                    )}
+                    <p className="mt-2 text-xs text-gray-400">
+                      Excel, CSV, or text. Values like 1.WCX971046 are supported.
+                    </p>
+                  </div>
+                  <div>
+                    <textarea
+                      value={wagonText}
+                      onChange={handleWagonTextChange}
+                      rows={4}
+                      placeholder={"1.WCX971046\n2.SRX924032\n3.NEX923470"}
+                      className={`${inputClass} resize-none`}
+                    />
+                  </div>
+                </div>
+                {wagonOptions.length > 0 && (
+                  <div className="mt-3 flex items-center justify-between text-xs">
+                    <span className="font-medium text-gray-600">
+                      {wagonOptions.length} wagon{wagonOptions.length !== 1 ? "s" : ""} available in dropdown,{" "}
+                      {submittedWagons.filter((wagon) => wagonOptions.includes(wagon)).length} already submitted
+                    </span>
+                    <button
+                      type="button"
+                      onClick={clearWagons}
+                      className="text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      Clear wagon list
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -705,6 +893,12 @@ export default function LoadingStagePage() {
                     {form.rakeNo && (
                       <span className="text-xs text-gray-600">
                         <span className="font-semibold text-gray-800">Rake No.:</span> {form.rakeNo}
+                      </span>
+                    )}
+                    {form.rakeIdAgainstFnrNo && (
+                      <span className="text-xs text-gray-600">
+                        <span className="font-semibold text-gray-800">Rake ID against FNR No.:</span>{" "}
+                        {form.rakeIdAgainstFnrNo}
                       </span>
                     )}
                     {form.deckPosition && (

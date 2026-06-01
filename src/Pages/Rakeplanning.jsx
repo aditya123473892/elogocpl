@@ -217,20 +217,6 @@ const RakePlanning = () => {
 
     if (!formData.Rake_Name) newErrors.Rake_Name = "Rake name is required";
 
-    if (!formData.Base_Depot) newErrors.Base_Depot = "Base depot is required";
-
-    if (!formData.Rake_Operator) newErrors.Rake_Operator = "Rake operator is required";
-
-    if (!formData.Haulage_Paid_By) newErrors.Haulage_Paid_By = "Haulage paid by is required";
-
-    if (!formData.Trip_No.trim()) newErrors.Trip_No = "Trip number is required";
-
-    if (!formData.Route) newErrors.Route = "Route is required";
-
-    if (!formData.Plan_Type) newErrors.Plan_Type = "Plan type is required";
-
-    if (!formData.Device_ID || formData.Device_ID === "Select") newErrors.Device_ID = "Device ID is required";
-
     if (!formData.Rake_Owner) newErrors.Rake_Owner = "Rake owner is required";
 
     setErrors(newErrors);
@@ -791,7 +777,7 @@ const RakePlanning = () => {
 
                   <label className="block text-sm font-medium text-gray-700 mb-2">
 
-                    Base Depot <span className="text-red-500">*</span>
+                    Base Depot
 
                   </label>
 
@@ -828,7 +814,7 @@ const RakePlanning = () => {
 
                   <label className="block text-sm font-medium text-gray-700 mb-2">
 
-                    Rake Operator <span className="text-red-500">*</span>
+                    Rake Operator
 
                   </label>
 
@@ -858,49 +844,13 @@ const RakePlanning = () => {
 
 
 
-                {/* Haulage Paid By */}
-
-                <div>
-
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-
-                    Haulage Paid By <span className="text-red-500">*</span>
-
-                  </label>
-
-                  <select
-
-                    name="Haulage_Paid_By"
-
-                    value={formData.Haulage_Paid_By}
-
-                    onChange={handleInputChange}
-
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.Haulage_Paid_By ? "border-red-300" : "border-gray-300"}`}
-
-                  >
-
-                    <option value="Owner">Owner</option>
-
-                    <option value="Operator">Operator</option>
-
-                    <option value="Customer">Customer</option>
-
-                  </select>
-
-                  {errors.Haulage_Paid_By && <p className="mt-1 text-sm text-red-600">{errors.Haulage_Paid_By}</p>}
-
-                </div>
-
-
-
                 {/* Trip No */}
 
                 <div>
 
                   <label className="block text-sm font-medium text-gray-700 mb-2">
 
-                    Trip No <span className="text-red-500">*</span>
+                    Trip No
 
                   </label>
 
@@ -932,7 +882,7 @@ const RakePlanning = () => {
 
                   <label className="block text-sm font-medium text-gray-700 mb-2">
 
-                    Route <span className="text-red-500">*</span>
+                    Route
 
                   </label>
 
@@ -959,44 +909,6 @@ const RakePlanning = () => {
                   </select>
 
                   {errors.Route && <p className="mt-1 text-sm text-red-600">{errors.Route}</p>}
-
-                </div>
-
-
-
-                {/* Sub Route */}
-
-                <div>
-
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Sub Route</label>
-
-                  <select
-
-                    name="Sub_Route"
-
-                    value={formData.Sub_Route}
-
-                    onChange={handleInputChange}
-
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-
-                    disabled={!formData.Route}
-
-                  >
-
-                    {formData.Route ? (
-                      availableSubRoutes.length > 0 ? (
-                        availableSubRoutes.map((subRoute, index) => (
-                          <option key={index} value={subRoute}>{subRoute}</option>
-                        ))
-                      ) : (
-                        <option value="Main Route">No Subroutes</option>
-                      )
-                    ) : (
-                      <option value="">Select Route First</option>
-                    )}
-
-                  </select>
 
                 </div>
 
@@ -1044,7 +956,7 @@ const RakePlanning = () => {
 
                   <label className="block text-sm font-medium text-gray-700 mb-2">
 
-                    Plan Type <span className="text-red-500">*</span>
+                    Plan Type
 
                   </label>
 
@@ -1080,7 +992,7 @@ const RakePlanning = () => {
 
                   <label className="block text-sm font-medium text-gray-700 mb-2">
 
-                    Device ID <span className="text-red-500">*</span>
+                    Device ID
 
                   </label>
 

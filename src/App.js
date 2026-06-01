@@ -63,30 +63,38 @@ import { terminalMasterAPI } from "./utils/Api";
 import RateContractMaster from "./Pages/RateContractMaster";
 import CustomerMaster from "./Pages/CustomerMaster";
 import YardOutReport from "./Pages/YardOutReport";
-import IntraInTransitReport from "./Pages/IntraInTransitReport";  
+import IntraInTransitReport from "./Pages/IntraInTransitReport";
+import InvoiceGeneration from "./Pages/Invoicegeneration";
+import SSInvoice from "./Pages/SSInvoice";
 
 const DashboardLayout = ({ children }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [activePage, setActivePage] = useState("dashboard");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  
+
   // Header states
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [terminals, setTerminals] = useState([]);
-  
+
   const { user, logout, selectedLocation } = useAuth();
-  
+
   // Debug logging
-  console.log('DashboardLayout - selectedLocation from AuthContext:', selectedLocation);
+  console.log(
+    "DashboardLayout - selectedLocation from AuthContext:",
+    selectedLocation,
+  );
 
   // Load terminals
   useEffect(() => {
     const loadTerminals = async () => {
       try {
         const data = await terminalMasterAPI.getAllTerminals();
-        console.log('DashboardLayout - Terminals API response:', data);
-        console.log('DashboardLayout - Terminals data array:', data.data);
-        console.log('DashboardLayout - First terminal structure:', data.data?.[0]);
+        console.log("DashboardLayout - Terminals API response:", data);
+        console.log("DashboardLayout - Terminals data array:", data.data);
+        console.log(
+          "DashboardLayout - First terminal structure:",
+          data.data?.[0],
+        );
         setTerminals(data.data || []);
       } catch (error) {
         console.error("Failed to load terminals:", error);
@@ -102,11 +110,11 @@ const DashboardLayout = ({ children }) => {
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
   };
-  
+
   const toggleUserMenu = () => {
     setShowUserMenu(!showUserMenu);
   };
-  
+
   const handleLogout = () => logout();
 
   const sidebarProps = {
@@ -142,7 +150,7 @@ const DashboardLayout = ({ children }) => {
           selectedLocation={selectedLocation}
           terminals={terminals}
         />
-        
+
         <div className="p-6">{React.cloneElement(children, sidebarProps)}</div>
       </main>
     </div>
@@ -428,6 +436,26 @@ function App() {
             }
           />
           <Route
+            path="/customer/ss-invoice"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+                  <SSInvoice />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/invoice-generation"
+            element={
+              <ProtectedRoute allowedRoles={["Customer"]}>
+                <DashboardLayout>
+                  <InvoiceGeneration />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/customer/monthly-report"
             element={
               <ProtectedRoute allowedRoles={["Customer"]}>
@@ -585,12 +613,12 @@ function App() {
               </ProtectedRoute>
             }
           />
-                <Route
+          <Route
             path="/customer/rakeplanning"
             element={
               <ProtectedRoute allowedRoles={["Customer"]}>
                 <DashboardLayout>
-              <RakePlanning />
+                  <RakePlanning />
                 </DashboardLayout>
               </ProtectedRoute>
             }
@@ -605,7 +633,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-                   <Route
+          <Route
             path="/customer/article-master"
             element={
               <ProtectedRoute allowedRoles={["Customer"]}>
@@ -654,7 +682,7 @@ function App() {
                 </DashboardLayout>
               </ProtectedRoute>
             }
-           />
+          />
           <Route
             path="/customer/intra-transit-report"
             element={
@@ -725,12 +753,12 @@ function App() {
               </ProtectedRoute>
             }
           />
-                   <Route
+          <Route
             path="/customer/Route-Master"
             element={
               <ProtectedRoute allowedRoles={["Customer"]}>
                 <DashboardLayout>
-                <RouteMaster />
+                  <RouteMaster />
                 </DashboardLayout>
               </ProtectedRoute>
             }

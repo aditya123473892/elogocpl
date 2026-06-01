@@ -26,6 +26,7 @@ const YardOutReport = () => {
       filtered = filtered.filter(record =>
         record.VIN_Number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         record.FNR_No?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        record.Rake_ID_Against_FNR_No?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         record.Rake_No?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         record.Deck_Position?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         record.Wagon_No?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -64,7 +65,7 @@ const YardOutReport = () => {
 
   const exportToCSV = () => {
     const headers = [
-      "VIN Number", "FNR No", "Rake No", "Deck Position", "Wagon No",
+      "VIN Number", "FNR No", "Rake ID against FNR No", "Rake No", "Deck Position", "Wagon No",
       "Loading Station", "Terminal Code", "Yard Out Date", "Load No", "Trip No",
       "Invoice No", "Invoice Date", "Destination City", "Production Model",
       "GR Number", "Engine No", "Sales Model", "Dealer Name", "Location",
@@ -76,6 +77,7 @@ const YardOutReport = () => {
       ...filteredRecords.map(record => [
         record.VIN_Number || "",
         record.FNR_No || "",
+        record.Rake_ID_Against_FNR_No || "",
         record.Rake_No || "",
         record.Deck_Position || "",
         record.Wagon_No || "",
@@ -222,6 +224,9 @@ const YardOutReport = () => {
                   Rake No
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Rake ID against FNR No
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Deck Position
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -247,7 +252,7 @@ const YardOutReport = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredRecords.length === 0 ? (
                 <tr>
-                  <td colSpan="10" className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan="11" className="px-6 py-12 text-center text-gray-500">
                     <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-lg font-medium">No Yard Out records found</p>
                     <p className="text-sm">
@@ -273,6 +278,11 @@ const YardOutReport = () => {
                     <td className="px-4 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-600">
                         {record.Rake_No || "-"}
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-600">
+                        {record.Rake_ID_Against_FNR_No || "-"}
                       </div>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
@@ -364,6 +374,10 @@ const YardOutReport = () => {
                       <div>
                         <label className="text-xs font-medium text-gray-500">Rake No</label>
                         <p className="text-sm text-gray-900 font-semibold">{selectedRecord.Rake_No || "-"}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-500">Rake ID against FNR No</label>
+                        <p className="text-sm text-gray-900 font-semibold">{selectedRecord.Rake_ID_Against_FNR_No || "-"}</p>
                       </div>
                       <div>
                         <label className="text-xs font-medium text-gray-500">Deck Position</label>

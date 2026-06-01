@@ -263,8 +263,6 @@ const RakeVisit = () => {
     
     // Basic validation
     const newErrors = {};
-    if (!formData.IB_TRAIN_NO) newErrors.IB_TRAIN_NO = "IB Train No is required";
-    if (!formData.TERMINAL_ID) newErrors.TERMINAL_ID = "Terminal ID is required";
     if (!formData.RAKE_ID) newErrors.RAKE_ID = "Rake ID is required";
     
     if (Object.keys(newErrors).length > 0) {
@@ -576,7 +574,7 @@ const RakeVisit = () => {
                     {/* Basic Information */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        IB Train No *
+                        IB Train No
                       </label>
                       <input
                         type="text"
@@ -586,7 +584,6 @@ const RakeVisit = () => {
                         className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                           errors.IB_TRAIN_NO ? 'border-red-500' : 'border-gray-300'
                         }`}
-                        required
                       />
                       {errors.IB_TRAIN_NO && (
                         <p className="mt-1 text-sm text-red-600">{errors.IB_TRAIN_NO}</p>
@@ -608,7 +605,7 @@ const RakeVisit = () => {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Terminal ID *
+                        Terminal ID
                       </label>
                       <input
                         type="number"
@@ -618,7 +615,6 @@ const RakeVisit = () => {
                         className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                           errors.TERMINAL_ID ? 'border-red-500' : 'border-gray-300'
                         }`}
-                        required
                       />
                       {errors.TERMINAL_ID && (
                         <p className="mt-1 text-sm text-red-600">{errors.TERMINAL_ID}</p>
